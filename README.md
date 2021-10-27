@@ -12,7 +12,7 @@
 
 With this project, you will try to save human lives, in simulation... Teach a swarm of drones how to behave to save a maximum of injured people in a minimum of time !
 
-Your job will be to propose your own version of the controller of the drone. In a competition, each participating team will do the same, the winner will be the one who gets the most points based on several criteria: speed, quality of exploration, number of injured saved, number of drones returned, etc. 
+Your job will be to propose your own version of the controller of the drone. In a competition, each participating team will perform on a new unknown map, the winner will be the one who gets the most points based on several criteria: speed, quality of exploration, number of injured people saved, number of drones returned, etc. 
 
 *Swarm-Rescue* is the environment that simulates the drones and that describes the maps used, the drones and the different elements of the map.
 
@@ -24,7 +24,7 @@ Each team will have a fleet of 20 drones. Each drone will be equipped with commu
 
 Your job is to make these drones completely autonomous by programming them in *Python*.
 
-The drones will have to manage the limited range of the communication means, collaborate between them to acquire information and re-transmit it to an operator outside the zone, be able to manage sensor and communication means failures and unforeseen events such as the loss of drones in order to conduct this mission in autonomous mode.
+The drones will have to manage the limited range of the communication means, collaborate between them to acquire information and re-transmit it to an operator outside the zone, be able to manage sensor and communication means failures and unforeseen events such as the loss of drones in order to conduct this mission autonomously.
 
 The work on the challenge will be done exclusively in this simulation environment, with maps of increasing complexity. The final evaluation will be done on an unknown map made available to each team at the time of the demonstration. Every proposition will be tested on a same computer and a score related to the performance will be computed.
 
@@ -32,58 +32,38 @@ The Challenge does not require any particular technical skills (beyond basic kno
 
 ## Score 
 
-Depending on the scenario to be treated, the score calculation can be slightly modified.
+Depending on the scenario evolution before the final evaluation, the score calculation may be slightly modified.
 
-First, the performance of your algorithms will be stopped after a while. There are two time limits :
-- step time limit : a number of loops in the simulation
-- real time limit : a limit in minutes, depending of the map : 2 to 5 minutes.
+First, the execution of your algorithms will be stopped after a while. There are two time limits :
+- time step limit : a number of loops in the simulation
+- real time limit : a limit in minutes, depending of the map and the computer speed : 2 to 5 minutes.
 
-When the first limit is reached, the game is over.
-
-If your algorithm is fast, you will reach the "step time limit" before.
-
-If your algorithm is too slow, you will reach the "real time limit" before.
+When the first limit is reached, the game is over. If your algorithm is fast, you will reach the "step time limit" first. If your algorithm is too slow, you will reach the "real time limit" before the "time step limit" .
 
 To calculate the score, the following elements will be taken into account:
-- the part of the territory mapped : you have to explore a maximum of the map
+- the part of the territory explored : you have to explore a maximum of the map
 - the number of fixed targets detected, brought back to the base, 
 - the number of mobile targets detected, brought back to the base.
 
-If all the targets are brought back to base and all the map is explored, the speed in "step time" will be taking account.
+If all the targets are brought back to base and all the map is explored, the speed in "time step" will be taken into account.
 
 # Simple-Playgrounds 
 
-This program *Swarm-Rescue* is strongly related to the *Simple-Playgrounds* (SPG) software library: https://github.com/mgarciaortiz/simple-playgrounds.
-
-But for the moment, in the installation of *Swarm-Rescue*, it is the branch *swarm-rescue* of a fork of *Simple-Playgrounds* that is used: https://github.com/embaba/simple-playgrounds.
+This program *Swarm-Rescue* is an extension of the *Simple-Playgrounds* (SPG) software library: https://github.com/mgarciaortiz/simple-playgrounds. However, in the current installation of *Swarm-Rescue*, it is the branch *swarm-rescue* of a fork of *Simple-Playgrounds* that is used: https://github.com/embaba/simple-playgrounds.
 
 It is recommended to read the documentation of *Simple-Playgrounds*.
 
-*Simple-Playgrounds* is an easy-to-use, fast and flexible simulation environment. It bridges the gap between simple and efficient grid environments, and complex and challenging 3D environments.
-
-This simulator proposes a huge diversity of environments for embodied drones learning through physical interactions.
-
-The playgrounds are 2D environments where drones can move around and interact with scene elements. 
+*Simple-Playgrounds* is an easy-to-use, fast and flexible simulation environment. It bridges the gap between simple and efficient grid environments, and complex and challenging 3D environments. It proposes a large diversity of environments for embodied drones learning through physical interactions. The playgrounds are 2D environments where drones can move around and interact with scene elements. 
 
 The game engine, based on [Pymunk](http://www.pymunk.org) and [Pygame](https://www.pygame.org), deals with simple physics, such as collision and friction. Drones can act through continuous movements and discrete interactive actions. They perceive the scene with realistic first-person view sensors, top-down view sensors, and semantic sensors. 
 
 ## Game Engine
 
-In *Simple-Playgrounds*, the game engine used is *Pygame*.
-
-Drones enter a Playground, and start acting and perceiving within this environment.
-
-The perception/action/communication loop is managed by the game engine.
-
-At each time step, all perception is acquired, all communication are done. Then according to actions to do, drones are moved.
-
-Everything is synchronized, unlike what you would get on a real robot.
+In *Simple-Playgrounds*, the game engine used is *Pygame*. Drones enter a Playground, and start acting and perceiving within this environment. The perception/action/communication loop is managed by the game engine. At each time step, all perception is acquired, all communication are done. Then according to actions to do, drones are moved. Everything is synchronized, unlike what you would get on a real robot.
 
 ## Physics Engine
 
-In *Simple-Playgrounds*, the 2d physics library *Pymunk* is used.
-
-The physic engine deals with simple physics, such as collision and friction. This give a mass and inertia to all objects.
+In *Simple-Playgrounds*, the 2d physics library *Pymunk* is used. The physic engine deals with simple physics, such as collision and friction. This give a mass and inertia to all objects.
 
 
 # Installation
@@ -195,7 +175,7 @@ For example, you can use *PyCharm*. In this case, you have to set your *interpre
 
 ## Drones
 
-Drones is a version of what we call **agent** in *Simple-Playgrounds*.
+Drones is a version of what is called **agent** in *Simple-Playgrounds*.
 Drones are composed of different body parts attached to a *Base*.
 
 The actuators controlling the base and body parts are managed by a controller.
@@ -272,26 +252,13 @@ This value *grasp*  is either 0 or 1.
 
 Drones act and perceive in a *Playground*. 
 
-A *playground* is composed of scene elements, which can be fixed or movable.
-
-A drone can grasp or activate certain scene elements.
-
-Depending on their nature, particular scene elements will provide reward to the drone interacting with them.
-
-The playground with all its elements, except for the drones, can be called "Map" within this *Swarm-Rescue* depository.
+A *playground* is composed of scene elements, which can be fixed or movable. A drone can grasp or activate certain scene elements. Depending on their nature, particular scene elements will provide reward to the drone interacting with them. The playground with all its elements, except for the drones, are called "Map" within this *Swarm-Rescue* repository.
 
 ### Coordinate System
 
 A playground is described using a Cartesian coordinate system. 
 
-Each element has a position (x,y, theta), 
-with x along the horizontal axis, y along the vertical axis, and theta the orientation in radians, aligned on the horizontal axis.
-
-The value of theta is between 0 an 2*Pi. Theta increases with a clockwise rotation of the drone. For theta = 0, the drone is oriented towards the right.
-
-A playground has a size [width, length], with the width along x-axis, and length along y-axis.
-
-When applicable, the length of a scene element follows the element's x-axis.
+Each element has a position (x,y, theta), with x along the horizontal axis, y along the vertical axis, and theta the orientation in radians, aligned on the horizontal axis. The value of theta is between 0 an 2*Pi. Theta increases with a clockwise rotation of the drone. For theta = 0, the drone is oriented towards the right. A playground has a size [width, length], with the width along x-axis, and length along y-axis. When applicable, the length of a scene element follows the element's x-axis.
 
 ## Wounded Person
 
@@ -301,9 +268,9 @@ The drones must approach them, *grasped* them and take them to the rescue center
 
 ## Rescue Center
 
-*Rescue Center* is a orange element in the map where the drones should bring the *Wounded Person*.
+*Rescue Center* is an orange element in the map where the drones should bring the *Wounded Person*.
 
-A award is given to a drone each time it give a *Wounded Person* to the *Rescue Center*.
+A reward is given to a drone each time it give a *Wounded Person* to the *Rescue Center*.
 
 ## Special zones
 
@@ -335,7 +302,7 @@ This zone cannot be detected by the drone.
 
 launcher.py is the main program file. This file will run everything needed to perform the evaluation.
 
-It will launch the 20 drones that we will have customized in the map that we want, make it work and give the final score.
+It will launch the 20 drones that you will have customized in the map that you want, make it run and give the final score.
 
 This file needs almost no modification to work, except those lines at the beginning of the file:
 
@@ -386,7 +353,7 @@ In this directory, you may find some tools... For example, the program *wall_fro
 
 ## Submission
 
-At the end, you will have to submit your solution to your evaluator. The evaluator of your code will have this same software to evaluate your code.
+At the end, you will have to submit your solution to your evaluator. The evaluator of your code will have this same software to evaluate your solution.
 
 Be careful, you will provide only :
 - the code to run your simulated drone, which will only come from the *solutions* directory,
@@ -394,6 +361,6 @@ Be careful, you will provide only :
 
 # Contact
 
-If you have questions about the code, you can contact me at :
+If you have questions about the code, you can contact :
 emmanuel . battesti at ensta-paris . fr
 
