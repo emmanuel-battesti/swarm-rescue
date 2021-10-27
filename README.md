@@ -258,7 +258,7 @@ A *playground* is composed of scene elements, which can be fixed or movable. A d
 
 A playground is described using a Cartesian coordinate system. 
 
-Each element has a position (x,y, theta), with x along the horizontal axis, y along the vertical axis, and theta the orientation in radians, aligned on the horizontal axis. The value of theta is between 0 an 2*Pi. Theta increases with a clockwise rotation of the drone. For theta = 0, the drone is oriented towards the right. A playground has a size [width, length], with the width along x-axis, and length along y-axis. When applicable, the length of a scene element follows the element's x-axis.
+Each element has a position (x,y, theta), with x along the horizontal axis, y along the vertical axis, and theta the orientation in radians, aligned on the horizontal axis. The position (0, 0) is at the top-left of the map. The value of theta is between 0 an 2*Pi. Theta increases with a clockwise rotation of the drone. For theta = 0, the drone is oriented towards the right. A playground has a size [width, length], with the width along x-axis, and length along y-axis. When applicable, the length of a scene element follows the element's x-axis.
 
 ## Wounded Person
 
