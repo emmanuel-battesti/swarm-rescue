@@ -201,6 +201,7 @@ It emulates a lidar.
 - *resolution* (number of rays): 180
 - *max range* (maximum range of the sensor): 300 pix
 
+You can find an example of lidar use in the *solutions/my_drone_lidar_communication.py* file.
 
 ### Touch Sensor
 
@@ -216,6 +217,9 @@ It emulates artificial skin,
 
 The return value is between 0 and 1.
 
+You can find an example of touch sensor use in the *examples/example_touch_sensor.py* and the *solutions/my_drone_random.py* files.
+
+
 ### Semantic Sensors Cones
 
 In the code, class *DroneSemanticCones*.
@@ -227,6 +231,9 @@ Semantic Cones sensors allow to determine the nature of an object, without data 
 - *n_cones*, number of cones evenly spaced across the field of view: 36
 - *rays_per_cone*, number of ray per cone: 4
 
+You can find an example of semantic cones use in the *examples/example_semantic_cones.py* file.
+
+
 ### Communication
 
 Each drone can communicate with all the drones in a certain range (currently, 200 pixel).
@@ -234,19 +241,24 @@ At each time step, data can be sent and/or received.
 
 You have the possibility to configure the content of the messages yourself.
 
+You can find an example of communication use in the *solutions/my_drone_lidar_communication.py* file.
+
+
 ### Actuators
 
 At each time step, you must provide values for your actuators.
 
 You have 3 values to move your drone :
-- *longitudinal_force*, a float value between 0 and 1. This is a force apply to your drone in the longitudinal way.
-- *lateral_force*, a float value between 0 and 1. This is a force apply to your drone in the lateral way.
-- *rotation_velocity*, a float value between 0 and 1. This is the speed of rotation. For a value of 1.0, we have rotation speed of 0.3 rad/s.
+- *longitudinal_force*, a float value between -1 and 1. This is a force apply to your drone in the longitudinal way.
+- *lateral_force*, a float value between -1 and 1. This is a force apply to your drone in the lateral way.
+- *rotation_velocity*, a float value between -1 and 1. This is the speed of rotation. For a value of 1.0, we have rotation speed of 0.3 rad/s.
 
 You have 2 values to interact with the world :
 - You can *grasp* certain *graspable* thing. To move a *wounded person*, you will have to *grasp* it.
 This value *grasp*  is either 0 or 1.
 - You can *activate* certain *activable* thing. This value *activate*  is either 0 or 1.
+
+You can find examples of actuator use in almost all files in *examples/* and *solutions/*.
 
 ## Playground
 
@@ -266,17 +278,21 @@ A *Wounded Person* are element that appear in yellow in the map. As its name sug
 
 The drones must approach them, *grasped* them and take them to the rescue center.
 
+You can find an example of grasping a wounded person in the *examples/example_semantic_cones.py* file.
+
 ## Rescue Center
 
 *Rescue Center* is an orange element in the map where the drones should bring the *Wounded Person*.
 
 A reward is given to a drone each time it give a *Wounded Person* to the *Rescue Center*.
 
+You can find an example of rescue center use in the *examples/example_semantic_cones.py* file.
+
 ## Special zones
 
 There are zones that alter the abilities of the drones.
 
-Those zones are not implemented for the moment.
+Those zones will be implemented in a future release.
 
 ### No-Communication zone
 
@@ -300,7 +316,7 @@ This zone cannot be detected by the drone.
 
 ### file *launcher.py*
 
-launcher.py is the main program file. This file will run everything needed to perform the evaluation.
+*launcher.py* is the main program file to launch a swarm of drones using your code. This file will run everything needed to perform the evaluation.
 
 It will launch the 20 drones that you will have customized in the map that you want, make it run and give the final score.
 
@@ -335,13 +351,23 @@ Each map must inherit from the class *MapAbstract*.
 
 This repository will contain your solutions. Taking inspiration from what is there and going beyond, you will put in the code that will define your drones and how they interact with their environment.
 
-Each Drone must inherit from the class *DroneAbstract*. You have 2 mandatory member functions: define_message() that will define the message sent between drone, and control() that will give the action to do for each time step.
+Each Drone must inherit from the class *DroneAbstract*. You have 2 mandatory member functions: **define_message()** that will define the message sent between drone, and **control()** that will give the action to do for each time step.
 
 Keep in mind, that the same code will be in each of the 20 drones. Each drone will be an instance of your Drone class.
 
+For your calculation in the control() function, it is mandatory to use only the sensor and communication data, without directly accesssing the class members. In particular, you should not use the  *position* and *angle* variables, but use the *measured_position()* and *measured_angle()* functions to have access to the position and orientation of the drone. These values are noisy, representig more realistic sensors, and can be altered by special zones in the map where the position information can be scrambled.
+
+The true position of the drone can be accessed with the functions *true_position()* and *true_angle()* (or directly with the variable *position* and *angle*), BUT it is only for debugging or logging.
+
+Some examples are provided:
+- *my_drone_random.py* shows the use of touch sensors and actuators
+- *my_drone_lidar_communication.py* shows the use of lidar and communication between drones
+
 ### directory *examples*
 
-In the folder, you will find stand-alone programs to help you program with examples.
+In the folder, you will find stand-alone programs to help you program with examples. In particular :
+- *example_semantic_cones.py* shows the use of semantic cones and actuators, and how to grasp a wounded person and bring it back to the rescue area.
+- *example_touch_sensor.py* shows the use of touch sensors and actuators.
 
 ### directory *tuto_spg_jupyter*
 
@@ -349,7 +375,7 @@ In this directory, you will find the code contained in the jupyter notebooks of 
 
 ### directory *tools*
 
-In this directory, you may find some tools... For example, the program *wall_from_segment.py* allows to build a map from a black and white image.
+In this directory, you may find some tools... For example, the program *image_to_map.py* allows to build a map from a black and white image.
 
 ## Submission
 
@@ -358,6 +384,10 @@ At the end, you will have to submit your solution to your evaluator. The evaluat
 Be careful, you will provide only :
 - the code to run your simulated drone, which will only come from the *solutions* directory,
 - the list of new dependencies needed to make your drone work.
+
+## Various tips
+
+- To exit after launching a map, press 'q'.
 
 # Contact
 
