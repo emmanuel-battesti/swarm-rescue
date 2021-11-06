@@ -19,7 +19,8 @@ class MyMapRandom(MapAbstract):
 
         # BUILD MAP
         self.size_area = (1500, 700)
-        self.playground = self.build_map()
+        self.playground = None
+        self.build_map()
 
     def set_drones(self, drones):
         self.drones = drones
@@ -32,7 +33,6 @@ class MyMapRandom(MapAbstract):
 
     def build_map(self):
         random.seed(time.time())
-        playground = LineRooms(size=self.size_area, number_rooms=3, random_doorstep_position=True,
-                               doorstep_size=250, wall_type='light')
+        self.playground = LineRooms(size=self.size_area, number_rooms=3, random_doorstep_position=True,
+                                    doorstep_size=250, wall_type='light')
         self.explored_map.initialize_walls(self.playground)
-        return playground
