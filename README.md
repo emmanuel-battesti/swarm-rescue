@@ -49,7 +49,7 @@ If all the targets are brought back to base and all the map is explored, the spe
 
 ## Details on the rules
 
-- You can only use the detection of WoundedPerson and other Drones with the Semantic Cones, but not the Walls (as it is unrealistically giving you the full wall size and position). Use Lidar to detect/avoid Walls.
+- You can only use the detection of WoundedPerson, RescueCenter and other Drones with the Semantic Cones, but not the Walls (as it is unrealistically giving you the full wall size and position). Use Lidar to detect/avoid Walls.
 
 # Simple-Playgrounds 
 
@@ -235,7 +235,7 @@ Semantic Cones sensors allow to determine the nature of an object, without data 
 - *n_cones*, number of cones evenly spaced across the field of view: 36
 - *rays_per_cone*, number of ray per cone: 4
 
-You can find an example of semantic cones use in the *examples/example_semantic_cones.py* file. For this competition, you can only use the detection of WoundedPerson and other Drones, but not the Walls (use lidar for this).
+You can find an example of semantic cones use in the *examples/example_semantic_cones.py* file. For this competition, you can only use the detection of WoundedPerson, RescueCenter and other Drones, but not the Walls (use lidar for this).
 
 
 ### Communication
