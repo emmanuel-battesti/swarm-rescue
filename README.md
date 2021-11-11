@@ -47,6 +47,10 @@ To calculate the score, the following elements will be taken into account:
 
 If all the targets are brought back to base and all the map is explored, the speed in "time step" will be taken into account.
 
+## Details on the rules
+
+- You can only use the detection of WoundedPerson and other Drones with the Semantic Cones, but not the Walls (as it is unrealistically giving you the full wall size and position). Use Lidar to detect/avoid Walls.
+
 # Simple-Playgrounds 
 
 This program *Swarm-Rescue* is an extension of the *Simple-Playgrounds* (SPG) software library: https://github.com/mgarciaortiz/simple-playgrounds. However, in the current installation of *Swarm-Rescue*, it is the branch *swarm-rescue* of a fork of *Simple-Playgrounds* that is used: https://github.com/embaba/simple-playgrounds.
@@ -231,7 +235,7 @@ Semantic Cones sensors allow to determine the nature of an object, without data 
 - *n_cones*, number of cones evenly spaced across the field of view: 36
 - *rays_per_cone*, number of ray per cone: 4
 
-You can find an example of semantic cones use in the *examples/example_semantic_cones.py* file.
+You can find an example of semantic cones use in the *examples/example_semantic_cones.py* file. For this competition, you can only use the detection of WoundedPerson and other Drones, but not the Walls (use lidar for this).
 
 
 ### Communication
