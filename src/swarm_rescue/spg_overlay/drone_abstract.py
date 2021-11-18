@@ -1,8 +1,9 @@
 import math
 from abc import abstractmethod
-from typing import Optional
+from typing import Optional, Tuple
 
 from spg_overlay.drone_sensors import DroneLidar, DroneTouch, DroneSemanticCones, DronePosition
+from spg_overlay.misc_data import MiscData
 from simple_playgrounds.agent.agents import BaseAgent
 from simple_playgrounds.device.communication import CommunicationDevice
 from simple_playgrounds.agent.controllers import External
@@ -19,15 +20,18 @@ class DroneAbstract(BaseAgent):
 
     # 'range_communication' is the radius, in pixels, of the area around the drone in which we will have the other
     # drones with which we can communicate (receive and send messages)
-    range_communication = 200
+    range_communication = 500
 
     def __init__(self,
                  controller=External(),
                  identifier: Optional[int] = None,
+                 misc_data: MiscData = None,
                  should_display_lidar=False,
                  **kwargs
                  ):
         super().__init__(controller=controller, interactive=True, lateral=True, radius=10, **kwargs)
+
+        self.size_area = misc_data.size_area
 
         self.add_sensor(DroneTouch(anchor=self.base_platform,
                                    min_range=self.base_platform.radius + 1))

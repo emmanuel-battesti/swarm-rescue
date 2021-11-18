@@ -1,5 +1,3 @@
-from typing import Optional
-
 from simple_playgrounds.common.definitions import ElementTypes
 from simple_playgrounds.element.elements.activable import ActivableByGem
 from simple_playgrounds.element.elements.gem import GemElement

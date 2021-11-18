@@ -9,6 +9,8 @@ import sys
 
 # This line add, to sys.path, the path to parent path of this file
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from spg_overlay.misc_data import MiscData
 from spg_overlay.drone_abstract import DroneAbstract
 
 from simple_playgrounds.agent.controllers import Keyboard
@@ -64,12 +66,12 @@ class Basics2(SingleRoom):
 
 my_playground = Basics2()
 
-my_drone = MyDrone(should_display_lidar=False)
+misc_data = MiscData(size_area=my_playground.size)
+my_drone = MyDrone(misc_data=misc_data, should_display_lidar=False)
 
 my_playground.add_agent(my_drone)
 
 engine = Engine(time_limit=10000, playground=my_playground, screen=True)
-engine.update_observations()
 
 print(my_drone.base_platform.position, my_drone.base_platform.angle)
 # my_drone.base_platform.position = Vec2d(107.40581356827045, 290.98786189924715)
@@ -82,7 +84,7 @@ while engine.game_on:
     actions = {my_drone: my_drone.controller.generate_actions()}
 
     terminate = engine.step(actions)
-    engine.update_observations()
+    engine.update_observations(grasped_invisible=True)
 
     cv2.imshow('control panel',
                engine.generate_agent_image(agent=my_drone,

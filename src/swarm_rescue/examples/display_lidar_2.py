@@ -7,6 +7,8 @@ import sys
 
 # This line add, to sys.path, the path to parent path of this file
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from spg_overlay.misc_data import MiscData
 from spg_overlay.drone_abstract import DroneAbstract
 from spg_overlay.rescue_center import RescueCenter
 from maps.walls_01 import add_walls, add_boxes
@@ -53,12 +55,12 @@ my_playground.add_element(rescue_center, ((50, 660), 0))
 add_walls(my_playground)
 add_boxes(my_playground)
 
-my_drone = MyDrone(should_display_lidar=True)
+misc_data = MiscData(size_area=my_playground.size)
+my_drone = MyDrone(misc_data=misc_data, should_display_lidar=True)
 
 my_playground.add_agent(my_drone)
 
 engine = Engine(time_limit=10000, playground=my_playground, screen=True)
-engine.update_observations()
 
 print(my_drone.base_platform.position, my_drone.base_platform.angle)
 
@@ -69,7 +71,7 @@ while engine.game_on:
     actions = {my_drone: my_drone.controller.generate_actions()}
 
     terminate = engine.step(actions)
-    engine.update_observations()
+    engine.update_observations(grasped_invisible=True)
 
     my_drone.display()
 

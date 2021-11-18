@@ -15,6 +15,8 @@ import sys
 
 # This line add, to sys.path, the path to parent path of this file
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from spg_overlay.misc_data import MiscData
 from spg_overlay.drone_abstract import DroneAbstract
 
 
@@ -60,17 +62,17 @@ def my_control(drone):
 size_area = (700, 700)
 my_playground = LineRooms(size=size_area, number_rooms=2, random_doorstep_position=True, doorstep_size=200)
 
-my_drone = MyDrone(controller=External())
+misc_data = MiscData(size_area=size_area)
+my_drone = MyDrone(controller=External(), misc_data=misc_data)
 
 my_playground.add_agent(my_drone, ((80, 100), 0))
 
 engine = Engine(playground=my_playground, time_limit=10000, screen=True)
-engine.update_observations()
 
 while engine.game_on:
 
     engine.update_screen()
-    engine.update_observations()
+    engine.update_observations(grasped_invisible=True)
 
     actions = {}
     for my_drone in engine.agents:

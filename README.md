@@ -236,6 +236,13 @@ Semantic Cones sensors allow to determine the nature of an object, without data 
 - *rays_per_cone*, number of ray per cone: 4
 
 You can find an example of semantic cones use in the *examples/example_semantic_cones.py* file. For this competition, you can only use the detection of WoundedPerson, RescueCenter and other Drones, but not the Walls (use lidar for this).
+The sensor DroneSemanticCones used in your drone is a modified version of the class SemanticCones of SPG.
+
+Each cone of the sensor provides a data with :
+- *data.distance* : distance of the nearest object detected
+- *data.angle* : angle of the cone in radians
+- *data.entity_type* : type of the detected object
+- *data.grasped* : is the object grasped by a drone or an agent ?
 
 
 ### Communication

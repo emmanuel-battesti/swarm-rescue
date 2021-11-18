@@ -1,6 +1,8 @@
 import time
 import pygame
 from simple_playgrounds.engine import Engine
+
+from spg_overlay.misc_data import MiscData
 from spg_overlay.score_manager import ScoreManager
 
 from maps.map_lidar_communication import MyMapLidarCommunication
@@ -36,7 +38,8 @@ class Launcher:
                                           total_number_wounded_persons=self.my_map.number_wounded_persons)
 
         # BUILD DRONES
-        drones = [MyDrone(identifier=i)
+        misc_data = MiscData(size_area=self.my_map.size_area)
+        drones = [MyDrone(identifier=i, misc_data=misc_data)
                   for i in
                   range(self.my_map.number_drones)]
 
@@ -57,7 +60,8 @@ class Launcher:
                                           )
 
         # BUILD DRONES
-        drones = [MyDrone(identifier=i)
+        misc_data = MiscData(size_area=self.my_map.size_area)
+        drones = [MyDrone(identifier=i, misc_data=misc_data)
                   for i in
                   range(self.my_map.number_drones)]
 

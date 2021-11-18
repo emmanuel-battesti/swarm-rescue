@@ -33,8 +33,6 @@ my_agent.add_sensor(TopdownLocal(my_agent.base_platform, invisible_elements=my_a
 my_playground.add_agent(my_agent)
 
 engine = Engine(time_limit=10000, playground=my_playground, screen=True)
-engine.update_observations()
-# engine.run(update_screen=True, print_rewards=True)
 
 # plt_image(engine.generate_playground_image(plt_mode=True))
 # plt.figure(figsize=(15, 10))

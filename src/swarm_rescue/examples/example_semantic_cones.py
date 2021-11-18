@@ -21,10 +21,10 @@ import sys
 # This line add, to sys.path, the path to parent path of this file
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from spg_overlay.map_abstract import MapAbstract
+from spg_overlay.drone_sensors import DroneSemanticCones
+from spg_overlay.misc_data import MiscData
 from spg_overlay.rescue_center import RescueCenter
 from spg_overlay.wounded_person import WoundedPerson
-
 from spg_overlay.drone_abstract import DroneAbstract
 from spg_overlay.utils import sign, normalize_angle
 
@@ -168,14 +168,12 @@ class MyDrone(DroneAbstract):
             or self.state is self.Activity.GRASPING_WOUNDED) \
                 and detection_semantic:
             scores = []
-            for detection in detection_semantic:
+            for data in detection_semantic:
                 # If the wounded person detected is held by nobody
-                if detection.entity \
-                        and isinstance(detection.entity, WoundedPerson) \
-                        and len(detection.entity.held_by) == 0:
+                if data.entity_type == DroneSemanticCones.TypeEntity.WOUNDED_PERSON and not data.grasped:
                     found_wounded = True
-                    v = (detection.angle * detection.angle) + (detection.distance * detection.distance / 10 ** 5)
-                    scores.append((v, detection.angle, detection.distance))
+                    v = (data.angle * data.angle) + (data.distance * data.distance / 10 ** 5)
+                    scores.append((v, data.angle, data.distance))
 
             # Select the best one among wounded persons detected
             best_score = 10000
@@ -188,10 +186,10 @@ class MyDrone(DroneAbstract):
         if (self.state is self.Activity.SEARCHING_RESCUE_CENTER
             or self.state is self.Activity.DROPPING_AT_RESCUE_CENTER) \
                 and detection_semantic:
-            for detection in detection_semantic:
-                if isinstance(detection.entity, RescueCenter):
+            for data in detection_semantic:
+                if data.entity_type == DroneSemanticCones.TypeEntity.RESCUE_CENTER:
                     found_rescue_center = True
-                    best_angle = detection.angle
+                    best_angle = data.angle
 
         if found_rescue_center or found_wounded:
             a = sign(best_angle)
@@ -216,17 +214,18 @@ class MyMap:
         self.number_wounded_persons = 5
         center_area = (self.size_area[0] * 3 / 4, self.size_area[1] * 3 / 4)
         area_all = CoordinateSampler(center=center_area, area_shape='rectangle',
-                                     size=(self.size_area[0] / 2, self.size_area[1] / 2))
+                                     size=(self.size_area[0], self.size_area[1]))
+
         for i in range(self.number_wounded_persons):
             wounded_person = WoundedPerson(graspable=True, rescue_center=rescue_center)
             try:
                 self.playground.add_element(wounded_person, area_all, allow_overlapping=False)
-                self.wounded_persons.append(wounded_person)
             except:
                 print("Failed to place object 'wounded_person'")
 
         # DRONE
-        self.my_drone = MyDrone()
+        misc_data = MiscData(size_area=self.size_area)
+        self.my_drone = MyDrone(misc_data=misc_data)
         self.playground.add_agent(self.my_drone, ((40, 40), 0))
 
 
@@ -235,7 +234,7 @@ engine = Engine(playground=my_map.playground, time_limit=10000, screen=True)
 
 while engine.game_on:
     engine.update_screen()
-    engine.update_observations()
+    engine.update_observations(grasped_invisible=True)
     actions = {my_map.my_drone: my_map.my_drone.control()}
     terminate = engine.step(actions)
     time.sleep(0.002)

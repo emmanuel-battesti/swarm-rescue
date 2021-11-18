@@ -35,8 +35,6 @@ circular_object = Physical(physical_shape='circle', radius=10, texture=[120, 0, 
 my_playground.add_element(circular_object, ((170, 160), -0.5))
 
 engine = Engine(time_limit=10000, playground=my_playground, screen=True)
-engine.update_observations()
-engine.run(update_screen=True, print_rewards=True)
 
 # plt_image(engine.generate_playground_image(plt_mode=True))
 # plt.figure(figsize=(10, 10))

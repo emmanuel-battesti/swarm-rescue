@@ -6,12 +6,17 @@ from typing import Optional
 import numpy as np
 
 from spg_overlay.drone_abstract import DroneAbstract
+from spg_overlay.misc_data import MiscData
 from spg_overlay.utils import normalize_angle, sign
 
 
 class MyDroneLidarCommunication(DroneAbstract):
-    def __init__(self, identifier: Optional[int] = None, **kwargs):
+    def __init__(self,
+                 identifier: Optional[int] = None,
+                 misc_data: Optional[MiscData] = None,
+                 **kwargs):
         super().__init__(identifier=identifier,
+                         misc_data=misc_data,
                          should_display_lidar=False,
                          **kwargs)
 

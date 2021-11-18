@@ -22,6 +22,8 @@ class MapAbstract(ABC):
         # 'number_wounded_persons' is the number of wounded persons that should be retrieved by the drones.
         self.number_wounded_persons = 0
 
+        self.size_area = None
+
     @abstractmethod
     def set_drones(self, drones):
         pass
