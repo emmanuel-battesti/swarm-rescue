@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fixed
+- Samll bug in CHANGELOG.md
 
 ## [1.1.0] - 2021-11-18
 ### Added
@@ -40,5 +42,5 @@ All notable changes to this project will be documented in this file.
 [1.1.0]: https://github.com/embaba/swarm-rescue/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/embaba/swarm-rescue/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/embaba/swarm-rescue/compare/v0.0.0...v0.9.0
-[0.0.1]: https://github.com/embaba/swarm-rescue/releases/tag/v0.0.0
+[0.0.0]: https://github.com/embaba/swarm-rescue/releases/tag/v0.0.0
 
