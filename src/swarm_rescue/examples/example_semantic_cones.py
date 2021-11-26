@@ -224,7 +224,7 @@ class MyMap:
                 print("Failed to place object 'wounded_person'")
 
         # DRONE
-        misc_data = MiscData(size_area=self.size_area)
+        misc_data = MiscData(size_area=self.size_area, number_drones=1)
         self.my_drone = MyDrone(misc_data=misc_data)
         self.playground.add_agent(self.my_drone, ((40, 40), 0))
 

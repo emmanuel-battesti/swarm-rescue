@@ -16,6 +16,7 @@ from simple_playgrounds.element.elements.gem import Coin
 
 from spg_overlay.normal_wall import NormalWall, NormalBox
 from spg_overlay.rescue_center import RescueCenter
+from spg_overlay.utils import deg2rad
 from spg_overlay.wounded_person import WoundedPerson
 
 
@@ -30,12 +31,14 @@ class DroneLidar(Lidar):
     """
 
     def __init__(self, **kwargs):
-        resolution = 180
+        resolution = 90
+        std_dev_noise = 2.5
 
         super().__init__(normalize=False,
                          resolution=resolution,
                          max_range=300,
                          fov=180,
+                         noise_params={"type": "gaussian", "mean": 0, "scale": std_dev_noise},
                          **kwargs)
 
         self.size = resolution
@@ -92,10 +95,13 @@ class DroneTouch(Touch):
     """
 
     def __init__(self, **kwargs):
+        std_dev_noise = 0.01
+
         super().__init__(normalize=True,
                          fov=360,
                          max_range=5,
-                         resolution=36,
+                         resolution=12,
+                         noise_params={"type": "gaussian", "mean": 0, "scale": std_dev_noise},
                          **kwargs)
 
 
@@ -125,11 +131,17 @@ class DroneSemanticCones(SemanticCones):
     Data = namedtuple("Data", "distance angle entity_type grasped")
 
     def __init__(self, **kwargs):
+        # We use a gaussian noise, but only for the distance. We need to declare noise_params
+        # we will do our own computation for the noise in the overload function _apply_noise()
+        noise_params = {"type": "gaussian",
+                        "mean": 0,
+                        "scale": 0}
         super().__init__(normalize=False,
                          n_cones=36,
                          rays_per_cone=4,
                          max_range=200,
                          fov=360,
+                         noise_params=noise_params,
                          **kwargs)
 
     def _compute_raw_sensor(self, playground, *_):
@@ -169,11 +181,54 @@ class DroneSemanticCones(SemanticCones):
 
             self.sensor_values[index] = new_detection
 
+    def _apply_noise(self):
+        std_dev_noise = 2.5
+        for index, data in enumerate(self.sensor_values):
+            new_data = self.Data(distance=max(0.0, data.distance + np.random.normal(std_dev_noise)),
+                                 angle=data.angle,
+                                 entity_type=data.entity_type,
+                                 grasped=data.grasped)
+
+            self.sensor_values[index] = new_data
+
 
 class DronePosition(Position):
     def __init__(self, **kwargs):
+        # In reality, we dont use a gaussian noise, for the moment we need to do this
+        # to fool the system into using our own noise in the overload function _apply_noise().
         noise_params = {"type": "gaussian",
                         "mean": 0,
                         "scale": 0}
         super().__init__(noise_params=noise_params,
                          **kwargs)
+
+        self.model_param = 0.95
+
+        # std_dev is the real standard deviation of the resulted noise
+        self.std_dev = 15
+        # _std_dev_wn is the standard deviation of the white noise
+        self._std_dev_wn = math.sqrt(self.std_dev ** 2 * (1 - self.model_param ** 2))
+
+        # std_dev_angle is the real standard deviation of the resulted noise
+        self.std_dev_angle = deg2rad(4)
+        # _std_dev_angle_wn is the standard deviation of the white noise
+        self._std_dev_angle_wn = math.sqrt(self.std_dev_angle ** 2 * (1 - self.model_param ** 2))
+
+        self._last_noise = None
+
+    def _apply_noise(self):
+        """
+        Overload of an internal function of _apply_noise of the class InternalSensor
+        We use a noise that follow an autoregressive model of order 1 : https://en.wikipedia.org/wiki/Autoregressive_model#AR(1)
+        """
+        white_noise = np.random.normal(0,
+                                       (self._std_dev_wn, self._std_dev_wn, self._std_dev_angle_wn),
+                                       size=self.shape)
+
+        if self._last_noise is None:
+            self._last_noise = np.zeros(self.shape)
+
+        additive_noise = self.model_param * self._last_noise + white_noise
+        self._last_noise = additive_noise
+
+        self.sensor_values += additive_noise

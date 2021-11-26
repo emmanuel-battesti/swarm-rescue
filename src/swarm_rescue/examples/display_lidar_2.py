@@ -55,7 +55,7 @@ my_playground.add_element(rescue_center, ((50, 660), 0))
 add_walls(my_playground)
 add_boxes(my_playground)
 
-misc_data = MiscData(size_area=my_playground.size)
+misc_data = MiscData(size_area=my_playground.size, number_drones=1)
 my_drone = MyDrone(misc_data=misc_data, should_display_lidar=True)
 
 my_playground.add_agent(my_drone)

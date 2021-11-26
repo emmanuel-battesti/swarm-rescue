@@ -2,6 +2,7 @@ import time
 import pygame
 from simple_playgrounds.engine import Engine
 
+from spg_overlay.fps_display import FpsDisplay
 from spg_overlay.misc_data import MiscData
 from spg_overlay.score_manager import ScoreManager
 
@@ -23,6 +24,7 @@ class MyDrone(MyDroneLidarCommunication):
 
 class Launcher:
     def __init__(self):
+        self.display = True
         self.nb_rounds = 1
         self.rescued_number = 0
         self.score_exploration = 0
@@ -38,7 +40,8 @@ class Launcher:
                                           total_number_wounded_persons=self.my_map.number_wounded_persons)
 
         # BUILD DRONES
-        misc_data = MiscData(size_area=self.my_map.size_area)
+        misc_data = MiscData(size_area=self.my_map.size_area,
+                             number_drones=self.my_map.number_drones)
         drones = [MyDrone(identifier=i, misc_data=misc_data)
                   for i in
                   range(self.my_map.number_drones)]
@@ -82,10 +85,9 @@ class Launcher:
         my_drones = self.my_map.drones
         my_playground = self.my_map.playground
 
-        engine = Engine(playground=my_playground, time_limit=self.my_map.time_step_limit, screen=True)
+        engine = Engine(playground=my_playground, time_limit=self.my_map.time_step_limit, screen=self.display)
 
-        clock = pygame.time.Clock()
-        counter = 0
+        fps_display = FpsDisplay(period_display=0.5)
 
         self.rescued_number = 0
         time_rescued_all = 0
@@ -96,7 +98,9 @@ class Launcher:
         while engine.game_on:
 
             # print("time=", engine.elapsed_time)
-            engine.update_screen()
+            if self.display:
+                engine.update_screen()
+
             engine.update_observations(grasped_invisible=True)
 
             self.my_map.explored_map.update(my_drones)
@@ -121,7 +125,8 @@ class Launcher:
             if new_reward != 0:
                 self.rescued_number += new_reward
 
-            time.sleep(0.002)
+            # if display:
+            #     time.sleep(0.002)
 
             if self.rescued_number == self.my_map.number_wounded_persons and time_rescued_all == 0:
                 time_rescued_all = engine.elapsed_time
@@ -135,10 +140,7 @@ class Launcher:
             if terminate:
                 engine.game_on = False
 
-            # counter += 1
-            # if counter % 20 == 0:
-            #     print("FPS:", clock.get_fps())
-            # clock.tick(60)
+            # fps_display.update()
 
         engine.terminate()
 

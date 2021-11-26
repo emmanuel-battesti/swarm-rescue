@@ -2,6 +2,11 @@ import math
 import random
 import time
 
+from simple_playgrounds.device.sensor import SensorDevice
+from simple_playgrounds.element.elements.modifier import CommunicationDisabler, SensorDisabler
+
+from spg_overlay.drone_sensors import DronePosition
+from spg_overlay.kill_zone import KillZone
 from spg_overlay.rescue_center import RescueCenter
 from spg_overlay.wounded_person import WoundedPerson
 from spg_overlay.map_abstract import MapAbstract
@@ -48,6 +53,15 @@ class MyMapCompet01(MapAbstract):
         add_boxes(self.playground)
 
         self.explored_map.initialize_walls(self.playground)
+
+        comm_disabler = CommunicationDisabler(size=(270, 500))
+        self.playground.add_element(comm_disabler, ((335, 325), 0))
+
+        gps_disabler = SensorDisabler(disabled_sensor_types=DronePosition, size=(380, 252))
+        self.playground.add_element(gps_disabler, ((195, 354), 0))
+
+        sensor_disabler = KillZone(size=(55, 55))
+        self.playground.add_element(sensor_disabler, ((168, 300), 0))
 
         wounded_persons_pos = [(40, 40), (90, 40), (330, 40),
                                (35, 300), (495, 50), (245, 275),

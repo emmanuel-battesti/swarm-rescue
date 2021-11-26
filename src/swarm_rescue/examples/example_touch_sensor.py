@@ -38,8 +38,11 @@ def my_control(drone):
     indices = [i for i, x in enumerate(the_touch_sensor.sensor_values) if x == max(the_touch_sensor.sensor_values)]
 
     in_front = False
+    size = len(the_touch_sensor.sensor_values)
+    quarter = round(size / 4)
+    middle = round(size / 2)
     for ind in indices:
-        if 9 <= ind < 27:
+        if middle - quarter <= ind < middle + quarter:
             in_front = True
             break
 
@@ -62,7 +65,7 @@ def my_control(drone):
 size_area = (700, 700)
 my_playground = LineRooms(size=size_area, number_rooms=2, random_doorstep_position=True, doorstep_size=200)
 
-misc_data = MiscData(size_area=size_area)
+misc_data = MiscData(size_area=size_area, number_drones=1)
 my_drone = MyDrone(controller=External(), misc_data=misc_data)
 
 my_playground.add_agent(my_drone, ((80, 100), 0))

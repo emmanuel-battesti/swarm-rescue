@@ -2,8 +2,19 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-### Fixed
-- Samll bug in CHANGELOG.md
+
+## [1.2.0] - 2021-11-26
+### Added
+- Add member variable *display* in the class *Launcher*. If *False*, the map is not shown.
+- Add the file *spg_overlay/fps_display.py* which contains *FpsDisplay* class. This class print the FPS.
+- Add noise to *Position* sensor that follows an autoregressive model of order 1
+- Add gaussian noise to *lidar* sensor, *semantic* sensor and *touch* sensor.
+- Add *number_drones* in the MiscData class. Now, drones have access to this value.
+- Add "no communication zone", "no gps zone", "kill zone" in map_compet_01.py
+
+### Changed
+- Change resolution of the *DroneLidar* from 180 rays to 90 rays to improve overall speed.
+- Change resolution of the *DroneTouch* from 36 sensors to 12 sensors to improve overall speed.
 
 ## [1.1.0] - 2021-11-18
 ### Added
@@ -38,7 +49,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/embaba/swarm-rescue/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/embaba/swarm-rescue/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/embaba/swarm-rescue/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/embaba/swarm-rescue/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/embaba/swarm-rescue/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/embaba/swarm-rescue/compare/v0.0.0...v0.9.0

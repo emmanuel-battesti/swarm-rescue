@@ -66,7 +66,7 @@ class Basics2(SingleRoom):
 
 my_playground = Basics2()
 
-misc_data = MiscData(size_area=my_playground.size)
+misc_data = MiscData(size_area=my_playground.size, number_drones=1)
 my_drone = MyDrone(misc_data=misc_data, should_display_lidar=False)
 
 my_playground.add_agent(my_drone)
