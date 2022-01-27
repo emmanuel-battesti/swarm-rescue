@@ -3,6 +3,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.3.0] - 2022-01-27
+
+### Changed
+- Change fov of the *DroneLidar* from 180° to 360°, but we keep 90 rays.
+- Split the sensor *DronePosition* in 2 sensors : *DroneGPS*, for only the position in pixels, and *DroneCompass*, for only the orientation of the drone in radians. Thus, the no-GPS zone will only apply to *DroneGP*S sensor, the orientation is still available.
+- In the no-GPS zone, the measured position was always (0, 0). Now, it is (NaN, NaN). 
+
+### Added
+- There are new functions in the class DroneAbstract to known if a sensor is disabled:
+    - *touch_is_disabled()*
+    - *semantic_cones_is_disabled()*
+    - *lidar_is_disabled()*
+    - *gps_is_disabled()*
+    - *compass_is_disabled()*
+    - but no *communication_is_disabled()*...
+- Now, drone have a velocity sensor *DroneVelocity* and the functions : *measured_velocity()*, *measured_angular_velocity()*, *true_velocity()*, *true_angular_velocity()*
+
+### Fixed
+
 ## [1.2.0] - 2021-11-26
 ### Added
 - Add member variable *display* in the class *Launcher*. If *False*, the map is not shown.

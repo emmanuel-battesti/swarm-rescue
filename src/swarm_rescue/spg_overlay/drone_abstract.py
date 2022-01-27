@@ -1,8 +1,10 @@
 import math
 from abc import abstractmethod
+from enum import IntEnum
 from typing import Optional, Tuple
 
-from spg_overlay.drone_sensors import DroneLidar, DroneTouch, DroneSemanticCones, DronePosition
+from spg_overlay.drone_sensors import DroneLidar, DroneTouch, DroneSemanticCones, DroneGPS, DroneVelocity, \
+    DroneCompass
 from spg_overlay.misc_data import MiscData
 from simple_playgrounds.agent.agents import BaseAgent
 from simple_playgrounds.device.communication import CommunicationDevice
@@ -21,6 +23,14 @@ class DroneAbstract(BaseAgent):
     # 'range_communication' is the radius, in pixels, of the area around the drone in which we will have the other
     # drones with which we can communicate (receive and send messages)
     range_communication = 500
+
+    class SensorType(IntEnum):
+        TOUCH = 0
+        SEMANTICCONES = 1
+        LIDAR = 2
+        GPS = 3
+        COMPASS = 4
+        VELOCITY = 5
 
     def __init__(self,
                  controller=External(),
@@ -41,7 +51,9 @@ class DroneAbstract(BaseAgent):
         self.add_sensor(DroneLidar(anchor=self.base_platform,
                                    min_range=self.base_platform.radius + 1))
 
-        self.add_sensor(DronePosition(anchor=self.base_platform))
+        self.add_sensor(DroneGPS(anchor=self.base_platform))
+        self.add_sensor(DroneCompass(anchor=self.base_platform))
+        self.add_sensor(DroneVelocity(anchor=self.base_platform))
 
         self.identifier = identifier
         self._should_display_lidar = should_display_lidar
@@ -82,19 +94,28 @@ class DroneAbstract(BaseAgent):
         """
         Give access to the value of the touch sensor.
         """
-        return self.sensors[0]
+        return self.sensors[self.SensorType.TOUCH.value]
 
     def semantic_cones(self):
         """
         Give access to the value of the semantic_cones sensor.
         """
-        return self.sensors[1]
+        return self.sensors[self.SensorType.SEMANTICCONES.value]
 
     def lidar(self):
         """
         Give access to the value of the lidar sensor.
         """
-        return self.sensors[2]
+        return self.sensors[self.SensorType.LIDAR.value]
+
+    def touch_is_disabled(self):
+        return self.touch().is_disabled()
+
+    def semantic_cones_is_disabled(self):
+        return self.semantic_cones().is_disabled()
+
+    def lidar_is_disabled(self):
+        return self.lidar().is_disabled()
 
     def measured_position(self):
         """
@@ -102,15 +123,28 @@ class DroneAbstract(BaseAgent):
         You must use this value for your calculation in the control() function, because these values can be altered
         by special areas in the map where the position information can be scrambled.
         """
-        return self.sensors[3].sensor_values[0], self.sensors[3].sensor_values[1]
+        return self.sensors[self.SensorType.GPS].sensor_values[0], self.sensors[self.SensorType.GPS].sensor_values[1]
 
     def measured_angle(self):
         """
         Give the measured orientation of the drone, in radians between 0 and 2Pi.
-        You must use this value for your calculation in the control() function, because these values can be altered
-        by special areas in the map where the position information can be scrambled.
+        You must use this value for your calculation in the control() function.
         """
-        return self.sensors[3].sensor_values[2]
+        return self.sensors[self.SensorType.COMPASS].sensor_values[0]
+
+    def measured_velocity(self):
+        """
+        Give the measured velocity of the drone, in pixels per second
+        You must use this value for your calculation in the control() function.
+        """
+        return self.sensors[self.SensorType.VELOCITY].sensor_values[0], self.sensors[self.SensorType.VELOCITY].sensor_values[1]
+
+    def measured_angular_velocity(self):
+        """
+        Give the measured angular velocity of the drone, in radians per second
+        You must use this value for your calculation in the control() function.
+        """
+        return self.sensors[self.SensorType.VELOCITY].sensor_values[2]
 
     def true_position(self):
         """
@@ -127,6 +161,28 @@ class DroneAbstract(BaseAgent):
         instead. But you can use it for debugging or logging.
         """
         return self.angle
+
+    def true_velocity(self):
+        """
+        Give the true velocity of the drone, in pixels per second
+        You must NOT use this value for your calculation in the control() function, you should use measured_velocity()
+        instead. But you can use it for debugging or logging.
+        """
+        return self.base_platform.velocity
+
+    def true_angular_velocity(self):
+        """
+        Give the true angular velocity of the drone, in radians per second
+        You must NOT use this value for your calculation in the control() function, you should use measured_angular_velocity()
+        instead. But you can use it for debugging or logging.
+        """
+        return self.base_platform.angular_velocity
+
+    def gps_is_disabled(self):
+        return self.sensors[self.SensorType.GPS].is_disabled()
+
+    def compass_is_disabled(self):
+        return self.sensors[self.SensorType.COMPASS].is_disabled()
 
     def display(self):
         if self._should_display_lidar:

@@ -104,25 +104,29 @@ class ExploredMap:
         """
         Process the list of the positions of the drones to draw the map of the explored zones
         """
-        # compute distance from zeros pixels
-        dist_img = cv2.distanceTransform(self._map_exploration, distanceType=cv2.DIST_L2, maskSize=5)
-        max_dist = dist_img.max()
-        # The pixel of the dist_img where there are walls take the maximum value
-        dist_img[self._map_playground == 255] = max_dist
-        dist_img_float = dist_img / max_dist
+        radius_explo = 100
 
-        radius_explo = 50
-        up_diff = radius_explo / max_dist
-        explo_zone = -1
-        for pt in self._explo_pts:
-            pt2 = (pt[1], pt[0])
-            if dist_img_float[pt2] == 0:
-                mask = np.zeros((dist_img_float.shape[0] + 2, dist_img_float.shape[1] + 2), np.uint8)
-                cv2.floodFill(image=dist_img_float, mask=mask, seedPoint=pt, loDiff=0, upDiff=up_diff,
-                              newVal=explo_zone, flags=cv2.FLOODFILL_FIXED_RANGE)
+        # we will erode several time the self._map_exploration and correct each times the wall
+        # In eroded_image, the explored zone is black
+        eroded_image = self._map_exploration.copy()
+        remain_radius = radius_explo
+        one_time_size_kernel = 10
+        while remain_radius != 0:
+            # Creating kernel
+            if remain_radius < one_time_size_kernel:
+                one_time_size_kernel = remain_radius
+                remain_radius = 0
+            else:
+                remain_radius -= one_time_size_kernel
+            # kernel = np.ones((one_time_size_kernel, one_time_size_kernel), np.uint8)
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (one_time_size_kernel, one_time_size_kernel))
 
-        self._exploration_zone = np.zeros(dist_img_float.shape, np.uint8)
-        self._exploration_zone[dist_img_float == explo_zone] = 255
+            # Using cv2.erode() method
+            eroded_image = cv2.erode(eroded_image, kernel, cv2.BORDER_REFLECT)
+            # The pixels of the eroded_image where there are walls (map_playground == 255) should stay white (255)
+            eroded_image[self._map_playground == 255] = 255
+
+        self._exploration_zone = cv2.bitwise_not(eroded_image)
 
     def score(self):
         """

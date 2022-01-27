@@ -7,8 +7,9 @@ from enum import Enum, auto
 
 from simple_playgrounds.agent.parts import MobilePlatform
 from simple_playgrounds.common.definitions import Detection
+from simple_playgrounds.device.sensor import InternalSensor
 
-from simple_playgrounds.device.sensors import Lidar, SemanticCones, Touch, Position
+from simple_playgrounds.device.sensors import Lidar, SemanticCones, Touch, Position, Velocity
 from simple_playgrounds.element.elements.activable import VendingMachine
 from simple_playgrounds.element.elements.basic import Wall
 from simple_playgrounds.element.elements.contact import Candy
@@ -37,7 +38,7 @@ class DroneLidar(Lidar):
         super().__init__(normalize=False,
                          resolution=resolution,
                          max_range=300,
-                         fov=180,
+                         fov=360,
                          noise_params={"type": "gaussian", "mean": 0, "scale": std_dev_noise},
                          **kwargs)
 
@@ -80,6 +81,9 @@ class DroneLidar(Lidar):
         """min_range : max distance given by the lidar """
         return self._max_range
 
+    def is_disabled(self):
+        return self._disabled
+
 
 class DroneTouch(Touch):
     """
@@ -103,6 +107,9 @@ class DroneTouch(Touch):
                          resolution=12,
                          noise_params={"type": "gaussian", "mean": 0, "scale": std_dev_noise},
                          **kwargs)
+
+    def is_disabled(self):
+        return self._disabled
 
 
 class DroneSemanticCones(SemanticCones):
@@ -191,8 +198,15 @@ class DroneSemanticCones(SemanticCones):
 
             self.sensor_values[index] = new_data
 
+    def is_disabled(self):
+        return self._disabled
 
-class DronePosition(Position):
+
+class DroneGPS(InternalSensor):
+    """
+      DroneGPS Sensor returns a numpy array containing the position of the anchor.
+    """
+
     def __init__(self, **kwargs):
         # In reality, we dont use a gaussian noise, for the moment we need to do this
         # to fool the system into using our own noise in the overload function _apply_noise().
@@ -209,12 +223,25 @@ class DronePosition(Position):
         # _std_dev_wn is the standard deviation of the white noise
         self._std_dev_wn = math.sqrt(self.std_dev ** 2 * (1 - self.model_param ** 2))
 
-        # std_dev_angle is the real standard deviation of the resulted noise
-        self.std_dev_angle = deg2rad(4)
-        # _std_dev_angle_wn is the standard deviation of the white noise
-        self._std_dev_angle_wn = math.sqrt(self.std_dev_angle ** 2 * (1 - self.model_param ** 2))
-
         self._last_noise = None
+
+    def _get_null_sensor(self):
+        null_sensor = np.empty(self.shape)
+        null_sensor[:] = np.nan
+        return null_sensor
+
+    def _compute_raw_sensor(self, playground, *_):
+        self.sensor_values = np.array(self._anchor.position)
+
+    def set_playground_size(self, size):
+        self._pg_size = size
+
+    def _apply_normalization(self):
+        self.sensor_values /= (self._pg_size[0], self._pg_size[1])
+
+    @property
+    def shape(self):
+        return (2,)
 
     def _apply_noise(self):
         """
@@ -222,7 +249,7 @@ class DronePosition(Position):
         We use a noise that follow an autoregressive model of order 1 : https://en.wikipedia.org/wiki/Autoregressive_model#AR(1)
         """
         white_noise = np.random.normal(0,
-                                       (self._std_dev_wn, self._std_dev_wn, self._std_dev_angle_wn),
+                                       (self._std_dev_wn, self._std_dev_wn),
                                        size=self.shape)
 
         if self._last_noise is None:
@@ -232,3 +259,82 @@ class DronePosition(Position):
         self._last_noise = additive_noise
 
         self.sensor_values += additive_noise
+
+    def is_disabled(self):
+        return self._disabled
+
+
+class DroneCompass(InternalSensor):
+    """
+      DroneCompass Sensor returns a numpy array containing the orientation of the anchor.
+    """
+
+    def __init__(self, **kwargs):
+        # In reality, we dont use a gaussian noise, for the moment we need to do this
+        # to fool the system into using our own noise in the overload function _apply_noise().
+        noise_params = {"type": "gaussian",
+                        "mean": 0,
+                        "scale": 0}
+        super().__init__(noise_params=noise_params,
+                         **kwargs)
+
+        self.model_param = 0.95
+
+        # std_dev_angle is the real standard deviation of the resulted noise
+        self.std_dev_angle = deg2rad(4)
+        # _std_dev_angle_wn is the standard deviation of the white noise
+        self._std_dev_angle_wn = math.sqrt(self.std_dev_angle ** 2 * (1 - self.model_param ** 2))
+
+        self._last_noise = None
+
+    def _get_null_sensor(self):
+        null_sensor = np.empty(self.shape)
+        null_sensor[:] = np.nan
+        return null_sensor
+
+    def _compute_raw_sensor(self, playground, *_):
+        self.sensor_values = np.array([self._anchor.angle])
+
+    def _apply_normalization(self):
+        self.sensor_values /= 2 * math.pi
+
+    @property
+    def shape(self):
+        return (1,)
+
+    def _apply_noise(self):
+        """
+        Overload of an internal function of _apply_noise of the class InternalSensor
+        We use a noise that follow an autoregressive model of order 1 : https://en.wikipedia.org/wiki/Autoregressive_model#AR(1)
+        """
+        white_noise = np.random.normal(0,
+                                       self._std_dev_angle_wn,
+                                       size=self.shape)
+
+        if self._last_noise is None:
+            self._last_noise = np.zeros(self.shape)
+
+        additive_noise = self.model_param * self._last_noise + white_noise
+        self._last_noise = additive_noise
+
+        self.sensor_values += additive_noise
+
+    def is_disabled(self):
+        return self._disabled
+
+
+class DroneVelocity(Velocity):
+    """
+      DroneVelocity Sensor returns a numpy array containing the velocity of the anchor.
+    """
+    def __init__(self, **kwargs):
+        # std_dev_velocity is the standard deviation of the gaussian noise for the longitudinal velocity
+        self.std_dev_velocity = 0.08
+        # std_dev_angular_velocity is the real standard deviation of the resulted noise
+        self.std_dev_angular_velocity = deg2rad(0.15)
+
+        noise_params = {"type": "gaussian",
+                        "mean": [0, 0, 0],
+                        "scale": [self.std_dev_velocity, self.std_dev_velocity, self.std_dev_angular_velocity]}
+        super().__init__(noise_params=noise_params,
+                         **kwargs)
