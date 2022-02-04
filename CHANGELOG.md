@@ -3,6 +3,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.4.0] - 2022-02-04
+
+### Changed
+- launcher.py will now run the code following the competition evaluation rules (tests without special zones and with each zone activated)
+- Special zones can now be activated/deactivated in the maps
+- The starting points of the drones is not random anymore. The position of all drones now display a square.
+
+### Added
+- New map : MyMapCompet02
+- Teams should now fill the team_info.yml file in the solutions/ directory
+- launcher.py now produces a pdf report of the performances in the ~/results_swarm_rescue/ directory according to the challenge evaluation rules
+
+### Fixed
+
+
 ## [1.3.0] - 2022-01-27
 
 ### Changed

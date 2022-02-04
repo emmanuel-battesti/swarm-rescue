@@ -47,4 +47,6 @@ class ScoreManager:
                 self.w_time * score_time_step
 
         score = score * 100.0
-        return score
+
+        return score, percentage_rescue, score_time_step
+

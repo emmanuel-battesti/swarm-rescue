@@ -1,13 +1,16 @@
 from abc import ABC, abstractmethod
 
 from spg_overlay.explored_map import ExploredMap
+from spg_overlay.sensor_disablers import EnvironmentType
 
 
 class MapAbstract(ABC):
     """
     It is abstract class to construct every maps used in the directory maps
     """
-    def __init__(self):
+    environment_series = [EnvironmentType.EASY]
+
+    def __init__(self, environment_type: EnvironmentType = EnvironmentType.EASY):
         self.explored_map = ExploredMap()
 
         # 'number_drones' is the number of drones that will be generated in the map
@@ -23,6 +26,8 @@ class MapAbstract(ABC):
         self.number_wounded_persons = 0
 
         self.size_area = None
+
+        self.environment_type = environment_type
 
     @abstractmethod
     def set_drones(self, drones):

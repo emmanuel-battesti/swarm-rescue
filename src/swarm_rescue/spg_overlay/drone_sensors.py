@@ -6,7 +6,6 @@ import numpy as np
 from enum import Enum, auto
 
 from simple_playgrounds.agent.parts import MobilePlatform
-from simple_playgrounds.common.definitions import Detection
 from simple_playgrounds.device.sensor import InternalSensor
 
 from simple_playgrounds.device.sensors import Lidar, SemanticCones, Touch, Position, Velocity

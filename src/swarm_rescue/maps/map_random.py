@@ -6,11 +6,13 @@ from spg_overlay.map_abstract import MapAbstract
 
 from simple_playgrounds.playground import LineRooms
 
+from spg_overlay.sensor_disablers import EnvironmentType
+
 
 class MyMapRandom(MapAbstract):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, environment_type: EnvironmentType = EnvironmentType.EASY):
+        super().__init__(environment_type)
         self.number_drones = 20
         self.time_step_limit = 10000
         self.real_time_limit = 3600  # In seconds

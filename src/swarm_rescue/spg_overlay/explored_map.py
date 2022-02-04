@@ -16,8 +16,8 @@ class ExploredMap:
         self._map_playground = np.zeros((0, 0))
 
         # map_exploration : map of the point visited by drones (all positions of the drones) in black
-        self._map_exploration = np.ones((0, 0))
-        self._exploration_zone = np.zeros((0, 0))
+        self._map_explo_lines = np.ones((0, 0))
+        self._map_explo_zones = np.zeros((0, 0))
         self._explo_pts = []
         self._last_position = dict()
 
@@ -32,8 +32,8 @@ class ExploredMap:
         Reset everything to zero
         """
         # Initialize map_exploration with zeros
-        self._map_exploration = np.ones(self._map_playground.shape, np.uint8) * 255
-        self._exploration_zone = np.zeros(self._map_playground.shape, np.uint8)
+        self._map_explo_lines = np.ones(self._map_playground.shape, np.uint8) * 255
+        self._map_explo_zones = np.zeros(self._map_playground.shape, np.uint8)
         self._explo_pts = []
         self._last_position = dict()
         self._count_pixel_walls = 0
@@ -65,8 +65,8 @@ class ExploredMap:
         ret, self._map_playground = cv2.threshold(map_gray, 10, 255, cv2.THRESH_BINARY)
 
         # Initialize map_exploration with zeros
-        self._map_exploration = np.ones(self._map_playground.shape, np.uint8) * 255
-        self._exploration_zone = np.zeros(self._map_playground.shape, np.uint8)
+        self._map_explo_lines = np.ones(self._map_playground.shape, np.uint8) * 255
+        self._map_explo_zones = np.zeros(self._map_playground.shape, np.uint8)
 
     def update(self, drones):
         """
@@ -75,29 +75,46 @@ class ExploredMap:
         if not self.initialized:
             return
 
-        # Fills explo_pts and self._map_exploration
-        dim = self._map_exploration.shape
+        # Fills explo_pts and self._map_explo_lines
+        dim = self._map_explo_lines.shape
 
         for drone in drones:
             position = (round(drone.position[0]), round(drone.position[1]))
             if 0 <= position[0] < dim[1] and 0 <= position[1] < dim[0]:
                 if drone in self._last_position.keys():
-                    cv2.line(img=self._map_exploration, pt1=self._last_position[drone], pt2=position,
+                    cv2.line(img=self._map_explo_lines, pt1=self._last_position[drone], pt2=position,
                              color=(0, 0, 0))
                 self._explo_pts.append(position)
                 self._last_position[drone] = position
             # else:
             #     print("Error")
 
+    def get_pretty_map_explo_lines(self):
+        pretty_map = np.zeros(self._map_playground.shape, np.uint8)
+        pretty_map[self._map_playground == 255] = 255
+        pretty_map[self._map_explo_lines == 0] = 128
+        return pretty_map
+
+    def get_pretty_map_explo_zones(self):
+        """
+        Return a nice map of the zones explorated.
+        Warning, the function score() should have been called before.
+        """
+        pretty_map = np.zeros(self._map_playground.shape, np.uint8)
+        pretty_map[self._map_playground == 255] = 255
+        pretty_map[self._map_explo_zones == 255] = 128
+        return pretty_map
+
     def display(self):
         """
-        Display _map_exploration and _exploration_zone
+        Display _map_explo_lines and _map_explo_zones
         """
         if not self.initialized:
+            print("warning : explored_map was not initialized, cannot display map !")
             return
 
-        cv2.imshow("explored map", self._map_exploration)
-        cv2.imshow("exploration_zone", self._exploration_zone)
+        cv2.imshow("explored lines", self._map_explo_lines)
+        cv2.imshow("exploration zones", self._map_explo_zones)
         cv2.waitKey(1)
 
     def _process_positions(self):
@@ -106,9 +123,9 @@ class ExploredMap:
         """
         radius_explo = 100
 
-        # we will erode several time the self._map_exploration and correct each times the wall
+        # we will erode several time the self._map_explo_lines and correct each times the wall
         # In eroded_image, the explored zone is black
-        eroded_image = self._map_exploration.copy()
+        eroded_image = self._map_explo_lines.copy()
         remain_radius = radius_explo
         one_time_size_kernel = 10
         while remain_radius != 0:
@@ -126,7 +143,7 @@ class ExploredMap:
             # The pixels of the eroded_image where there are walls (map_playground == 255) should stay white (255)
             eroded_image[self._map_playground == 255] = 255
 
-        self._exploration_zone = cv2.bitwise_not(eroded_image)
+        self._map_explo_zones = cv2.bitwise_not(eroded_image)
 
     def score(self):
         """
@@ -147,7 +164,7 @@ class ExploredMap:
         # print("self._count_pixel_walls=", self._count_pixel_walls)
 
         # Compute count_pixel_explored
-        self._count_pixel_explored = cv2.countNonZero(self._exploration_zone)
+        self._count_pixel_explored = cv2.countNonZero(self._map_explo_zones)
         # print("self._count_pixel_explored=", self._count_pixel_explored)
 
         # Compute percentage_walls

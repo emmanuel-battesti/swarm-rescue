@@ -10,10 +10,10 @@ from spg_overlay.map_abstract import MapAbstract
 
 from simple_playgrounds.playground import SingleRoom
 
-from .walls_01 import add_walls, add_boxes
+from .walls_02 import add_walls, add_boxes
 
 
-class MyMapCompet01(MapAbstract):
+class MyMapCompet02(MapAbstract):
     environment_series = [EnvironmentType.EASY, EnvironmentType.NO_COM_ZONE, EnvironmentType.NO_GPS_ZONE, EnvironmentType.KILL_ZONE]
 
     def __init__(self, environment_type: EnvironmentType = EnvironmentType.EASY):
@@ -26,7 +26,7 @@ class MyMapCompet01(MapAbstract):
         self.drones = []
 
         # BUILD MAP
-        self.size_area = (1112, 750)
+        self.size_area = (1122, 750)
         self.playground = None
         self.wounded_persons = list()
         self.build_map()
@@ -44,8 +44,8 @@ class MyMapCompet01(MapAbstract):
         self.playground = SingleRoom(size=self.size_area, wall_type='light')
 
         # RESCUE CENTER
-        rescue_center = RescueCenter(size=[90, 170])
-        self.playground.add_element(rescue_center, ((50, 660), 0))
+        rescue_center = RescueCenter(size=[210, 90])
+        self.playground.add_element(rescue_center, ((995, 60), 0))
 
         add_walls(self.playground)
         add_boxes(self.playground)
@@ -53,29 +53,28 @@ class MyMapCompet01(MapAbstract):
         self.explored_map.initialize_walls(self.playground)
 
         if self.environment_type == EnvironmentType.NO_COM_ZONE:
-            no_com_zone = NoComZone(size=(270, 500))
-            self.playground.add_element(no_com_zone, ((335, 325), 0))
+            no_com_zone = NoComZone(size=(405, 208))
+            self.playground.add_element(no_com_zone, ((220, 489), 0))
 
         # no_com_zone_test = NoComZone(size=(300, 300))
         # self.playground.add_element(no_com_zone_test, ((900, 554), 0))
 
         if self.environment_type == EnvironmentType.NO_GPS_ZONE:
-            no_gps_zone = NoGpsZone(size=(380, 252))
-            self.playground.add_element(no_gps_zone, ((195, 354), 0))
+            no_gps_zone = NoGpsZone(size=(232, 330))
+            self.playground.add_element(no_gps_zone, ((132, 429), 0))
 
         # no_gps_zone_test = NoGpsZone(size=(400, 400))
         # self.playground.add_element(no_gps_zone_test, ((900, 554), 0))
 
         if self.environment_type == EnvironmentType.KILL_ZONE:
-            kill_zone = KillZone(size=(55, 55))
-            self.playground.add_element(kill_zone, ((168, 300), 0))
+            kill_zone = KillZone(size=(80, 80))
+            self.playground.add_element(kill_zone, ((500, 420), 0))
 
         # sensor_disabler_test = KillZone(size=(300, 300))
         # self.playground.add_element(sensor_disabler_test, ((900, 554), 0))
 
-        wounded_persons_pos = [(40, 40), (90, 40), (330, 40),
-                               (35, 300), (495, 50), (245, 275),
-                               (385, 520), (460, 530), (1080, 50)]
+        wounded_persons_pos = [(80, 200), (50, 560), (300, 550),
+                               (480, 70), (500, 550), (750, 60)]
         self.number_wounded_persons = len(wounded_persons_pos)
 
         for i in range(self.number_wounded_persons):
@@ -88,7 +87,7 @@ class MyMapCompet01(MapAbstract):
                 print('Failed to place object')
 
     def positions_drones(self):
-        start_area = (180, 680)
+        start_area = (1000.0, 180.0)
         nb_per_side = math.ceil(math.sqrt(float(self.number_drones)))
         dist_inter_drone = 30.0
         # print("nb_per_side", nb_per_side)

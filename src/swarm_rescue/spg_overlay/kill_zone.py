@@ -10,8 +10,10 @@ from simple_playgrounds.element.elements.modifier import DeviceDisabler
 
 class KillZone(DeviceDisabler):
     def __init__(self, **entity_params):
-
         list_disabled: List[type(Device)] = [SensorDevice, CommunicationDevice, ActuatorDevice]
+
+        default_config = {'physical_shape': 'rectangle', 'texture': {'texture_type': 'color', 'color': [128, 128, 128]}}
+        entity_params = {**default_config, **entity_params}
 
         super().__init__(disabled_device_types=list_disabled,
                          config_key=ElementTypes.SENSOR_DISABLER, **entity_params)

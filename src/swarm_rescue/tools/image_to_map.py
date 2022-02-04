@@ -33,7 +33,8 @@ class ImageToMap:
 
     def img_to_segments(self):
         fld = cv2.ximgproc.createFastLineDetector(do_merge=False)
-        kernel = np.ones((3, 3), np.uint8)
+        size_kernel = 5
+        kernel = np.ones((size_kernel, size_kernel), np.uint8)
         img_erode = cv2.erode(self.src, kernel, iterations=2)
 
         self.lines = fld.detect(img_erode)
@@ -109,7 +110,7 @@ class ImageToMap:
         f = open("generated_code.py", "w")
         f.write("from spg_overlay.normal_wall import NormalWall, NormalBox\n\n\n")
 
-        f.write("# Dimension of the map : ({},{})\n".format(self.height_map, self.width_map))
+        f.write("# Dimension of the map : ({},{})\n".format(self.width_map, self.height_map))
 
         f.write("# Dimension factor : {}\n".format(self.factor))
 
@@ -128,13 +129,65 @@ class ImageToMap:
         f.write("\n\n")
         f.write("def add_walls(playground):\n")
 
+        # orient :
+        #   horizontal = 0
+        #   vertical = 1
+        #   oblique = 2
+        orient = 2
+
         for i, line in enumerate(self.lines):
             x0 = int(round(self.factor * line[0][0]))
             y0 = int(round(self.factor * line[0][1]))
             x1 = int(round(self.factor * line[0][2]))
             y1 = int(round(self.factor * line[0][3]))
 
-            f.write("    # wall {}\n".format(i))
+            orient = 2
+
+            if y0 == y1:
+                # horizontal
+                orient = 0
+
+            if x0 == x1:
+                # vertical
+                orient = 1
+
+            # Correct orientation
+            if orient == 0 and x0 > x1:  # horizontal
+                x0, x1 = x1, x0  # swap
+
+            if orient == 1 and y0 > y1:  # vertical
+                y0, y1 = y1, y0  # swap
+
+            if orient == 2 and x0 > x1:  # oblique
+                x0, x1 = x1, x0  # swap
+                y0, y1 = y1, y0  # swap
+
+            # Correct size
+            if orient == 0:
+                x0 -= 2
+                x1 += 2
+
+            if orient == 1:
+                y0 -= 2
+                y1 += 2
+
+            if orient == 2:
+                x0 -= 2
+                x1 += 2
+                if y1 > y0:  # oblique
+                    y0 -= 2
+                    y1 += 2
+                else:
+                    y1 -= 2
+                    y0 += 2
+
+            if orient == 0:
+                f.write("    # horizontal wall {}\n".format(i))
+            elif orient == 1:
+                f.write("    # vertical wall {}\n".format(i))
+            else:
+                f.write("    # oblique wall {}\n".format(i))
+
             f.write("    playground.add_element(NormalWall(start_point=({}, {}),\n".format(x0, y0))
             f.write("                                      end_point=({}, {})))\n".format(x1, y1))
 
@@ -144,6 +197,7 @@ class ImageToMap:
         print("nombre de lignes =", len(self.lines))
 
 
-img = cv2.imread("/home/battesti/projetCompetDronesDGA/private-swarm-rescue/map_data/CIREX_MAP1_simpleWalls.png", 0)
+# img = cv2.imread("/home/battesti/projetCompetDronesDGA/private-swarm-rescue/map_data/CIREX_MAP1_simpleWalls.png", 0)
+img = cv2.imread("/home/battesti/projetCompetDronesDGA/private-swarm-rescue/map_data/CIREX_PRES_0_simpleWalls.png", 0)
 image_to_map = ImageToMap(img)
 image_to_map.launch()
