@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.4.1] - 2022-02-10
+
+### Fixed
+- Bug fix in launcher.py in function reset()
+
 ## [1.4.0] - 2022-02-04
 
 ### Changed

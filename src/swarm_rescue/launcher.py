@@ -70,7 +70,8 @@ class Launcher:
                                           )
 
         # BUILD DRONES
-        misc_data = MiscData(size_area=self.my_map.size_area)
+        misc_data = MiscData(size_area=self.my_map.size_area,
+                             number_drones=self.my_map.number_drones)
         drones = [MyDrone(identifier=i, misc_data=misc_data)
                   for i in
                   range(self.my_map.number_drones)]
