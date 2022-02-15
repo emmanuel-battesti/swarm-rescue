@@ -1,12 +1,6 @@
 from enum import IntEnum
-from typing import List
 
-from simple_playgrounds.agent.actuators import ActuatorDevice
-from simple_playgrounds.device.communication import CommunicationDevice
-from simple_playgrounds.device.device import Device
-from simple_playgrounds.device.sensor import SensorDevice
-from simple_playgrounds.common.definitions import ElementTypes
-from simple_playgrounds.element.elements.modifier import DeviceDisabler, CommunicationDisabler, SensorDisabler
+from simple_playgrounds.element.elements.modifier import CommunicationDisabler, SensorDisabler
 
 from spg_overlay.drone_sensors import DroneGPS
 

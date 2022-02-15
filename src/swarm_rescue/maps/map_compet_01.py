@@ -14,7 +14,8 @@ from .walls_01 import add_walls, add_boxes
 
 
 class MyMapCompet01(MapAbstract):
-    environment_series = [EnvironmentType.EASY, EnvironmentType.NO_COM_ZONE, EnvironmentType.NO_GPS_ZONE, EnvironmentType.KILL_ZONE]
+    environment_series = [EnvironmentType.EASY, EnvironmentType.NO_COM_ZONE, EnvironmentType.NO_GPS_ZONE,
+                          EnvironmentType.KILL_ZONE]
 
     def __init__(self, environment_type: EnvironmentType = EnvironmentType.EASY):
         super().__init__(environment_type)
@@ -29,7 +30,7 @@ class MyMapCompet01(MapAbstract):
         self.size_area = (1112, 750)
         self.playground = None
         self.wounded_persons = list()
-        self.build_map()
+        self._build_map()
 
     def set_drones(self, drones):
         # BUILD DRONES
@@ -38,7 +39,7 @@ class MyMapCompet01(MapAbstract):
         # POSITIONS OF THE DRONES
         self.positions_drones()
 
-    def build_map(self):
+    def _build_map(self):
         random.seed(time.time())
 
         self.playground = SingleRoom(size=self.size_area, wall_type='light')
@@ -88,6 +89,9 @@ class MyMapCompet01(MapAbstract):
                 print('Failed to place object')
 
     def positions_drones(self):
+        """
+        The drones are positioned in a square whose side size depends on the total number of drones.
+        """
         start_area = (180, 680)
         nb_per_side = math.ceil(math.sqrt(float(self.number_drones)))
         dist_inter_drone = 30.0

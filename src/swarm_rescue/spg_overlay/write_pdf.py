@@ -1,5 +1,3 @@
-from re import S
-from time import strftime
 from fpdf import FPDF
 import pandas
 from datetime import datetime
@@ -7,41 +5,83 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-class WritePdf:
-    def __init__(self):
-        self.team_info = None
-        self.environment_names = ['easy', 'no_com_zone', 'no_gps_zone', 'kill_zone']
-        self.th = None
-        self.epw = None
+class MyFPDF(FPDF):
+    def footer(self):
+        # Position at 1.5 cm from bottom
+        self.set_y(-15)
+        # Arial italic 8
+        self.set_font('Arial', 'I', 8)
+        # Page number
+        self.cell(0, 10, 'Page ' + str(self.page_no()) + '/{nb}', 0, 0, 'C')
 
-        self.pdf = FPDF('P', 'mm', 'A4')
+
+class WritePdf:
+    def __init__(self, team_info, path):
+        self.team_info = team_info
+        self.team_number_str = str(self.team_info.team_number).zfill(2)
+        self.path = path
+        self.environment_names = ['easy', 'no_com_zone', 'no_gps_zone', 'kill_zone']
+
+        self.pdf = MyFPDF('P', 'mm', 'A4')
+        self.pdf.alias_nb_pages()
         self.pdf.add_page()
+        self.pdf.set_margins(left=25, top=25, right=25)
         self.data = []
+
+        self.score_final = 0
+        self.list_df_zone = []
+
+        self.th = None
+        # Effective page width, or just epw
+        self.epw = self.pdf.w - 2 * self.pdf.l_margin
+
+    def _body_text_font(self, style=''):
+        self.pdf.set_font(family='Arial', style=style, size=11)
+
+    def _header_1_font(self):
+        self.pdf.set_font(family='Arial', style='B', size=15)
+
+    def _title_font(self):
+        self.pdf.set_font(family='Arial', style='B', size=18)
+
+    def _courier_font(self, style=''):
+        self.pdf.set_font(family='Courier', style=style, size=10)
+
+    def _empty_line(self, height):
+        self.pdf.ln(height * self.th)
 
     def _header(self):
         date = datetime.now()
 
-        # Effective page width, or just epw
-        self.epw = self.pdf.w - 2 * self.pdf.l_margin
-
-        self.pdf.set_font('Arial', 'B', 16)
-        self.pdf.cell(0, 0, 'Challenge Intelligence Répartie', align='C')
-
-        self.pdf.set_font('Arial', '', 11)
+        # Title
+        self._title_font()
         self.th = self.pdf.font_size
-        self.pdf.ln(2 * self.th)
-        self.pdf.cell(0, 0, "Généré le " + date.strftime("%d/%m/%Y - %H:%M"), align='C')
+        self.pdf.cell(80, ln=1)
+        self.pdf.cell(0, txt="Challenge Intelligence Répartie", align='C')
+        self._empty_line(1.5)
+        self.pdf.cell(0, txt="Rapport d'évaluation", align='C')
 
-        self.pdf.ln(4 * self.th)
-        self.pdf.cell(0, 0, 'Equipe ' + str(self.team_info.team_number).zfill(2) + ' : ' + self.team_info.team_name, align='L')
-        self.pdf.ln(2 * self.th)
-        self.pdf.cell(0, 0, 'Membres : ' + self.team_info.team_members, align='L')
-        
- 
-        self.pdf.ln(3 * self.th)
+        # Subtitle
+        self._body_text_font()
+        self._empty_line(2)
+        self.pdf.cell(0, txt="Généré le " + date.strftime("%d/%m/%Y - %H:%M"), align='C')
+        self._empty_line(1)
 
-    def _compute_data(self, path):
-        file = pandas.read_csv(path + '/stats_eq{}.csv'.format(str(self.team_info.team_number).zfill(2)))
+        # Header 1
+        self._header_1_font()
+        self._empty_line(2)
+        self.pdf.cell(0, txt="L'équipe")
+
+        # Text
+        self._body_text_font(style='B')
+        self._empty_line(1.5)
+        self.pdf.cell(0, txt='Equipe n°' + self.team_number_str + ' : ' + self.team_info.team_name,
+                      align='L')
+        self._empty_line(1)
+        self.pdf.cell(0, txt='Membres : ' + self.team_info.team_members, align='L')
+
+    def _compute_data(self):
+        file = pandas.read_csv(self.path + '/stats_eq{}.csv'.format(self.team_number_str))
         df = pandas.DataFrame(file)
         # df = df.loc[df["Group"] != "Group"]
 
@@ -59,30 +99,69 @@ class WritePdf:
         ## create data that can be used by fpdf
         i = 0
         final_scores = []
-        self.data.append(['Environnement', 'Score Exploration', 'Score Sauvetages', 'Score Temps', 'Score Total'])
+        self.data.append(['Environnement', 'Sc. Sauvetages', 'Sc. Exploration', 'Sc. Temps', 'Score Total'])
         for df in list_df_zone:
             if df.empty is False:
                 final_scores.append(df["Final Score"].mean())
-                self.data.append([self.environment_names[i], df["Exploration Score"].mean(), df["Rescued Percent"].mean(),
-                                  df["Time Score"].mean(), df["Final Score"].mean()])
+                self.data.append(
+                    [self.environment_names[i], df["Rescued Percent"].mean(), df["Exploration Score"].mean(),
+                     df["Time Score"].mean(), df["Final Score"].mean()])
             else:
                 final_scores.append(0)
                 self.data.append([self.environment_names[i], 0, 0, 0, 0])
             i += 1
 
-        score_final = 3 * final_scores[0] + final_scores[1] + final_scores[2] + final_scores[3]
+        score_final = (3 * final_scores[0] + final_scores[1] + final_scores[2] + final_scores[3]) / 6
         return score_final, list_df_zone
 
-    def _add_table(self, path):
+    def _add_table(self):
         col_width = self.epw / 5
 
-        self.pdf.set_font('Arial', 'B', 11)
-        self.pdf.cell(0, 0, 'Performances', align='C')
-        self.pdf.ln(2 * self.th)
+        # Header 1
+        self._header_1_font()
+        self._empty_line(2)
+        self.pdf.cell(0, txt="Score final : %.1f / 100" % self.score_final)
 
-        self.pdf.set_font('Arial', '', 10)
+        # Header 1
+        self._header_1_font()
+        self._empty_line(2)
+        self.pdf.cell(0, txt="Calcul du score")
 
-        score_final, list_df_zone = self._compute_data(path)
+        # Text
+        self._body_text_font()
+        self._empty_line(1.5)
+        self.pdf.cell(0, txt="Dans ce tableau, vous retrouvez le score moyen pour chacun des environnements.")
+        self._empty_line(1)
+
+        self._body_text_font()
+        self.pdf.multi_cell(w=self.epw, h=1 * self.th, txt="Pour chaque round, différents scores sont calculés :")
+        self.pdf.multi_cell(w=self.epw, h=1 * self.th,
+                            txt="    - Ssauv, le score de sauvetages. Il s'agit de la proportion de blessés retournés au poste de secours,")
+        self.pdf.multi_cell(w=self.epw, h=1 * self.th,
+                            txt="    - Sexpl, le score d'exploration. Il dépend de la taille de l'espace exploré par les drones,")
+        self.pdf.multi_cell(w=self.epw, h=1 * self.th,
+                            txt="    - Stemps, le score lié au temps mis pour tout explorer et retrouver tous les blessés. Il s'agit de la proportion de temps restant par rapport au temps imparti.")
+        self._empty_line(1)
+        self.pdf.multi_cell(w=self.epw, h=1 * self.th,
+                            txt="Un score Sr est calculé pour chaque round avec cette formule :")
+        self._courier_font(style='B')
+        self.pdf.multi_cell(w=self.epw, h=1 * self.th,
+                            txt="Sr = (0.7 * Ssauv + 0.2 * Sexpl + 0.1 * Stemps)*100")
+
+        self._body_text_font()
+        self._empty_line(1)
+        self.pdf.multi_cell(w=self.epw, h=1 * self.th,
+                            txt="Ensuite, pour chaque environnement, on fait la moyenne de plusieurs rounds.")
+        self.pdf.multi_cell(w=self.epw, h=1 * self.th,
+                            txt="On  calcule le score final avec cette formule:")
+        self._courier_font(style='B')
+        self.pdf.multi_cell(w=self.epw, h=1 * self.th,
+                            txt="Score Final = (3 * Score 'Easy' + Score 'No com zone' + Score 'No GPS zone' + Score 'Kill zone')/6")
+        # ")
+
+        self._empty_line(0.5)
+
+        self._courier_font()
 
         for row in self.data:
             for datum in row:
@@ -90,87 +169,104 @@ class WritePdf:
                     datum = "%.2f" % datum
                     datum = str(datum)
 
-                self.pdf.cell(col_width, self.th, datum, border=1)
+                self.pdf.cell(w=col_width, h=self.th, txt=datum, border=1)
 
-            self.pdf.ln(self.th)
+            self._empty_line(1)
 
-        self.pdf.ln(2 * self.th)
-        self.pdf.set_font('Arial', 'B', 11)
-        self.pdf.cell(0, 0, "Score final : %.2f" % (score_final / 6))
-        self.pdf.ln(2 * self.th)
-        self.pdf.set_font('Arial', '', 11)
-        self.pdf.multi_cell(self.epw, 1.5 * self.th,
-                            "Avec :\nScore Total pour un round = (0.7 * Score Sauvetages + 0.2 * Score Exploration + 0.1 * Score Temps)*100\nScore Final = (3*Score Total 'Easy' + Score Total 'No com area' + Score Total 'No GPS zone' + Score Total 'Kill zone')/6")
-        self.pdf.ln(3 * self.th)
-
-    def _add_histo(self, path):
-        X = self.environment_names
-        Y_explo, Y_sauv, Y_score, Y_temps = [], [], [], []
-        legend = ['Exploration', 'Sauvetages', 'Temps', 'Score Total']
+    def _add_histo(self):
+        y_sauv, y_explo, y_temps, y_score = [], [], [], []
+        legend = ['Sauvetages', 'Exploration', 'Temps restant', 'Score Total']
+        # We use a min value not null for display purpose
+        min_val_display = 0.01
         for i in range(1, len(self.data)):
-            Y_explo.append(self.data[i][1])
-            Y_sauv.append(self.data[i][2])
-            Y_temps.append(self.data[i][3])
-            Y_score.append(self.data[i][4] / 100)
+            y_sauv.append(max(self.data[i][1], min_val_display))
+            y_explo.append(max(self.data[i][2], min_val_display))
+            y_temps.append(max(self.data[i][3], min_val_display))
+            y_score.append(max(self.data[i][4] / 100, min_val_display))
 
-        width = 0.2  # épaisseur de chaque bâton
-        pos = np.arange(len(X))
-        Y_scale = np.arange(0, 1.1, 0.1)
+        width = 0.10  # épaisseur de chaque bâton
+        dist = 0.12  # distance entre les centre des batons
+        pos = np.arange(len(self.environment_names))
+        y_scale = np.arange(0, 1.1, 0.1)
         # Création du diagramme en bâtons (bâtons côte à côte)
-        plt.bar(pos - 1.5 * width, Y_explo, width, color='steelblue')
-        plt.bar(pos - 0.5 * width, Y_sauv, width, color='firebrick')
-        plt.bar(pos + 0.5 * width, Y_temps, width, color='darkolivegreen')
-        plt.bar(pos + 1.5 * width, Y_score, width, color='goldenrod')
-        plt.xticks(pos, X)
-        plt.yticks(Y_scale)
+        plt.bar(pos - 1.5 * dist, y_sauv, width, color='firebrick')
+        plt.bar(pos - 0.5 * dist, y_explo, width, color='steelblue')
+        plt.bar(pos + 0.5 * dist, y_temps, width, color='darkolivegreen')
+        plt.bar(pos + 1.5 * dist + 0.06, y_score, width + 0.12, color='goldenrod')
+        plt.xticks(pos, self.environment_names)
+        plt.yticks(y_scale)
         plt.ylabel('Taux de réussite')
         plt.xlabel('Environnement')
         plt.legend(legend, loc=1)
-        filename = path + '/histo_performance_eq{}.png'.format(str(self.team_info.team_number).zfill(2))
+        filename = self.path + '/histo_performance_eq{}.png'.format(self.team_number_str)
         plt.savefig(filename, format='png')
 
-        self.pdf.image(filename, h=120)
-
-
-    def _add_screen(self, num_eq, path):
-
         self.pdf.add_page()
-        self.pdf.set_font('Arial', 'B', 11)
-        self.pdf.cell(0, 0, 'Resultats de simulation', align='C')
-        self.pdf.ln(2 * self.th)
-        self.pdf.set_font('Arial', '', 10)
-        
-        score_final, list_df_zone = self._compute_data(path)
+        # Header 1
+        self._header_1_font()
+        self.pdf.cell(0, txt="Illustration graphique des scores")
+        self._empty_line(1)
+
+        self.pdf.image(name=filename, w=self.epw)
+
+    def _add_screen(self):
+
         for i in range(len(self.environment_names)):
             try:
-                df = list_df_zone[i]
+                self.pdf.add_page()
+                self._header_1_font()
+                self.pdf.cell(0,
+                              txt="Détails de simulation avec l'environnement '{}'".format(self.environment_names[i]))
+
+                self._empty_line(2)
+
+                df = self.list_df_zone[i]
                 max_finale_score = max(df["Final Score"])
                 ligne_best_rd = df.loc[df["Final Score"] == max_finale_score]
                 best_rd = int(ligne_best_rd["Round"])
 
-                self.pdf.cell(0, 0,
-                              "Dernière image de la simulation avec la zone '{}' active, meilleur round : round n°{}".format(
-                                  self.environment_names[i], best_rd))
-                self.pdf.ln(2 * self.th)
-                self.pdf.image(
-                    path + "/screen_{}_rd{}_eq{}.png".format(str(self.environment_names[i]), str(best_rd), str(num_eq).zfill(2)), h=90)
-                self.pdf.ln(2 * self.th)
-                self.pdf.cell(0, 0, "Exploration {}, round {}".format(self.environment_names[i], best_rd))
-                self.pdf.ln(2 * self.th)
-                self.pdf.image(
-                    path + "/screen_explo_{}_rd{}_eq{}.png".format(self.environment_names[i], str(best_rd), str(num_eq).zfill(2)),
-                    h=90)
-                self.pdf.ln(4 * self.th)
-                self.pdf.add_page()
+                envir_name_str = str(self.environment_names[i])
+                best_rd_str = str(best_rd)
+
+                self._body_text_font(style='B')
+                self.pdf.cell(0, txt="Meilleur round : n°{}".format(best_rd_str))
+                self._empty_line(1)
+                self._body_text_font()
+                self.pdf.cell(0, txt="Dernière image de la simulation :")
+
+                self._empty_line(0.5)
+                filename = self.path + "/screen_{}_rd{}_eq{}.png".format(envir_name_str,
+                                                                         best_rd_str,
+                                                                         self.team_number_str)
+                self.pdf.image(filename, w=self.epw)
+                self._empty_line(1)
+
+                self.pdf.cell(0, txt="Carte d'exploration : ")
+
+                self._empty_line(0.5)
+                filename = self.path + "/screen_explo_{}_rd{}_eq{}.png".format(envir_name_str,
+                                                                               best_rd_str,
+                                                                               self.team_number_str)
+                self.pdf.image(filename, w=self.epw)
+                self._empty_line(1)
+
+                self.pdf.cell(0, txt="Carte de trajets des drones : ")
+
+                self._empty_line(0.5)
+                filename = self.path + "/screen_path_{}_rd{}_eq{}.png".format(envir_name_str,
+                                                                              best_rd_str,
+                                                                              self.team_number_str)
+                self.pdf.image(filename, w=self.epw)
+                self._empty_line(1)
             except:
                 pass
 
-    def generate_pdf(self, team_info, path):
-        self.team_info = team_info
+    def generate_pdf(self):
+        self.score_final, self.list_df_zone = self._compute_data()
         self._header()
-        self._add_table(path)
-        self._add_histo(path)
-        self._add_screen(team_info.team_number, path)
-        filename = path + '/report_team{}.pdf'.format(str(self.team_info.team_number).zfill(2))
+        self._add_table()
+        self._add_histo()
+        self._add_screen()
+        filename = self.path + '/report_team{}.pdf'.format(self.team_number_str)
         self.pdf.output(filename, 'F')
         print("A new evaluation report is available here : {}".format(filename))

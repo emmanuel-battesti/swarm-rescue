@@ -11,4 +11,4 @@ setuptools
 -e git+https://github.com/embaba/simple-playgrounds.git@swarm-rescue#egg=simple_playgrounds
 fpdf
 pandas
-pathlib
+pathlib2

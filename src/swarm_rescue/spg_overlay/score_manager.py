@@ -23,13 +23,13 @@ class ScoreManager:
         self.w_exploration = 0.2
         self.w_time = 0.1
 
-    def compute_score(self, number_rescued_persons, score_exploration, time_step_rescue_all):
+    def compute_score(self, number_rescued_persons, score_exploration, rescued_all_time_step):
         """
         Compute the final score out of 100.
-        Need informations :
-            'number_rescued_persons': number  of rescued persons by the drones
+        Needed information :
+            'number_rescued_persons': number of rescued persons by the drones
             'score_exploration': score of exploration computed by the ExploredMap class
-            'time_step_rescue_all': number of time step used by the time all the wounded person are saved
+            'rescued_all_time_step': number of time step used by the time all the wounded person are saved
         """
         if self.total_number_wounded_persons > 0:
             percentage_rescue = number_rescued_persons / self.total_number_wounded_persons
@@ -37,8 +37,8 @@ class ScoreManager:
             percentage_rescue = 1.0
 
         if number_rescued_persons == self.total_number_wounded_persons and score_exploration > 0.97:
-            time_step_rescue_all = min(time_step_rescue_all, self.time_step_limit)
-            score_time_step = (self.time_step_limit - time_step_rescue_all) / self.time_step_limit
+            rescued_all_time_step = min(rescued_all_time_step, self.time_step_limit)
+            score_time_step = (self.time_step_limit - rescued_all_time_step) / self.time_step_limit
         else:
             score_time_step = 0
 
@@ -49,4 +49,3 @@ class ScoreManager:
         score = score * 100.0
 
         return score, percentage_rescue, score_time_step
-

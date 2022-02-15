@@ -10,12 +10,13 @@ from spg_overlay.sensor_disablers import EnvironmentType
 
 
 class MyMapRandom(MapAbstract):
+    environment_series = [EnvironmentType.EASY, EnvironmentType.NO_COM_ZONE]
 
     def __init__(self, environment_type: EnvironmentType = EnvironmentType.EASY):
         super().__init__(environment_type)
         self.number_drones = 20
-        self.time_step_limit = 10000
-        self.real_time_limit = 3600  # In seconds
+        self.time_step_limit = 480
+        self.real_time_limit = 22  # In seconds
 
         self.drones = []
 
