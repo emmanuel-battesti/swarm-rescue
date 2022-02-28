@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.5.1] - 2022-02-28
+
+### Changed
+- The radius, around the drones, of space that is considered explored, increases from 100 to 200
+
+### Fixed
+- Bug fix in the calculation of the explorated area.
+
 ## [1.5.0] - 2022-02-15
 
 ### Changed

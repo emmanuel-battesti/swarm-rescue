@@ -1,6 +1,10 @@
+import math
+
 import cv2
 import numpy as np
 from simple_playgrounds.engine import Engine
+
+from spg_overlay.utils import bresenham, circular_kernel
 
 
 class ExploredMap:
@@ -15,10 +19,13 @@ class ExploredMap:
         # map_playground : black and white map of the playground without wounded persons and without drones
         self._map_playground = np.zeros((0, 0))
 
-        # map_exploration : map of the point visited by drones (all positions of the drones) in black
+        # _map_explo_lines : map of the point visited by drones (all positions of the drones)
+        # Initialize _map_explo_lines with 255 (white)
         self._map_explo_lines = np.ones((0, 0))
+        # _map_explo_zones : map of the zone explored by drones
+        # Initialize _map_explo_zones with zeros (black)
         self._map_explo_zones = np.zeros((0, 0))
-        self._explo_pts = []
+        self._explo_pts = dict()
         self._last_position = dict()
 
         self._count_pixel_walls = 0
@@ -31,10 +38,13 @@ class ExploredMap:
         """
         Reset everything to zero
         """
-        # Initialize map_exploration with zeros
+        # _map_explo_lines : map of the point visited by drones (all positions of the drones)
+        # Initialize _map_explo_lines with 255 (white)
         self._map_explo_lines = np.ones(self._map_playground.shape, np.uint8) * 255
+        # _map_explo_zones : map of the zone explored by drones
+        # Initialize _map_explo_zones with zeros (black)
         self._map_explo_zones = np.zeros(self._map_playground.shape, np.uint8)
-        self._explo_pts = []
+        self._explo_pts = dict()
         self._last_position = dict()
         self._count_pixel_walls = 0
         self._count_pixel_explored = 0
@@ -64,8 +74,11 @@ class ExploredMap:
 
         ret, self._map_playground = cv2.threshold(map_gray, 10, 255, cv2.THRESH_BINARY)
 
-        # Initialize map_exploration with zeros
+        # _map_explo_lines : map of the point visited by drones (all positions of the drones)
+        # Initialize _map_explo_lines with 255 (white)
         self._map_explo_lines = np.ones(self._map_playground.shape, np.uint8) * 255
+        # _map_explo_zones : map of the zone explored by drones
+        # Initialize _map_explo_zones with zeros (black)
         self._map_explo_zones = np.zeros(self._map_playground.shape, np.uint8)
 
     def update(self, drones):
@@ -84,7 +97,10 @@ class ExploredMap:
                 if drone in self._last_position.keys():
                     cv2.line(img=self._map_explo_lines, pt1=self._last_position[drone], pt2=position,
                              color=(0, 0, 0))
-                self._explo_pts.append(position)
+                if drone in self._explo_pts:
+                    self._explo_pts[drone].append(position)
+                else:
+                    self._explo_pts[drone] = [position]
                 self._last_position[drone] = position
             # else:
             #     print("Error")
@@ -121,29 +137,105 @@ class ExploredMap:
         """
         Process the list of the positions of the drones to draw the map of the explored zones
         """
-        radius_explo = 100
+        radius_explo = 200
 
         # we will erode several time the self._map_explo_lines and correct each times the wall
         # In eroded_image, the explored zone is black
         eroded_image = self._map_explo_lines.copy()
         remain_radius = radius_explo
-        one_time_size_kernel = 10
+        # one_time_radius_kernel should be equal to the wall_depth(+1 because of bug in SPG)
+        one_time_radius_kernel = 5
+
+        kernel = circular_kernel(one_time_radius_kernel)
+
         while remain_radius != 0:
             # Creating kernel
-            if remain_radius < one_time_size_kernel:
-                one_time_size_kernel = remain_radius
+            if remain_radius < one_time_radius_kernel:
+                one_time_radius_kernel = remain_radius
                 remain_radius = 0
             else:
-                remain_radius -= one_time_size_kernel
-            # kernel = np.ones((one_time_size_kernel, one_time_size_kernel), np.uint8)
-            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (one_time_size_kernel, one_time_size_kernel))
+                remain_radius -= one_time_radius_kernel
 
             # Using cv2.erode() method
             eroded_image = cv2.erode(eroded_image, kernel, cv2.BORDER_REFLECT)
+
             # The pixels of the eroded_image where there are walls (map_playground == 255) should stay white (255)
             eroded_image[self._map_playground == 255] = 255
 
+            # cv2.imshow("eroded_image", eroded_image)
+            # cv2.imshow("_map_explo_lines", self._map_explo_lines)
+            # cv2.waitKey(0)
+
         self._map_explo_zones = cv2.bitwise_not(eroded_image)
+
+    def _process_positions_bresenham(self):
+        """
+        computed with bresenham ray casting
+        """
+        width = self._map_playground.shape[1]
+        height = self._map_playground.shape[0]
+
+        radius_explo = 200
+        nb_rays = 32
+        ray_angles = [n * 2 * math.pi / nb_rays for n in range(nb_rays)]
+        cos_ray_angles = np.cos(ray_angles)
+        sin_ray_angles = np.sin(ray_angles)
+        ox = cos_ray_angles * radius_explo
+        oy = sin_ray_angles * radius_explo
+
+        laser_beams = []
+        for (x, y) in zip(ox, oy):
+            laser_beam = bresenham((0, 0), (int(x + 0.5), int(y + 0.5)))
+            laser_beams.append(laser_beam)
+
+        # 'ray_angles' is an array which contains the angles of the laser rays of the lidar
+        ray_angles = np.array(ray_angles)
+
+        explo_pts = sum(self._explo_pts.values(), [])
+
+        prev_pt = [0, 0]
+        for pt in explo_pts:
+            # Compute only if the point pt is far enough from the previous one
+            if abs(prev_pt[0] - pt[0]) < 10 or abs(prev_pt[1] - pt[1]) < 10:
+                continue
+            for laser_beam in laser_beams:
+                laser_beam_around_pt = laser_beam + pt
+                for idx, pix in enumerate(laser_beam_around_pt):
+
+                    if pix[0] < 0 or pix[0] >= width or pix[1] < 0 or pix[1] >= height:
+                        # print("Index outside, pix:{}, size({},{})", pix, width, height)
+                        break
+
+                    # Compute only one point on 4
+                    if idx % 4 != 0:
+                        continue
+
+                    if self._map_playground[pix[1]][pix[0]] == 0:
+                        self._map_explo_zones[pix[1]][pix[0]] = 255
+                    else:
+                        break
+
+                # print(pt)
+                # cv2.imshow("_map_explo_zones", self._map_explo_zones)
+                # cv2.imshow("_map_explo_lines", self._map_explo_lines)
+                # cv2.waitKey(1)
+
+            prev_pt = pt
+
+        cv2.imshow("_map_explo_zones", self._map_explo_zones)
+        cv2.imshow("_map_explo_lines", self._map_explo_lines)
+
+        # Remove noise and connect point of exploration into a zone
+        kernel = circular_kernel(4)
+        self._map_explo_zones = cv2.morphologyEx(self._map_explo_zones, cv2.MORPH_CLOSE, kernel)
+        self._map_explo_zones[self._map_playground == 255] = 0
+        cv2.imshow("_map_explo_zones 2 ", self._map_explo_zones)
+        cv2.waitKey(0)
+        # Remove the last points of exploration not connected with a zone.
+        # kernel = circular_kernel(1)
+        # self._map_explo_zones = cv2.morphologyEx(self._map_explo_zones, cv2.MORPH_OPEN, kernel)
+        # Remove exploration points inside walls
+        self._map_explo_zones[self._map_playground == 255] = 0
 
     def score(self):
         """

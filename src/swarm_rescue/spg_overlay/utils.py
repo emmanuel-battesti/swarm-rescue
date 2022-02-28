@@ -77,3 +77,20 @@ def bresenham(start, end):
         points.reverse()
     points = np.array(points)
     return points
+
+
+def circular_kernel(radius):
+    """
+    The function cv2.getStructuringElement(cv2.MORPH_ELLIPSE, ...) of OpenCV is not satisfying because
+    the result is not symmetrical...
+    So here we use this code to do it. This was find here :
+    https://stackoverflow.com/questions/8647024/how-to-apply-a-disc-shaped-mask-to-a-numpy-array
+    :param radius:
+    :return: circle structuring element, that is, a filled circle inscribed into the
+    rectangle Rect(0, 0, 2*radius + 1, 2*radius + 1)
+    """
+    kernel = np.zeros((2 * radius + 1, 2 * radius + 1), np.uint8)
+    y, x = np.ogrid[-radius:radius + 1, -radius:radius + 1]
+    mask = x ** 2 + y ** 2 <= radius ** 2
+    kernel[mask] = 1
+    return kernel

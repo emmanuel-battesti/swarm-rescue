@@ -17,6 +17,22 @@ def add_boxes(playground):
     playground.add_element(NormalBox(up_left_point=(0, 595),
                                      width=430, height=150))
 
+    # box top
+    playground.add_element(NormalBox(up_left_point=(423, 0),
+                                     width=693, height=11))
+
+    # box right
+    playground.add_element(NormalBox(up_left_point=(1100, 0),
+                                     width=20, height=745))
+
+    # box bottom
+    playground.add_element(NormalBox(up_left_point=(428, 732),
+                                     width=695, height=13))
+
+    # box left
+    playground.add_element(NormalBox(up_left_point=(0, 147),
+                                     width=12, height=450))
+
 
 def add_walls(playground):
     # vertical wall 0
