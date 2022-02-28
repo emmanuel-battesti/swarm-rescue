@@ -20,7 +20,7 @@ Your job will be to propose your own version of the controller of the drone. In 
 
 The objective of the mission is to map an unknown, potentially hostile area, detect targets (injured or healthy people), and guide them out of the area. A typical use case is to investigate the basement of a collapsed building in the dark, in order to locate trapped people and rescue them.
 
-Each team will have a fleet of 20 drones. Each drone will be equipped with communication functions and sensors.
+Each team will have a fleet of 10 drones. Each drone will be equipped with communication functions and sensors.
 
 Your job is to make these drones completely autonomous by programming them in *Python*.
 
@@ -201,8 +201,8 @@ In the code, class *DroneLidar*.
 
 It emulates a lidar. 
 
-- *fov* (field of view): 180 degrees
-- *resolution* (number of rays): 180
+- *fov* (field of view): 360 degrees
+- *resolution* (number of rays): 90
 - *max range* (maximum range of the sensor): 300 pix
 
 You can find an example of lidar use in the *solutions/my_drone_lidar_communication.py* file.
@@ -216,7 +216,7 @@ Touch Sensors detect close proximity of entities (objects or walls) near the dro
 It emulates artificial skin,
 
 - *fov* (field of view): 360 degrees
-- *resolution* (number of rays): 36
+- *resolution* (number of rays): 12
 - *max range* (maximum range of the sensor): 5 pix
 
 The return value is between 0 and 1.
@@ -247,7 +247,7 @@ Each cone of the sensor provides a data with :
 
 ### Communication
 
-Each drone can communicate with all the drones in a certain range (currently, 200 pixel).
+Each drone can communicate with all the drones in a certain range (currently, 200 pixels).
 At each time step, data can be sent and/or received.
 
 You have the possibility to configure the content of the messages yourself.
@@ -329,7 +329,7 @@ This zone cannot be detected by the drone.
 
 *launcher.py* is the main program file to launch a swarm of drones using your code. This file will run everything needed to perform the evaluation.
 
-It will launch the 20 drones that you will have customized in the map that you want, make it run and give the final score.
+It will launch the 10 drones that you will have customized in the map that you want, make it run and give the final score.
 
 This file needs almost no modification to work, except those lines at the beginning of the file:
 
@@ -364,7 +364,7 @@ This repository will contain your solutions. Taking inspiration from what is the
 
 Each Drone must inherit from the class *DroneAbstract*. You have 2 mandatory member functions: **define_message()** that will define the message sent between drone, and **control()** that will give the action to do for each time step.
 
-Keep in mind, that the same code will be in each of the 20 drones. Each drone will be an instance of your Drone class.
+Keep in mind, that the same code will be in each of the 10 drones. Each drone will be an instance of your Drone class.
 
 For your calculation in the control() function, it is mandatory to use only the sensor and communication data, without directly accesssing the class members. In particular, you should not use the  *position* and *angle* variables, but use the *measured_position()* and *measured_angle()* functions to have access to the position and orientation of the drone. These values are noisy, representig more realistic sensors, and can be altered by special zones in the map where the position information can be scrambled.
 
