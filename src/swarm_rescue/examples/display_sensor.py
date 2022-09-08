@@ -19,7 +19,7 @@ from simple_playgrounds.engine import Engine
 from simple_playgrounds.element.elements.basic import Physical
 
 # to display the sensors
-import cv2
+from cv2 import cv2 as cv2
 
 
 class MyDrone(DroneAbstract):

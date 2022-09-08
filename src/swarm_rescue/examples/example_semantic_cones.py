@@ -44,7 +44,7 @@ class MyDrone(DroneAbstract):
         super().__init__(identifier=identifier,
                          should_display_lidar=False,
                          **kwargs)
-        # The state is initialize to searching wounded person
+        # The state is initialized to searching wounded person
         self.state = self.Activity.SEARCHING_WOUNDED
 
         # Those values are used by the random control function
@@ -153,7 +153,7 @@ class MyDrone(DroneAbstract):
 
     def process_semantic_sensor(self, the_semantic_sensor):
         """
-        According his state in the state machine, the Drone will move towards a wound person or the rescue center
+        According to his state in the state machine, the Drone will move towards a wound person or the rescue center
         """
         command = {self.longitudinal_force: 1.0,
                    self.lateral_force: 0.0,

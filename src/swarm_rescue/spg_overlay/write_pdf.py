@@ -185,7 +185,7 @@ class WritePdf:
             y_score.append(max(self.data[i][4] / 100, min_val_display))
 
         width = 0.10  # épaisseur de chaque bâton
-        dist = 0.12  # distance entre les centre des batons
+        dist = 0.12  # distance entre les centres des batons
         pos = np.arange(len(self.environment_names))
         y_scale = np.arange(0, 1.1, 0.1)
         # Création du diagramme en bâtons (bâtons côte à côte)

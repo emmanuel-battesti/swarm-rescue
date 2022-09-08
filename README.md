@@ -12,9 +12,13 @@
 
 With this project, you will try to save human lives, in simulation... Teach a swarm of drones how to behave to save a maximum of injured people in a minimum of time !
 
-Your job will be to propose your own version of the controller of the drone. In a competition, each participating team will perform on a new unknown map, the winner will be the one who gets the most points based on several criteria: speed, quality of exploration, number of injured people saved, number of drones returned, etc. 
+Your job will be to propose your own version of the controller of the drone. In a competition, each participating team will perform on a new unknown map, the winner will be the one who gets the most points based on several criteria: speed, quality of exploration, number of injured people saved, number of drones returned, etc.
 
 *Swarm-Rescue* is the environment that simulates the drones and that describes the maps used, the drones and the different elements of the map.
+
+[Access to the GitHub repository *Swam-Rescue*](https://github.com/emmanuel-battesti/swarm-rescue)
+
+The Challenge does not require any particular technical skills (beyond basic knowledge of *Python*), and will mainly mobilize creativity and curiosity from the participants.
 
 # The Competition
 
@@ -22,27 +26,26 @@ The objective of the mission is to map an unknown, potentially hostile area, det
 
 Each team will have a fleet of 10 drones. Each drone will be equipped with communication functions and sensors.
 
-Your job is to make these drones completely autonomous by programming them in *Python*.
+**Your job is to make these drones completely autonomous by programming them in *Python*.**
 
 The drones will have to manage the limited range of the communication means, collaborate between them to acquire information and re-transmit it to an operator outside the zone, be able to manage sensor and communication means failures and unforeseen events such as the loss of drones in order to conduct this mission autonomously.
 
-The work on the challenge will be done exclusively in this simulation environment, with maps of increasing complexity. The final evaluation will be done on an unknown map made available to each team at the time of the demonstration. Every proposition will be tested on a same computer and a score related to the performance will be computed.
+The work on the challenge will be done **exclusively in this simulation environment**, with maps of increasing complexity. The final evaluation will be done on an unknown map made available to each team at the time of the demonstration. Every proposition will be tested on a same computer and a score related to the performance will be computed.
 
-The Challenge does not require any particular technical skills (beyond basic knowledge of *Python*), and will mainly mobilize creativity and curiosity from the participants.
 
-## Score 
+## Score
 
 Depending on the scenario evolution before the final evaluation, the score calculation may be slightly modified.
 
 First, the execution of your algorithms will be stopped after a while. There are two time limits :
 - time step limit : a number of loops in the simulation
-- real time limit : a limit in minutes, depending of the map and the computer speed : 2 to 5 minutes.
+- real time limit : a limit in minutes, depending on the map and the computer speed : 2 to 5 minutes.
 
 When the first limit is reached, the game is over. If your algorithm is fast, you will reach the "step time limit" first. If your algorithm is too slow, you will reach the "real time limit" before the "time step limit" .
 
 To calculate the score, the following elements will be taken into account:
 - the part of the territory explored : you have to explore a maximum of the map
-- the number of fixed targets detected, brought back to the base, 
+- the number of fixed targets detected, brought back to the base,
 - the number of mobile targets detected, brought back to the base.
 
 If all the targets are brought back to base and all the map is explored, the speed in "time step" will be taken into account.
@@ -53,13 +56,13 @@ If all the targets are brought back to base and all the map is explored, the spe
 
 # Simple-Playgrounds 
 
-This program *Swarm-Rescue* is an extension of the *Simple-Playgrounds* (SPG) software library: https://github.com/mgarciaortiz/simple-playgrounds. However, in the current installation of *Swarm-Rescue*, it is the branch *swarm-rescue* of a fork of *Simple-Playgrounds* that is used: https://github.com/embaba/simple-playgrounds.
+This program *Swarm-Rescue* is an extension of the *Simple-Playgrounds* (SPG) software library: [https://github.com/mgarciaortiz/simple-playgrounds](https://github.com/mgarciaortiz/simple-playgrounds). However, in the current installation of *Swarm-Rescue*, it is the branch *swarm-rescue* of a fork of *Simple-Playgrounds* that is used: [https://github.com/emmanuel-battesti/simple-playgrounds](https://github.com/emmanuel-battesti/simple-playgrounds).
 
-It is recommended to read the documentation of *Simple-Playgrounds*.
+It is recommended to read the [documentation of *Simple-Playgrounds*](https://github.com/emmanuel-battesti/simple-playgrounds#readme).
 
-*Simple-Playgrounds* is an easy-to-use, fast and flexible simulation environment. It bridges the gap between simple and efficient grid environments, and complex and challenging 3D environments. It proposes a large diversity of environments for embodied drones learning through physical interactions. The playgrounds are 2D environments where drones can move around and interact with scene elements. 
+*Simple-Playgrounds* is an easy-to-use, fast and flexible simulation environment. It bridges the gap between simple and efficient grid environments, and complex and challenging 3D environments. It proposes a large diversity of environments for embodied drones learning through physical interactions. The playgrounds are 2D environments where drones can move around and interact with scene elements.
 
-The game engine, based on [Pymunk](http://www.pymunk.org) and [Pygame](https://www.pygame.org), deals with simple physics, such as collision and friction. Drones can act through continuous movements and discrete interactive actions. They perceive the scene with realistic first-person view sensors, top-down view sensors, and semantic sensors. 
+The game engine, based on [Pymunk](http://www.pymunk.org) and [Pygame](https://www.pygame.org), deals with simple physics, such as collision and friction. Drones can act through continuous movements and discrete interactive actions. They perceive the scene with realistic first-person view sensors, top-down view sensors, and semantic sensors.
 
 ## Game Engine
 
@@ -75,12 +78,13 @@ In *Simple-Playgrounds*, the 2d physics library *Pymunk* is used. The physic eng
 This installation procedure has been tested only with Ubuntu 18.04 and 20.04.
 
 ## libsdl1.2-dev installation
-For the library *Simple-Playgrounds*, you might need to install *libsdl1.2-dev*.
 
-You will obviously have to use the Git tool.
+First, you will obviously have to use the Git tool.
+
+And for the library *Simple-Playgrounds*, you might need to install *libsdl1.2-dev*.
 
 ```bash
-sudo apt update 
+sudo apt update
 sudo apt install git libsdl1.2-dev
 ```
 
@@ -93,15 +97,16 @@ We need, at least, *Python 3.8*.
 
 But it is easy to install *Python* 3.8:
 ```bash
-sudo apt update 
+sudo apt update
 sudo apt install python3.8 python3.8-venv
 ```
 
 ## *Pip* installation
 
 - Install *Pip*:
+
 ```bash
-sudo apt update 
+sudo apt update
 sudo apt install python3-pip
 ```
 
@@ -111,7 +116,7 @@ sudo apt install python3-pip
 pip3.8 --version
 ```
 
-- It can be useful to upgrade *Pip* to have the last version in local directory: 
+- It can be useful to upgrade *Pip* to have the last version in local directory:
 
 ```bash
 /usr/bin/python3.8 -m pip install --upgrade pip
@@ -131,25 +136,27 @@ For that, you should install some tools:
 
 ```bash
 sudo apt update
-sudo apt install python3-venv virtualenvwrapper 
+sudo apt install python3-venv virtualenvwrapper
 ```
-## Install this repository
+## Install this *swarm-rescue* repository
 
 - To install this git repository, go to the directory you want to work in (for example: *~/code/*).
 
-- Git-clone the code of *Swarm-Rescue*: 
+- Git-clone the code of [*Swarm-Rescue*](https://github.com/emmanuel-battesti/swarm-rescue):
 
 ```bash
-git clone https://github.com/embaba/swarm-rescue.git
+git clone https://github.com/emmanuel-battesti/swarm-rescue.git
 ```
+This command will create the directory *swarm-rescue* with all the code inside it.
 
 - Create your virtual environment. This command will create a directory *env* where all dependencies will be installed:
+
 ```bash
 cd swarm-rescue
 python3.8 -m venv env
 ```
 
-- To use this newly create virtual environment, as each time you need it, use the command: 
+- To use this newly create virtual environment, as each time you need it, use the command:
 
 ```bash
 source env/bin/activate
@@ -165,6 +172,7 @@ python3.8 -m pip install -r requirements.txt
 ```
 
 - To test, you can launch:
+
 ```bash
 python3.8 ./src/swarm-rescue/launcher.py
 ```
@@ -173,7 +181,7 @@ python3.8 ./src/swarm-rescue/launcher.py
 
 Although not mandatory, it is a good idea to use an IDE to code in *Python*. It makes programming easier.
 
-For example, you can use *PyCharm*. In this case, you have to set your *interpreter* path to your venv path to make it work. 
+For example, you can use the free *community* version of [*PyCharm*](https://www.jetbrains.com/pycharm/). In this case, you have to set your *interpreter* path to your venv path to make it work. 
 
 # Elements of the environment
 
@@ -184,12 +192,12 @@ Drones are composed of different body parts attached to a *Base*.
 
 The actuators controlling the base and body parts are managed by a controller.
 The controller can be:
-- Random: each actuator is set randomly at every time-step. 
-- Keyboard: the drone is controlled by pressing keys on the Keyboard. 
+- Random: each actuator is set randomly at every time-step.
+- Keyboard: the drone is controlled by pressing keys on the Keyboard.
 - External: used to set the actions from outside the simulators.
 
 Drones perceive their surroundings through 3 first-person view sensors:
-- Lidar 
+- Lidar
 - Touch Sensor
 - Semantic Sensors Cones
 
@@ -199,7 +207,7 @@ Drones have also a communication system.
 
 In the code, class *DroneLidar*.
 
-It emulates a lidar. 
+It emulates a lidar.
 
 - *fov* (field of view): 360 degrees
 - *resolution* (number of rays): 90
@@ -273,13 +281,13 @@ You can find examples of actuator use in almost all files in *examples/* and *so
 
 ## Playground
 
-Drones act and perceive in a *Playground*. 
+Drones act and perceive in a *Playground*.
 
 A *playground* is composed of scene elements, which can be fixed or movable. A drone can grasp or activate certain scene elements. Depending on their nature, particular scene elements will provide reward to the drone interacting with them. The playground with all its elements, except for the drones, are called "Map" within this *Swarm-Rescue* repository.
 
 ### Coordinate System
 
-A playground is described using a Cartesian coordinate system. 
+A playground is described using a Cartesian coordinate system.
 
 Each element has a position (x,y, theta), with x along the horizontal axis, y along the vertical axis, and theta the orientation in radians, aligned on the horizontal axis. The position (0, 0) is at the top-left of the map. The value of theta is between 0 an 2*Pi. Theta increases with a clockwise rotation of the drone. For theta = 0, the drone is oriented towards the right. A playground has a size [width, length], with the width along x-axis, and length along y-axis. When applicable, the length of a scene element follows the element's x-axis.
 
@@ -323,7 +331,7 @@ This zone cannot be detected by the drone.
 
 # Programming
 
-## Architecture
+## Architecture of *Swarm-Rescue*
 
 ### file *launcher.py*
 
@@ -356,7 +364,7 @@ The files it contains must *not* be modified. It contains the definition of the 
 
 This directory contains the maps in which the drones can move. New maps may appear for new missions with the updates of this repository. You can also make your own maps based on existing ones.
 
-Each map must inherit from the class *MapAbstract*. 
+Each map must inherit from the class *MapAbstract*.
 
 ### directory *solutions*
 
@@ -366,7 +374,7 @@ Each Drone must inherit from the class *DroneAbstract*. You have 2 mandatory mem
 
 Keep in mind, that the same code will be in each of the 10 drones. Each drone will be an instance of your Drone class.
 
-For your calculation in the control() function, it is mandatory to use only the sensor and communication data, without directly accesssing the class members. In particular, you should not use the  *position* and *angle* variables, but use the *measured_position()* and *measured_angle()* functions to have access to the position and orientation of the drone. These values are noisy, representig more realistic sensors, and can be altered by special zones in the map where the position information can be scrambled.
+For your calculation in the control() function, it is mandatory to use only the sensor and communication data, without directly accessing the class members. In particular, you should not use the  *position* and *angle* variables, but use the *measured_position()* and *measured_angle()* functions to have access to the position and orientation of the drone. These values are noisy, representig more realistic sensors, and can be altered by special zones in the map where the position information can be scrambled.
 
 The true position of the drone can be accessed with the functions *true_position()* and *true_angle()* (or directly with the variable *position* and *angle*), BUT it is only for debugging or logging.
 

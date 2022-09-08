@@ -1,6 +1,6 @@
 import csv
 import os
-import cv2
+from cv2 import cv2 as cv2
 from datetime import datetime
 from pathlib2 import Path
 

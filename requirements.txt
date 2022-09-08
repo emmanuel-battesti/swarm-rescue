@@ -5,10 +5,11 @@ numpy
 scikit-image
 Pillow
 pytest
-opencv-contrib-python
+opencv-contrib-python==4.5.5.64
 matplotlib
 setuptools
 -e git+https://github.com/embaba/simple-playgrounds.git@swarm-rescue#egg=simple_playgrounds
+# -e /home/battesti/projetCompetDronesDGA/simple-playgrounds
 fpdf
 pandas
 pathlib2

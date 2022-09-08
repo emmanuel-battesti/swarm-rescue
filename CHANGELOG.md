@@ -3,18 +3,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.5.2] - 2022-09-08
+
+### Fixed
+- Spelling correction in the README and comments of the code
+
 ## [1.5.1] - 2022-02-28
 
 ### Changed
 - The radius, around the drones, of space that is considered explored, increases from 100 to 200
 
 ### Fixed
-- Bug fix in the calculation of the explorated area.
+- Bug fix in the calculation of the explored area.
 
 ## [1.5.0] - 2022-02-15
 
 ### Changed
-- *launcher.py* file is reformated
+- *launcher.py* file is reformatted
 - The evaluation report file is improved
 - Information displayed in the console is improved
 
@@ -48,7 +53,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Change fov of the *DroneLidar* from 180° to 360°, but we keep 90 rays.
 - Split the sensor *DronePosition* in 2 sensors : *DroneGPS*, for only the position in pixels, and *DroneCompass*, for only the orientation of the drone in radians. Thus, the no-GPS zone will only apply to *DroneGP*S sensor, the orientation is still available.
-- In the no-GPS zone, the measured position was always (0, 0). Now, it is (NaN, NaN). 
+- In the no-GPS zone, the measured position was always (0, 0). Now, it is (NaN, NaN).
 
 ### Added
 - There are new functions in the class DroneAbstract to known if a sensor is disabled:
@@ -108,14 +113,16 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/embaba/swarm-rescue/compare/v1.5.0...HEAD
-[1.5.0]: https://github.com/embaba/swarm-rescue/compare/v1.4.1...v1.5.0
-[1.4.1]: https://github.com/embaba/swarm-rescue/compare/v1.4.0...v1.4.1
-[1.4.0]: https://github.com/embaba/swarm-rescue/compare/v1.3.0...v1.4.0
-[1.3.0]: https://github.com/embaba/swarm-rescue/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/embaba/swarm-rescue/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/embaba/swarm-rescue/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/embaba/swarm-rescue/compare/v0.9.0...v1.0.0
-[0.9.0]: https://github.com/embaba/swarm-rescue/compare/v0.0.0...v0.9.0
-[0.0.0]: https://github.com/embaba/swarm-rescue/releases/tag/v0.0.0
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.5.2...HEAD
+[1.5.2]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.5.1...v1.5.2
+[1.5.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.4.1...v1.5.0
+[1.4.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v0.9.0...v1.0.0
+[0.9.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v0.0.0...v0.9.0
+[0.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/releases/tag/v0.0.0
 

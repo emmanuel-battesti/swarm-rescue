@@ -1,6 +1,6 @@
 import math
 
-import cv2
+from cv2 import cv2 as cv2
 import numpy as np
 from simple_playgrounds.engine import Engine
 
@@ -52,7 +52,7 @@ class ExploredMap:
 
     def _create_image_walls(self, playground):
         """
-        Fills _img_playground with an color image of the playground without drones and wounded persons
+        Fills _img_playground with a color image of the playground without drones and wounded persons
         """
         engine = Engine(time_limit=10, playground=playground, screen=False)
         # self._img_playground have float values between 0 and 1
@@ -113,7 +113,7 @@ class ExploredMap:
 
     def get_pretty_map_explo_zones(self):
         """
-        Return a nice map of the zones explorated.
+        Return a nice map of the zones explored.
         Warning, the function score() should have been called before.
         """
         pretty_map = np.zeros(self._map_playground.shape, np.uint8)

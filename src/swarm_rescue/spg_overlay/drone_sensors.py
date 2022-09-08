@@ -207,7 +207,7 @@ class DroneGPS(InternalSensor):
     """
 
     def __init__(self, **kwargs):
-        # In reality, we dont use a gaussian noise, for the moment we need to do this
+        # In reality, we don't use a gaussian noise, for the moment we need to do this
         # to fool the system into using our own noise in the overload function _apply_noise().
         noise_params = {"type": "gaussian",
                         "mean": 0,
@@ -269,7 +269,7 @@ class DroneCompass(InternalSensor):
     """
 
     def __init__(self, **kwargs):
-        # In reality, we dont use a gaussian noise, for the moment we need to do this
+        # In reality, we don't use a gaussian noise, for the moment we need to do this
         # to fool the system into using our own noise in the overload function _apply_noise().
         noise_params = {"type": "gaussian",
                         "mean": 0,

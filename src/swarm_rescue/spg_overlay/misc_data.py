@@ -3,7 +3,7 @@ from typing import Tuple
 
 class MiscData:
     """
-    This class should be used to contains miscellaneous data for the drone
+    This class should be used to contain miscellaneous data for the drone
     """
 
     def __init__(self,
