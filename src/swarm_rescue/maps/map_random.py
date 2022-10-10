@@ -1,12 +1,9 @@
 import math
 import random
-import time
 
-from spg_overlay.map_abstract import MapAbstract
-
-from simple_playgrounds.playground import LineRooms
-
-from spg_overlay.sensor_disablers import EnvironmentType
+from spg_overlay.gui_map.closed_playground import ClosedPlayground
+from spg_overlay.entities.sensor_disablers import EnvironmentType
+from spg_overlay.gui_map.map_abstract import MapAbstract
 
 
 class MyMapRandom(MapAbstract):
@@ -14,28 +11,21 @@ class MyMapRandom(MapAbstract):
 
     def __init__(self, environment_type: EnvironmentType = EnvironmentType.EASY):
         super().__init__(environment_type)
-        self.number_drones = 20
-        self.time_step_limit = 480
-        self.real_time_limit = 22  # In seconds
+        self._number_drones = 10
+        self._time_step_limit = 480
+        self._real_time_limit = 22  # In seconds
+        self._size_area = (1500, 700)
 
-        self.drones = []
+    def construct_playground(self):
+        playground = ClosedPlayground(size=self._size_area)
 
-        # BUILD MAP
-        self.size_area = (1500, 700)
-        self.playground = None
-        self.build_map()
-
-    def set_drones(self, drones):
-        self.drones = drones
+        self._explored_map.initialize_walls(playground)
 
         # POSITIONS OF THE DRONES
-        for i in range(0, self.number_drones):
-            self.playground.add_agent(self.drones[i], (
-                (random.uniform(0, self.size_area[0]), random.uniform(0, self.size_area[1])),
-                random.uniform(-math.pi, math.pi)))
+        for i in range(self._number_drones):
+            x = random.uniform(-self._size_area[0]/2, self._size_area[0]/2)
+            y = random.uniform(-self._size_area[1]/2, self._size_area[1]/2)
+            angle = random.uniform(-math.pi, math.pi)
+            playground.add(self._drones[i], ((x, y), angle))
 
-    def build_map(self):
-        random.seed(time.time())
-        self.playground = LineRooms(size=self.size_area, number_rooms=3, random_doorstep_position=True,
-                                    doorstep_size=250, wall_type='light')
-        self.explored_map.initialize_walls(self.playground)
+        return playground

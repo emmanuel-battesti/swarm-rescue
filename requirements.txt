@@ -1,5 +1,4 @@
 PyYAML
-pygame
 pymunk>=6.0.0
 numpy
 scikit-image
@@ -8,8 +7,13 @@ pytest
 opencv-contrib-python==4.5.5.64
 matplotlib
 setuptools
--e git+https://github.com/embaba/simple-playgrounds.git@swarm-rescue#egg=simple_playgrounds
-# -e /home/battesti/projetCompetDronesDGA/simple-playgrounds
+-e git+https://github.com/emmanuel-battesti/simple-playgrounds.git@swarm-rescue-v2#egg=spg
+#-e /home/battesti/projetCompetDronesDGA/simple-playgrounds
+#simple-playgrounds
+#spg
 fpdf
 pandas
 pathlib2
+gym
+arcade
+tripy

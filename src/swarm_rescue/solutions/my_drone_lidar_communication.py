@@ -1,13 +1,12 @@
-import random
 import math
 from copy import deepcopy
 from typing import Optional
 
 import numpy as np
 
-from spg_overlay.drone_abstract import DroneAbstract
-from spg_overlay.misc_data import MiscData
-from spg_overlay.utils import normalize_angle, sign
+from spg_overlay.entities.drone_abstract import DroneAbstract
+from spg_overlay.utils.misc_data import MiscData
+from spg_overlay.utils.utils import normalize_angle, sign
 
 
 class MyDroneLidarCommunication(DroneAbstract):
@@ -20,11 +19,12 @@ class MyDroneLidarCommunication(DroneAbstract):
                          should_display_lidar=False,
                          **kwargs)
 
-    def define_message(self):
+    def define_message_for_all(self):
         """
         Define the message, the drone will send to and receive from other surrounding drones.
         """
-        msg_data = (self.identifier, (self.measured_position(), self.measured_angle()))
+        msg_data = (self.identifier,
+                    (self.measured_position(), self.measured_angle()))
         return msg_data
 
     def control(self):
@@ -35,11 +35,12 @@ class MyDroneLidarCommunication(DroneAbstract):
         The communication will allow to know the position of the drones in the vicinity, to then correct its own
         position to stay at a certain distance and have the same orientation.
         """
-        command = {self.longitudinal_force: 0.0,
-                   self.lateral_force: 0.0,
-                   self.rotation_velocity: 0.0}
+        command = {"forward": 0.0,
+                   "lateral": 0.0,
+                   "rotation": 0.0}
 
-        command_lidar, collision_lidar = self.process_lidar_sensor(self.lidar())
+        command_lidar, collision_lidar = self.process_lidar_sensor(
+            self.lidar())
         found, command_comm = self.process_communication_sensor()
 
         alpha = 0.4
@@ -48,28 +49,32 @@ class MyDroneLidarCommunication(DroneAbstract):
         if collision_lidar:
             alpha_rot = 0.1
 
-        # The final command  is a combinaison of 2 commands
-        command[self.longitudinal_force] = \
-            alpha * command_comm[self.longitudinal_force] \
-            + (1 - alpha) * command_lidar[self.longitudinal_force]
-        command[self.lateral_force] = \
-            alpha * command_comm[self.lateral_force] \
-            + (1 - alpha) * command_lidar[self.lateral_force]
-        command[self.rotation_velocity] = \
-            alpha_rot * command_comm[self.rotation_velocity] \
-            + (1 - alpha_rot) * command_lidar[self.rotation_velocity]
+        # The final command  is a combination of 2 commands
+        command["forward"] = \
+            alpha * command_comm["forward"] \
+            + (1 - alpha) * command_lidar["forward"]
+        command["lateral"] = \
+            alpha * command_comm["lateral"] \
+            + (1 - alpha) * command_lidar["lateral"]
+        command["rotation"] = \
+            alpha_rot * command_comm["rotation"] \
+            + (1 - alpha_rot) * command_lidar["rotation"]
 
         return command
 
     def process_lidar_sensor(self, the_lidar_sensor):
-        command = {self.longitudinal_force: 1.0,
-                   self.lateral_force: 0.0,
-                   self.rotation_velocity: 0.0}
-        rotation_velocity = 0.6
+        command = {"forward": 1.0,
+                   "lateral": 0.0,
+                   "rotation": 0.0}
+        angular_vel_controller = 1.0
 
         values = the_lidar_sensor.get_sensor_values()
+
+        if values is None:
+            return command, False
+
         ray_angles = the_lidar_sensor.ray_angles
-        size = the_lidar_sensor.size
+        size = the_lidar_sensor.resolution
 
         far_angle_raw = 0
         near_angle_raw = 0
@@ -92,32 +97,33 @@ class MyDroneLidarCommunication(DroneAbstract):
         # The drone will turn toward the zone with the more space ahead
         if size != 0:
             if far_angle > 0:
-                command[self.rotation_velocity] = rotation_velocity
+                command["rotation"] = angular_vel_controller
             elif far_angle == 0:
-                command[self.rotation_velocity] = 0
+                command["rotation"] = 0
             else:
-                command[self.rotation_velocity] = -rotation_velocity
+                command["rotation"] = -angular_vel_controller
 
         # If near a wall then 'collision' is True and the drone tries to turn its back to the wall
         collision = False
         if size != 0 and min_dist < 50:
             collision = True
             if near_angle > 0:
-                command[self.rotation_velocity] = -rotation_velocity
+                command["rotation"] = -angular_vel_controller
             else:
-                command[self.rotation_velocity] = rotation_velocity
+                command["rotation"] = angular_vel_controller
 
         return command, collision
 
     def process_communication_sensor(self):
         found_drone = False
-        command_comm = {self.longitudinal_force: 0.0,
-                        self.lateral_force: 0.0,
-                        self.rotation_velocity: 0.0}
+        command_comm = {"forward": 0.0,
+                        "lateral": 0.0,
+                        "rotation": 0.0}
 
-        if self.communication:
-            received_messages = self.communication.received_message
-            nearest_drone_coordinate1 = (self.measured_position(), self.measured_angle())
+        if self.communicator:
+            received_messages = self.communicator.received_messages
+            nearest_drone_coordinate1 = (
+                self.measured_position(), self.measured_angle())
             nearest_drone_coordinate2 = deepcopy(nearest_drone_coordinate1)
             (nearest_position1, nearest_angle1) = nearest_drone_coordinate1
             (nearest_position2, nearest_angle2) = nearest_drone_coordinate2
@@ -154,8 +160,10 @@ class MyDroneLidarCommunication(DroneAbstract):
             if found_drone and len(received_messages) >= 2:
                 (nearest_position1, nearest_angle1) = nearest_drone_coordinate1
                 (nearest_position2, nearest_angle2) = nearest_drone_coordinate2
-                diff_angle1 = normalize_angle(nearest_angle1 - self.measured_angle())
-                diff_angle2 = normalize_angle(nearest_angle2 - self.measured_angle())
+                diff_angle1 = normalize_angle(
+                    nearest_angle1 - self.measured_angle())
+                diff_angle2 = normalize_angle(
+                    nearest_angle2 - self.measured_angle())
                 # The mean of 2 angles can be seen as the angle of a vector, which
                 # is the sum of the two unit vectors formed by the 2 angles.
                 diff_angle = math.atan2(0.5 * math.sin(diff_angle1) + 0.5 * math.sin(diff_angle2),
@@ -164,15 +172,16 @@ class MyDroneLidarCommunication(DroneAbstract):
             # If we found only 1 drone
             elif found_drone and len(received_messages) == 1:
                 (nearest_position1, nearest_angle1) = nearest_drone_coordinate1
-                diff_angle1 = normalize_angle(nearest_angle1 - self.measured_angle())
+                diff_angle1 = normalize_angle(
+                    nearest_angle1 - self.measured_angle())
                 diff_angle = diff_angle1
 
             # if you are far away, you get closer
             # heading < 0: at left
             # heading > 0: at right
-            # rotation_velocity : -1:left, 1:right
+            # base.angular_vel_controller : -1:left, 1:right
             # we are trying to align : diff_angle -> 0
-            command_comm[self.rotation_velocity] = sign(diff_angle)
+            command_comm["rotation"] = sign(diff_angle)
 
             # Desired distance between drones
             desired_dist = 60
@@ -195,8 +204,8 @@ class MyDroneLidarCommunication(DroneAbstract):
 
             # If we found only 1 drone
             if found_drone and len(received_messages) == 1:
-                command_comm[self.longitudinal_force] = longi1
-                command_comm[self.lateral_force] = lat1
+                command_comm["forward"] = longi1
+                command_comm["lateral"] = lat1
 
             # If we found at least 2 drones
             elif found_drone and len(received_messages) >= 2:
@@ -213,7 +222,7 @@ class MyDroneLidarCommunication(DroneAbstract):
                 longi2 = intensity2 * math.cos(heading2)
                 lat2 = intensity2 * math.sin(heading2)
 
-                command_comm[self.longitudinal_force] = 0.5 * (longi1 + longi2)
-                command_comm[self.lateral_force] = 0.5 * (lat1 + lat2)
+                command_comm["forward"] = 0.5 * (longi1 + longi2)
+                command_comm["lateral"] = 0.5 * (lat1 + lat2)
 
         return found_drone, command_comm

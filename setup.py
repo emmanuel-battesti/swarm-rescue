@@ -15,7 +15,7 @@ setup(
     description='Set up a team of drones to rescue wounded people in different locations...',
     author='Emmanuel Battesti',
     author_email='emmanuel.battesti@ensta-paris.fr',
-    url='https://github.com/embaba/swarm-rescue',
+    url='https://github.com/emmanuel-battesti/swarm-rescue',
     license='MIT',
     packages=find_packages(where="src"),
     package_dir={'': 'src'},

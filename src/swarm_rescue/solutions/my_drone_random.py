@@ -2,14 +2,13 @@
 Simple random controller
 The Drone will move forward and turn for a random angle when an obstacle is hit
 """
-
-import random
 import math
+import random
 from typing import Optional
 
-from spg_overlay.drone_abstract import DroneAbstract
-from spg_overlay.misc_data import MiscData
-from spg_overlay.utils import normalize_angle
+from spg_overlay.entities.drone_abstract import DroneAbstract
+from spg_overlay.utils.misc_data import MiscData
+from spg_overlay.utils.utils import normalize_angle
 
 
 class MyDroneRandom(DroneAbstract):
@@ -22,10 +21,11 @@ class MyDroneRandom(DroneAbstract):
                          should_display_lidar=False,
                          **kwargs)
         self.counterStraight = 0
-        self.angleStopTurning = 0
+        self.angleStopTurning = random.uniform(-math.pi, math.pi)
+        self.distStopStraight = random.uniform(10, 50)
         self.isTurning = False
 
-    def define_message(self):
+    def define_message_for_all(self):
         """
         Here, we don't need communication...
         """
@@ -35,8 +35,11 @@ class MyDroneRandom(DroneAbstract):
         """
         Returns True if the drone hits an obstacle
         """
+        if self.touch().get_sensor_values() is None:
+            return False
+
         touched = False
-        detection = max(self.touch().sensor_values)
+        detection = max(self.touch().get_sensor_values())
 
         if detection > 0.5:
             touched = True
@@ -47,30 +50,33 @@ class MyDroneRandom(DroneAbstract):
         """
         The Drone will move forward and turn for a random angle when an obstacle is hit
         """
-        command_straight = {self.longitudinal_force: 1.0,
-                            self.lateral_force: 0.0,
-                            self.rotation_velocity: 0.0,
-                            self.grasp: 0,
-                            self.activate: 0}
+        command_straight = {"forward": 1.0,
+                            "lateral": 0.0,
+                            "rotation": 0.0,
+                            "grasper": 0}
 
-        command_turn = {self.longitudinal_force: 0.0,
-                        self.lateral_force: 0.0,
-                        self.rotation_velocity: 1.0,
-                        self.grasp: 0,
-                        self.activate: 0}
+        command_turn = {"forward": 0.0,
+                        "lateral": 0.0,
+                        "rotation": 1.0,
+                        "grasper": 0}
 
         touched = self.process_touch_sensor()
 
         self.counterStraight += 1
 
-        if touched and not self.isTurning and self.counterStraight > 10:
+        if touched and not self.isTurning and self.counterStraight > self.distStopStraight:
             self.isTurning = True
             self.angleStopTurning = random.uniform(-math.pi, math.pi)
 
-        diff_angle = normalize_angle(self.angleStopTurning - self.measured_angle())
+        measured_angle = 0
+        if self.measured_angle() is not None:
+            measured_angle = self.measured_angle()
+
+        diff_angle = normalize_angle(self.angleStopTurning - measured_angle)
         if self.isTurning and abs(diff_angle) < 0.2:
             self.isTurning = False
             self.counterStraight = 0
+            self.distStopStraight = random.uniform(10, 50)
 
         if self.isTurning:
             return command_turn

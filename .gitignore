@@ -1,8 +1,8 @@
 /env
 /docs
+src/swarm_rescue/tools/generated_code.py
 src/swarm_rescue/various
 __pycache__
-.idea
 *.profile
 *.calltree
 swarm_rescue.egg-info
