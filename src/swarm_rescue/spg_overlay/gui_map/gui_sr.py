@@ -1,6 +1,6 @@
 import arcade
 import time
-from typing import Optional, Tuple, List, Dict, Union
+from typing import Optional, Tuple, List, Dict, Union, Type
 import cv2
 
 from spg.agent.controller.controller import Command, Controller
@@ -14,6 +14,7 @@ from spg_overlay.entities.keyboard_controller import KeyboardController
 from spg_overlay.utils.fps_display import FpsDisplay
 from spg_overlay.gui_map.map_abstract import MapAbstract
 from spg_overlay.utils.mouse_measure import MouseMeasure
+from spg_overlay.utils.visu_noises import VisuNoises
 
 
 class GuiSR(TopDownView):
@@ -37,6 +38,7 @@ class GuiSR(TopDownView):
             print_messages: bool = False,
             use_keyboard: bool = False,
             use_mouse_measure: bool = False,
+            enable_visu_noises: bool = False,
     ) -> None:
         super().__init__(
             playground,
@@ -60,10 +62,9 @@ class GuiSR(TopDownView):
         if self._real_time_limit is None:
             self._real_time_limit = 100000000
 
+        self._drones_commands: Union[Dict[DroneAbstract, Dict[Union[str, Controller], Command]], Type[None]] = None
         if self._drones:
-            self._drones_commands: Dict[DroneAbstract, Dict[Union[str, Controller], Command]] = {}
-        else:
-            self._drones_commands = None
+            self._drones_commands = {}
 
         self._messages = None
         self._print_rewards = print_rewards
@@ -83,6 +84,7 @@ class GuiSR(TopDownView):
         self._draw_touch = draw_touch
         self._use_keyboard = use_keyboard
         self._use_mouse_measure = use_mouse_measure
+        self._enable_visu_noises = enable_visu_noises
 
         # 'number_wounded_persons' is the number of wounded persons that should be retrieved by the drones.
         self._total_number_wounded_persons = total_number_wounded_persons
@@ -99,6 +101,7 @@ class GuiSR(TopDownView):
         self.fps_display = FpsDisplay(period_display=2)
         self._keyboardController = KeyboardController()
         self._mouse_measure = MouseMeasure(playground_size=playground.size)
+        self._visu_noises = VisuNoises(playground_size=playground.size, drones=self._drones)
 
     def run(self):
         self._playground.window.run()
@@ -125,9 +128,10 @@ class GuiSR(TopDownView):
         if self._drones:
             self._drones[0].display()
 
-        # self._the_map.explored_map.display()
-
         self._playground.step(commands=self._drones_commands, messages=self._messages)
+
+        self._visu_noises.update(enable=self._enable_visu_noises)
+        # self._the_map.explored_map.display()
 
         # REWARDS
         new_reward = 0
@@ -195,6 +199,7 @@ class GuiSR(TopDownView):
                 drone.touch().draw()
 
         self._mouse_measure.draw(enable=self._use_mouse_measure)
+        self._visu_noises.draw(enable=self._enable_visu_noises)
 
         self._transparent_sprites.draw(pixelated=True)
         self._interactive_sprites.draw(pixelated=True)
@@ -223,6 +228,7 @@ class GuiSR(TopDownView):
 
         if key == arcade.key.R:
             self._playground.reset()
+            self._visu_noises.reset()
 
         if key == arcade.key.S:
             self._draw_semantic = not self._draw_semantic

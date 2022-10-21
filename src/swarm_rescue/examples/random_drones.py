@@ -104,7 +104,10 @@ def main():
                 the_map=my_map,
                 drones=drones,
                 use_keyboard=False,
-                use_mouse_measure=True)
+                use_mouse_measure=True,
+                enable_visu_noises=False,
+                )
+
     gui.run()
 
 

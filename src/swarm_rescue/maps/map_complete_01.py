@@ -1,6 +1,8 @@
 import math
 import random
+from typing import List
 
+from spg.playground import Playground
 from spg.utils.definitions import CollisionTypes
 
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
@@ -25,9 +27,9 @@ class MyMapComplete01(MapAbstract):
         self._real_time_limit = 240  # In seconds
         self._number_wounded_persons = 0  # it will be filled in the function construct_playground()
         self._size_area = (1110, 750)
-        self._wounded_persons = []
+        self._wounded_persons: List[WoundedPerson] = []
 
-    def construct_playground(self):
+    def construct_playground(self) -> Playground:
         playground = ClosedPlayground(size=self._size_area)
 
         # RESCUE CENTER

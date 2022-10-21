@@ -2,7 +2,6 @@
 This program can be launched directly.
 """
 
-import arcade
 import math
 import os
 import random
@@ -84,7 +83,9 @@ def main():
                 the_map=my_map,
                 drones=[my_drone],
                 use_keyboard=False,
-                use_mouse_measure=True)
+                use_mouse_measure=True,
+                enable_visu_noises=False,
+                )
     gui.run()
 
 

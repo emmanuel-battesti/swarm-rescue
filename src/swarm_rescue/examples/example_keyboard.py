@@ -79,7 +79,7 @@ def print_keyboard_man():
     print("\t- s key : display (or not) the semantic sensor")
     print("\t- t key : display (or not) the touch sensor")
     print("\t- q key : exit the program")
-    print("\t- key r: reset")
+    print("\t- r key : reset")
 
 
 def main():
@@ -90,13 +90,17 @@ def main():
     my_map.set_drones([my_drone])
     playground = my_map.construct_playground()
 
+    # draw_lidar : enable the visualization of the lidar rays
+    # draw_semantic : enable the visualization of the semantic rays
+    # draw_touch : enable the visualization of the touch sensor
     gui = GuiSR(playground=playground,
                 the_map=my_map,
                 drones=[my_drone],
                 draw_lidar=True,
                 draw_semantic=True,
                 draw_touch=True,
-                use_keyboard=True)
+                use_keyboard=True,
+                )
     gui.run()
 
 

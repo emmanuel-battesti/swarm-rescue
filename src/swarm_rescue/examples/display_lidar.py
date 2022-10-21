@@ -61,7 +61,7 @@ class MyMapLidar(MapAbstract):
         add_boxes(playground)
 
         # WOUNDED PERSONS
-        playground.add(self._drones[0], ((0, 0), 0))
+        playground.add(self._drones[0], ((-50, 0), 0))
 
         return playground
 
@@ -73,11 +73,17 @@ def main():
     my_map.set_drones([my_drone])
     playground = my_map.construct_playground()
 
+    # draw_lidar : enable the visualization of the lidar rays
+    # enable_visu_noises : to enable the visualization. It will show also a demonstration of the integration
+    # of odometer values, by drawing the estimated path in red. The green circle shows the position of drone according
+    # to the gps sensor and the compass
     gui = GuiSR(playground=playground,
                 the_map=my_map,
                 drones=[my_drone],
                 draw_lidar=True,
-                use_keyboard=True)
+                use_keyboard=True,
+                enable_visu_noises=True,
+                )
     gui.run()
 
 

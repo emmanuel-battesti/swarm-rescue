@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-
 from typing import List
 
 from spg.playground import Playground
@@ -19,7 +18,7 @@ class MapAbstract(ABC):
         self._explored_map = ExploredMap()
         self._size_area = None
         self._environment_type = environment_type
-        self._drones = []
+        self._drones: List[DroneAbstract] = []
         # '_number_drones' is the number of drones that will be generated in the map
         self._number_drones = None
         # '_time_step_limit' is the number of time steps after which the session will end.

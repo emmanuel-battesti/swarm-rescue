@@ -1,10 +1,10 @@
 import math
-
 import arcade
+from typing import Tuple
 
 
 class MouseMeasure:
-    def __init__(self, playground_size):
+    def __init__(self, playground_size: Tuple[int, int]):
         self.x_mouse = 0
         self.y_mouse = 0
         self.x_mouse_prev = 0

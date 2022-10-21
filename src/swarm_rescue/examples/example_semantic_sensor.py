@@ -23,7 +23,7 @@ from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.gui_sr import GuiSR
 from spg_overlay.gui_map.map_abstract import MapAbstract
 from spg_overlay.utils.misc_data import MiscData
-from spg_overlay.utils.utils import sign, normalize_angle
+from spg_overlay.utils.utils import normalize_angle
 
 
 class MyDroneSemantic(DroneAbstract):
@@ -145,7 +145,7 @@ class MyDroneSemantic(DroneAbstract):
             self.angleStopTurning = random.uniform(-math.pi, math.pi)
 
         diff_angle = normalize_angle(
-            self.angleStopTurning - self.measured_angle())
+            self.angleStopTurning - self.measured_compass_angle())
         if self.isTurning and abs(diff_angle) < 0.2:
             self.isTurning = False
             self.counterStraight = 0
@@ -264,11 +264,13 @@ def main():
     my_map.set_drones([my_drone])
     playground = my_map.construct_playground()
 
+    # draw_semantic : enable the visualization of the semantic rays
     gui = GuiSR(playground=playground,
                 the_map=my_map,
                 drones=[my_drone],
                 draw_semantic=True,
-                use_keyboard=False)
+                use_keyboard=False,
+                )
     gui.run()
 
 

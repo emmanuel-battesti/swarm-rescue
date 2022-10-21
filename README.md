@@ -1,3 +1,4 @@
+
 # Table of Content
 
 - [Welcome to *Swarm-Rescue*](#welcome-to--swarm-rescue-)
@@ -190,14 +191,18 @@ For example, you can use the free *community* version of [*PyCharm*](https://www
 Drones is a version of what is called **agent** in *Simple-Playgrounds*.
 Drones are composed of different body parts attached to a *Base*.
 
-Drones perceive their surroundings through 3 first-person view sensors:
-- Lidar Sensor
-- Touch Sensor
-- Semantic Sensor
+Drones **perceive their surroundings** through 3 first-person view sensors:
+- *Lidar* sensor
+- *Touch* sensor
+- *Semantic* sensor
 
 Drones have also a communication system.
 
-### Lidar
+Drones are equipped with sensors that allow it to **estimate its position and orientation**. We have two kinds:
+- with absolute measurements: the *GPS* for the positions and the magnetic *compass* for the orientation.
+- with relative measurements: the odometer which provides us with positions and orientation relative to the previous position of the drone.
+
+### Lidar sensor
 
 In the code, class *DroneLidar*.
 
@@ -205,41 +210,49 @@ It emulates a lidar.
 
 - *fov* (field of view): 360 degrees
 - *resolution* (number of rays): 181
-- *max range* (maximum range of the sensor): 300 pix
+- *max range* (maximum range of the sensor): 300 pixels
 
 A gaussian noise has been added to the distance.
+As the *fov* is 360°, the first (at -Pi rad) and the last value (at Pi) should be the same.
 
 You can find an example of lidar use in the *solutions/my_drone_lidar_communication.py* file.
 
-### Touch Sensor
+To visualize lidar sensor data, you should set the parameter *draw_lidar* parameter of the *GuiSR* class to *True*.
 
-In the code, class *DroneTouch*.
+### Touch sensor
 
-Touch Sensors detect close proximity of entities (objects or walls) near the drone.
+In the file *src/swarm_rescue/spg_overlay/entities/drone_sensors.py*, it is described in the class *DroneTouch*.
+
+The touch sensor detects close proximity of entities (objects or walls) near the drone.
+As the *fov* is 360°, the first (at -Pi rad) and the last value (at Pi) should be the same.
 
 It emulates artificial skin,
 
 - *fov* (field of view): 360 degrees
 - *resolution* (number of rays): 13
-- *max range* (maximum range of the sensor): 25 pix
+- *max range* (maximum range of the sensor): 25 pixels
 
 A gaussian noise has been added to the distance.
 The return value is between 0 and 1.
 
 You can find an example of touch sensor use in the *examples/example_touch_sensor.py* and the *solutions/my_drone_random.py* files.
 
-### Semantic Sensor
+To visualize touch sensor data, you should set the parameter *draw_touch* parameter of the *GuiSR* class to *True*.
 
-In the code, class *DroneSemanticSensor*.
+### Semantic sensor
 
-Semantic sensor allows to determine the nature of an object, without data processing, around the drone.
+In the file *src/swarm_rescue/spg_overlay/entities/drone_sensors.py*, it is described in the class *DroneSemanticSensor*.
+
+The semantic sensor allows to determine the nature of an object, without data processing, around the drone.
 
 - *fov* (field of view): 360 degrees
-- *max range* (maximum range of the sensor): 200 pix
+- *max range* (maximum range of the sensor): 200 pixels
 - *resolution*, number of rays evenly spaced across the field of view: 35
 
-You can find an example of semantic sensor use in the *examples/example_semantic_sensor.py* file. For this competition, you can only use the detection of WoundedPerson, RescueCenter and other Drones, but not the Walls (use lidar for this).
-The sensor DroneSemanticSensor used in your drone is a modified version of the class SemanticSensor of SPG.
+As the *fov* is 360°, the first (at -Pi rad) and the last value (at Pi) should be the same.
+
+You can find an example of semantic sensor use in the *examples/example_semantic_sensor.py* file. For this competition, you can only use the detection of *WoundedPerson*, *RescueCenter* and other *Drones*, but not the *Walls* (use lidar for this).
+The sensor *DroneSemanticSensor* used in your drone is a modified version of the class *SemanticSensor* of SPG.
 
 Each ray of the sensor provides a data with:
 - *data.distance*: distance of the nearest object detected
@@ -251,26 +264,46 @@ If a wall is detected, distance and angle will be 0, to avoid to use it.
 
 A gaussian noise has been added to the data distance.
 
-### GPS Sensor
+To visualize touch semantic data, you should set the parameter *draw_semantic* parameter of the *GuiSR* class to *True*.
 
-In the code, class *DroneGPS*.
+### GPS sensor
+
+In the file *src/swarm_rescue/spg_overlay/entities/drone_sensors.py*, it is described in the class *DroneGPS*.
 
 This sensor gives the position vector along the horizontal axis and vertical axis.
-The position (0, 0) is at the center of the map. The value of theta is between 0 and 2*Pi. 
-Noise has been added to the data to make it look like GPS noise. This is not just gaussian noise but noise that follows an autoregressive model.
+The position (0, 0) is at the center of the map.
+Noise has been added to the data to make it look like GPS noise. This is not just gaussian noise but noise that follows an autoregressive model of order 1.
 
-### Compass Sensor
+If you want to enable the visualization of the noises, you should set the parameter *enable_visu_noises* to *True*.
 
-In the code, class *DroneCompass*.
+### Compass sensor
+
+In the file *src/swarm_rescue/spg_overlay/entities/drone_sensors.py*, it is described in the class *DroneCompass*.
 
 This sensor gives the orientation of the drone.
-The orientation increases with a counter-clockwise rotation of the drone. The value is between 0 and 2*Pi. 
-Noise has been added to the data to make it look like Compass noise. This is not just gaussian noise but noise that follows an autoregressive model.
+The orientation increases with a counter-clockwise rotation of the drone. The value is between -Pi and Pi. 
+Noise has been added to the data to make it look like Compass noise. This is not just gaussian noise but noise that follows an autoregressive model of order 1.
 
-### Velocity sensor
+If you want to enable the visualization of the noises, you should set the parameter *enable_visu_noises* to *True*.
 
-This sensor gives the speed vector along the horizontal axis and vertical axis.
-A gaussian noise has been added to the data.
+### Odometer sensor
+
+In the file *src/swarm_rescue/spg_overlay/entities/drone_sensors.py*, it is described in the class *DroneOdometer*.
+
+This sensor returns an array of data containing:
+- dist_travel, the distance of the drone's movement during the last timestep.
+- alpha, the relative angle of the current position with respect to the previous reference frame of the drone
+- theta, the orientation variation (or rotation) of the drone during the last step in the reference frame
+     
+Those information are relative the previous position of the drone. Usually, we use odometry by integrating measurements over time to get an estimate of the current position of the drone. 
+This can be very useful for example when GPS data is no longer provided in some areas of the map.
+
+Angles, alpha and theta, increase with a counter-clockwise rotation of the drone. Their value is between -Pi and Pi. 
+Gaussian noise was added separately to the three parts of the data to make them look like real noise. 
+
+![odometer values](img/odom.png)
+
+If you want to enable the visualization of the noises, you should set the parameter *enable_visu_noises* to *True*. It will show also a demonstration of the integration of odometer values, by drawing the estimated path.
 
 ### Communication
 
@@ -280,7 +313,6 @@ At each time step, data can be sent and/or received.
 You have the possibility to configure the content of the messages yourself.
 
 You can find an example of communication use in the *solutions/my_drone_lidar_communication.py* file.
-
 
 ### Actuators
 
@@ -292,9 +324,9 @@ You have 3 values to move your drone:
 - *angular_vel_controller*, a float value between -1 and 1. This is the speed of rotation. 
 
 To interact with the world, you can *grasp* certain *graspable* thing. To move a *wounded person*, you will have to *grasp* it.
-This value *grasp*  is either 0 or 1.
+This value *grasp* is either 0 or 1.
 
-When an wounded person is grasped by the drone, it disappears for the drone sensors, i.e. it becomes transparent. This allows the drone to navigate more easily without having its sensors obstructed.
+When a wounded person is grasped by the drone, it disappears for the drone sensors, i.e. it becomes transparent. This allows the drone to navigate more easily without having its sensors obstructed.
 
 You can find examples of actuator use in almost all files in *examples/* and *solutions/*.
 
@@ -309,7 +341,7 @@ The playground with all its elements, except for the drones, are called "Map" wi
 
 A playground is described using a Cartesian coordinate system.
 
-Each element has a position (x,y, theta), with x along the horizontal axis, y along the vertical axis, and theta the orientation in radians, aligned on the horizontal axis. The position (0, 0) is at the center of the map. The value of theta is between 0 and 2*Pi. Theta increases with a counter-clockwise rotation of the drone. For theta = 0, the drone is oriented towards the right. A playground has a size [width, height], with the width along x-axis, and height along y-axis.
+Each element has a position (x,y, theta), with x along the horizontal axis, y along the vertical axis, and theta the orientation in radians, aligned on the horizontal axis. The position (0, 0) is at the center of the map. The value of theta is between -Pi and Pi. Theta increases with a counter-clockwise rotation of the drone. For theta = 0, the drone is oriented towards the right. A playground has a size [width, height], with the width along x-axis, and height along y-axis.
 
 ## Wounded Person
 
@@ -329,23 +361,23 @@ You can find an example of rescue center used in the *examples/example_semantic_
 
 ## Special zones
 
-There are zones that alter the abilities of the drones.
+There are zones that alter the abilities of the drones. They can also call the *disablers*.
 
 ### No-Communication zone
 
-*No-Communication zone* where a drone loses the ability to communicate with other drones.
+*No-Communication zone* where a drone **loses the ability to communicate** with other drones.
 It is represented on the map by a transparent yellow rectangle.
 This zone cannot be directly detected by the drone.
 
 ### No-GPS zone
 
-*No-GPS zone* where a drone loses the possibility to know its real position.
+*No-GPS zone* where a drone **loses the possibility to know its GPS position and Compass orientation**.
 It is represented on the map by a transparent grey rectangle.
 This zone cannot be directly detected by the drone.
 
 ### Killing zone (or desactivation zone)
 
-*Killing zone* where a drone is destroyed automatically.
+*Killing zone* where a **drone is destroyed automatically.**
 It is represented on the map by a transparent pink rectangle.
 This zone cannot be detected by the drone.
 
@@ -378,10 +410,16 @@ class MyDrone(MyAwesomeDrone):
 ### directory *spg_overlay*
 
 As its name indicates, this folder is a software overlay of the spg (simple-playground) code.
+ It contains three sub-directories:
+ - *entities*: contains description of differents entities used in the program.
+- *gui_map*: contains description of default map and the gui interface.
+- *utils*: contains various functions and useful tools.
 
 The files it contains must *not* be modified. It contains the definition of the class *Drone*, of the class of the sensors, of the wounded persons, etc.
 
-An important file is the gui_sr.py which contains the class GuiSR. To use the keyboard to move the first drone, you should pass the parameter *use_keyboard* to *True*.
+An important file is the *gui_map/gui_sr.py* which contains the class *GuiSR*. 
+If you want to use the keyboard to move the first drone, you should set the parameter *use_keyboard* to *True*.
+If you want to enable the visualization of the noises, you should set the parameter *enable_visu_noises* to *True*. It will show also a demonstration of the integration of odometer values, by drawing the estimated path.
 
 ### directory *maps*
 
@@ -397,7 +435,7 @@ Each Drone must inherit from the class *DroneAbstract*. You have 2 mandatory mem
 
 Keep in mind, that the same code will be in each of the 10 drones. Each drone will be an instance of your Drone class.
 
-For your calculation in the control() function, it is mandatory to use only the sensor and communication data, without directly accessing the class members. In particular, you should not use the  *position* and *angle* variables, but use the *measured_position()* and *measured_angle()* functions to have access to the position and orientation of the drone. These values are noisy, representing more realistic sensors, and can be altered by special zones in the map where the position information can be scrambled.
+For your calculation in the control() function, it is mandatory to use only the sensor and communication data, without directly accessing the class members. In particular, you should not use the *position* and *angle* variables, but use the *measured_position()* and *measured_angle()* functions to have access to the position and orientation of the drone. These values are noisy, representing more realistic sensors, and can be altered by special zones in the map where the position information can be scrambled.
 
 The true position of the drone can be accessed with the functions *true_position()* and *true_angle()* (or directly with the variable *position* and *angle*), BUT it is only for debugging or logging.
 
@@ -408,8 +446,20 @@ Some examples are provided:
 ### directory *examples*
 
 In the folder, you will find stand-alone programs to help you program with examples. In particular:
+- *display_lidar.py* shows a visualization of the lidar on a graph. You can see the noise added.
+- *example_disablers.py* shows a example of each *disabling zone*.
 - *example_semantic_sensor.py* shows the use of semantic sensor and actuators, and how to grasp a wounded person and bring it back to the rescue area.
 - *example_touch_sensor.py* shows the use of touch sensors and actuators.
+- *example_keyboard.py* shows how to use the keyboard for developpement or debugging purpose. The usable keyboard keys :
+	- up / down key : forward and backward
+	- left / right key : turn left / right
+	- shift + left/right key : left/right lateral movement
+	- g key : grasp objects
+	- l key : display (or not) the lidar sensor
+	- s key : display (or not) the semantic sensor
+	- t key : display (or not) the touch sensor
+	- q key : exit the program
+	- r key : reset
 
 ### directory *tools*
 
@@ -425,7 +475,7 @@ Be careful, you will provide only:
 
 ## Various tips
 
-- To exit after launching a map, press 'q'.
+- To exit elegantly after launching a map, press 'q'.
 
 # Contact
 

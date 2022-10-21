@@ -11,7 +11,7 @@ from spg.element import ZoneElement
 from spg.playground import Playground, get_colliding_entities
 from spg.utils.definitions import CollisionTypes
 
-from spg_overlay.entities.drone_sensors import DroneGPS
+from spg_overlay.entities.drone_sensors import DroneGPS, DroneCompass
 
 
 class EnvironmentType(IntEnum):
@@ -35,7 +35,7 @@ def srdisabler_disables_device(arbiter, _, data):
 
 class SRDisabler(ZoneElement):
     def __init__(self,
-                 disable_cls: Union[List[Type[Device]], Type[Device]],
+                 disable_cls: [List[Type[Device]]],
                  size: Optional[Tuple[int, int]] = None,
                  color: Union[str, int, Tuple[int, int, int], Tuple[int, int, int, int]] = 0):
         if size is None:
@@ -63,8 +63,9 @@ class SRDisabler(ZoneElement):
         return CollisionTypes.DISABLER
 
     def disable(self, device: Device):
-        if isinstance(device, self._disable_cls):
-            device.disable()
+        for disabled_device in self._disable_cls:
+            if isinstance(device, disabled_device):
+                device.disable()
 
 
 class NoGpsZone(SRDisabler):
@@ -72,7 +73,7 @@ class NoGpsZone(SRDisabler):
         if size is None:
             size = (0, 0)
 
-        super().__init__(disable_cls=DroneGPS,
+        super().__init__(disable_cls=[DroneGPS, DroneCompass],
                          size=size,
                          color="grey")
 
@@ -82,7 +83,7 @@ class NoComZone(SRDisabler):
         if size is None:
             size = (0, 0)
 
-        super().__init__(disable_cls=Communicator,
+        super().__init__(disable_cls=[Communicator],
                          size=size,
                          color="yellow")
 
@@ -92,6 +93,6 @@ class KillZone(SRDisabler):
         if size is None:
             size = (0, 0)
 
-        super().__init__(disable_cls=Device,
+        super().__init__(disable_cls=[Device],
                          size=size,
                          color="HotPink")

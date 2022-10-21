@@ -2,9 +2,12 @@ import math
 
 from cv2 import cv2 as cv2
 import numpy as np
+from typing import List
 # from spg.engine import Engine
+from spg.playground import Playground
 from spg.view import TopDownView
 
+from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.utils.utils import bresenham, circular_kernel
 
 
@@ -51,7 +54,7 @@ class ExploredMap:
         self._count_pixel_explored = 0
         self._count_pixel_total = 0
 
-    def _create_image_walls(self, playground):
+    def _create_image_walls(self, playground: Playground):
         """
         Fills _img_playground with a color image of the playground without drones and wounded persons
         """
@@ -63,7 +66,7 @@ class ExploredMap:
         self._img_playground = cv2.cvtColor(self._img_playground, cv2.COLOR_BGR2RGB)
         return self._img_playground
 
-    def initialize_walls(self, playground):
+    def initialize_walls(self, playground: Playground):
         """
         From _img_playground, it creates a black and white image of the walls saved in _map_playground
         """
@@ -87,7 +90,7 @@ class ExploredMap:
         # Initialize _map_explo_zones with zeros (black)
         self._map_explo_zones = np.zeros(self._map_playground.shape, np.uint8)
 
-    def update(self, drones):
+    def update(self, drones: [List[DroneAbstract]]):
         """
         Update the list of the positions of the drones
         """

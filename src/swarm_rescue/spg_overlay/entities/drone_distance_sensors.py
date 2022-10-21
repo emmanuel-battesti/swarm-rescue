@@ -23,7 +23,7 @@ def compute_ray_angles(fov_rad: float, nb_rays: int) -> np.ndarray:
     else:
         ray_angles = [n * a - b for n in range(nb_rays)]
 
-    # 'ray_angles' is an array which contains the angles of the laser rays of the lidar
+    # 'ray_angles' is an array which contains the angles of the laser rays of the sensor
     return np.array(ray_angles)
 
 
@@ -35,10 +35,9 @@ class DroneDistanceSensor(DistanceSensor):
         self._std_dev_noise = 2.5
         self._noise_model = GaussianNoise(mean_noise=0, std_dev_noise=self._std_dev_noise)
 
-        # self._values = self._default_value
-        self._values = None
+        self._values = self._default_value
 
-        # 'ray_angles' is an array which contains the angles of the laser rays of the lidar
+        # 'ray_angles' is an array which contains the angles of the laser rays of the sensor
         self.ray_angles = compute_ray_angles(fov_rad=self.fov_rad(), nb_rays=self.resolution)
 
     def fov_rad(self):
@@ -60,7 +59,8 @@ class DroneDistanceSensor(DistanceSensor):
         self._values = self._noise_model.add_noise(self._values)
 
     def draw(self):
-        if self._values is not None:
+        hitpoints_ok = not isinstance(self._hitpoints, int)
+        if hitpoints_ok:
             super().draw()
 
     @property
@@ -68,6 +68,10 @@ class DroneDistanceSensor(DistanceSensor):
         null_sensor = np.empty(self.shape)
         null_sensor[:] = np.nan
         return null_sensor
+
+    @property
+    def shape(self):
+        return self._resolution,
 
 
 class DroneLidar(DroneDistanceSensor):
@@ -121,16 +125,16 @@ class DroneTouch(DroneDistanceSensor):
     def _compute_raw_sensor(self, *_):
         super()._compute_raw_sensor()
 
-        if self._values is not None:
-            # self._values = np.minimum(self.range + 15 - self._values, np.ones_like(self._values) * self.range)
-            values = np.zeros_like(self._values)
-            values[self._values < 20] = 1.0
-            self._values = values
+        # self._values = np.minimum(self.range + 15 - self._values, np.ones_like(self._values) * self.range)
+        val = np.zeros_like(self._values)
+        val[self._values < 20] = 1.0
+        self._values = val
 
 
 class DroneSemanticSensor(SemanticSensor):
     """
-    Semantic sensors allow to determine the nature of an object, without data processing, around the drone.
+    Semantic sensors allow to determine the nature of an object, without data processing,
+    around the drone.
 
     - fov (field of view): 360 degrees
     - resolution (number of rays): 36
@@ -166,9 +170,9 @@ class DroneSemanticSensor(SemanticSensor):
         self._noise = noise
         self._std_dev_noise = 2.5
 
-        self._values = None  # self._default_value
+        self._values = self._default_value
 
-        # 'ray_angles' is an array which contains the angles of the laser rays of the lidar
+        # 'ray_angles' is an array which contains the angles of the laser rays of the sensor
         self.ray_angles = compute_ray_angles(fov_rad=self.fov_rad(), nb_rays=self.resolution)
 
     def _compute_raw_sensor(self, *_):
@@ -229,7 +233,7 @@ class DroneSemanticSensor(SemanticSensor):
         return self._fov * 180 / math.pi
 
     def get_sensor_values(self):
-        """Get values of the lidar as a numpy array"""
+        """Get values of the lidar as a list"""
         return self._values
 
     @property
@@ -242,15 +246,17 @@ class DroneSemanticSensor(SemanticSensor):
 
     def _apply_noise(self):
         for index, data in enumerate(self._values):
-            new_data = self.Data(distance=max(0.0, data.distance + np.random.normal(self._std_dev_noise)),
-                                 angle=data.angle,
-                                 entity_type=data.entity_type,
-                                 grasped=data.grasped)
+            new_data = self.Data(
+                distance=max(0.0, data.distance + np.random.normal(self._std_dev_noise)),
+                angle=data.angle,
+                entity_type=data.entity_type,
+                grasped=data.grasped)
 
             self._values[index] = new_data
 
     def draw(self):
-        if self._values is not None:
+        hitpoints_ok = not isinstance(self._hitpoints, int)
+        if hitpoints_ok:
             super().draw()
 
     @property

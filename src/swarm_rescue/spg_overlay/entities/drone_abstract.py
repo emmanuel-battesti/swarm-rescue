@@ -9,10 +9,12 @@ from spg.agent.interactor import GraspMagnet
 
 from spg_overlay.entities.drone_base import DroneBase
 from spg_overlay.entities.drone_distance_sensors import DroneLidar, DroneTouch, DroneSemanticSensor
-from spg_overlay.entities.drone_sensors import DroneGPS, DroneVelocity, DroneCompass
+from spg_overlay.entities.drone_sensors import DroneGPS, DroneCompass, DroneOdometer
 from spg_overlay.utils.misc_data import MiscData
 
 import matplotlib.pyplot as plt
+
+from spg_overlay.utils.utils import normalize_angle
 
 
 class DroneAbstract(Agent):
@@ -32,7 +34,7 @@ class DroneAbstract(Agent):
         LIDAR = 2
         GPS = 3
         COMPASS = 4
-        VELOCITY = 5
+        ODOMETER = 5
 
     def __init__(self,
                  identifier: Optional[int] = None,
@@ -62,7 +64,7 @@ class DroneAbstract(Agent):
 
         self.base.add(DroneGPS())
         self.base.add(DroneCompass())
-        self.base.add(DroneVelocity())
+        self.base.add(DroneOdometer())
 
         self.identifier = identifier
         self._should_display_lidar = should_display_lidar
@@ -133,41 +135,46 @@ class DroneAbstract(Agent):
     def lidar_is_disabled(self):
         return self.lidar().is_disabled()
 
-    def measured_position(self):
+    def measured_gps_position(self):
         """
-        Give the measured position of the drone, in pixels
-        You must use this value for your calculation in the control() function, because these values can be altered
+        Give the measured position of the drone, in pixels. The measurement comes from the GPS sensor.
+        You can use this value for your calculation in the control() function. These values can be altered
         by special areas in the map where the position information can be scrambled.
         """
         if self.sensors[self.SensorType.GPS].is_disabled():
             return None
 
-        return self.sensors[self.SensorType.GPS].get_sensor_values()[0], self.sensors[self.SensorType.GPS].get_sensor_values()[1]
+        return self.sensors[self.SensorType.GPS].get_sensor_values()[0], \
+               self.sensors[self.SensorType.GPS].get_sensor_values()[1]
 
-    def measured_angle(self):
+    def measured_compass_angle(self):
         """
-        Give the measured orientation of the drone, in radians between 0 and 2Pi.
-        You must use this value for your calculation in the control() function.
+        Give the measured orientation of the drone, in radians between 0 and 2Pi. The measurement comes from the compass
+        sensor. You can use this value for your calculation in the control() function. These values can be altered
+        by special areas in the map where the position information can be scrambled.
         """
         if self.sensors[self.SensorType.COMPASS].is_disabled():
             return None
 
         return self.sensors[self.SensorType.COMPASS].get_sensor_values()[0]
 
-    def measured_velocity(self):
-        """
-        Give the measured velocity of the drone, in pixels per second
-        You must use this value for your calculation in the control() function.
-        """
-        return self.sensors[self.SensorType.VELOCITY].get_sensor_values()[0], \
-               self.sensors[self.SensorType.VELOCITY].get_sensor_values()[1]
+    def gps_is_disabled(self):
+        return self.sensors[self.SensorType.GPS].is_disabled()
 
-    def measured_angular_velocity(self):
-        """
-        Give the measured angular velocity of the drone, in radians per second
-        You must use this value for your calculation in the control() function.
-        """
-        return self.sensors[self.SensorType.VELOCITY].get_sensor_values()[2]
+    def compass_is_disabled(self):
+        return self.sensors[self.SensorType.COMPASS].is_disabled()
+
+    def odometer_is_disabled(self):
+        return self.sensors[self.SensorType.ODOMETER].is_disabled()
+
+    def odometer_values(self):
+        return self.sensors[self.SensorType.ODOMETER].get_sensor_values()
+
+    def gps_values(self):
+        return self.sensors[self.SensorType.GPS].get_sensor_values()
+
+    def compass_values(self):
+        return self.sensors[self.SensorType.COMPASS].get_sensor_values()
 
     def true_position(self):
         """
@@ -183,29 +190,23 @@ class DroneAbstract(Agent):
         You must NOT use this value for your calculation in the control() function, you should use measured_angle()
         instead. But you can use it for debugging or logging.
         """
-        return self.angle
+        return normalize_angle(self.angle)
 
     def true_velocity(self):
         """
         Give the true velocity of the drone, in pixels per second
-        You must NOT use this value for your calculation in the control() function, you should use measured_velocity()
-        instead. But you can use it for debugging or logging.
+        You must NOT use this value for your calculation in the control() function, you should use GPS, Compass or
+        odometry data instead. But you can use it for debugging or logging.
         """
         return self.base.velocity
 
     def true_angular_velocity(self):
         """
         Give the true angular velocity of the drone, in radians per second
-        You must NOT use this value for your calculation in the control() function, you should use measured_angular_velocity()
-        instead. But you can use it for debugging or logging.
+        You must NOT use this value for your calculation in the control() function, you should use GPS, Compass or
+        odometry data instead. But you can use it for debugging or logging.
         """
         return self.base.angular_velocity
-
-    def gps_is_disabled(self):
-        return self.sensors[self.SensorType.GPS].is_disabled()
-
-    def compass_is_disabled(self):
-        return self.sensors[self.SensorType.COMPASS].is_disabled()
 
     def display(self):
         if self._should_display_lidar:
@@ -217,7 +218,7 @@ class DroneAbstract(Agent):
         if self.lidar().get_sensor_values() is not None:
             plt.figure(self.SensorType.LIDAR)
             plt.cla()
-            plt.axis([-math.pi / 2, math.pi / 2, 0, self.lidar().max_range])
+            plt.axis([-math.pi, math.pi, 0, self.lidar().max_range])
             plt.plot(self.lidar().ray_angles, self.lidar().get_sensor_values(), "g.:")
             plt.grid(True)
             plt.draw()
@@ -232,7 +233,3 @@ class DroneAbstract(Agent):
             plt.grid(True)
             plt.draw()
             plt.pause(0.001)
-
-    @property
-    def velocity(self):
-        return self.base.velocity

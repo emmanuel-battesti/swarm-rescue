@@ -29,7 +29,7 @@ class MyDroneDisablers(DroneAbstract):
         Here, we don't need communication...
         """
         msg_data = (self.identifier,
-                    (self.measured_position(), self.measured_angle()))
+                    (self.measured_gps_position(), self.measured_compass_angle()))
         return msg_data
 
     def control(self):
@@ -95,11 +95,16 @@ def main():
     my_map.set_drones([my_drone])
     playground = my_map.construct_playground()
 
+    # enable_visu_noises : to enable the visualization. It will show also a demonstration of the integration
+    # of odometer values, by drawing the estimated path in red. The green circle shows the position of drone according
+    # to the gps sensor and the compass.
     gui = GuiSR(playground=playground,
                 the_map=my_map,
                 drones=[my_drone],
                 print_messages=True,
-                use_keyboard=True)
+                use_keyboard=True,
+                enable_visu_noises=True,
+                )
     gui.run()
 
 

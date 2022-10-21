@@ -87,11 +87,14 @@ def main():
     my_map.set_drones([my_drone])
     playground = my_map.construct_playground()
 
+    # draw_touch : enable the visualization of the touch sensor
     gui = GuiSR(playground=playground,
                 the_map=my_map,
                 drones=[my_drone],
                 draw_touch=True,
-                use_keyboard=False)
+                use_keyboard=False,
+                enable_visu_noises=False,
+                )
     gui.run()
 
 

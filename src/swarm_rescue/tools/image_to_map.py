@@ -33,7 +33,7 @@ class ImageToMap:
 
         print("original dim map : ({}, {})".format(self._img_src.shape[1], self._img_src.shape[0]))
         print("self.x_max = {}, self.y_max = {}".format(self.x_max, self.y_max))
-        print("auto_resized=".format(self._auto_resized))
+        print("auto_resized = {}".format(self._auto_resized))
 
         best_factor = self.height_map / self.y_max
         if not self._auto_resized:

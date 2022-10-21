@@ -3,6 +3,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.1.0] - 2022-10-21
+
+### Changed
+- change default GPS noise
+- function name:
+    - rename *measured_position()* to *measured_gps_position()* in the class *DroneAbstract*
+    - rename *measured_angle()* to *measured_compass_angle()*  in the class *DroneAbstract*
+ - the "no gps zone"  still disables the gps sensor and now, it disables also the compass sensor.
+
+### Added
+- add odometer sensor (see README.md for more information)
+- remove velocity sensor (whose data can be replaced by a calculation on the odometry data)
+- visualization of the noises on gps sensor, compass sensor and odometer sensor.
+
+### Fixed
+- improve code : typing, comments, documentation
+- fix small bugs
+
 ## [2.0.0] - 2022-10-10
 
 ### Changed
@@ -119,7 +137,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.5.2...v2.0.0
 [1.5.2]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.5.0...v1.5.1

@@ -24,7 +24,7 @@ class MyDroneLidarCommunication(DroneAbstract):
         Define the message, the drone will send to and receive from other surrounding drones.
         """
         msg_data = (self.identifier,
-                    (self.measured_position(), self.measured_angle()))
+                    (self.measured_gps_position(), self.measured_compass_angle()))
         return msg_data
 
     def control(self):
@@ -123,7 +123,7 @@ class MyDroneLidarCommunication(DroneAbstract):
         if self.communicator:
             received_messages = self.communicator.received_messages
             nearest_drone_coordinate1 = (
-                self.measured_position(), self.measured_angle())
+                self.measured_gps_position(), self.measured_compass_angle())
             nearest_drone_coordinate2 = deepcopy(nearest_drone_coordinate1)
             (nearest_position1, nearest_angle1) = nearest_drone_coordinate1
             (nearest_position2, nearest_angle2) = nearest_drone_coordinate2
@@ -138,8 +138,8 @@ class MyDroneLidarCommunication(DroneAbstract):
                 coordinate = message[1]
                 (other_position, other_angle) = coordinate
 
-                dx = other_position[0] - self.measured_position()[0]
-                dy = other_position[1] - self.measured_position()[1]
+                dx = other_position[0] - self.measured_gps_position()[0]
+                dy = other_position[1] - self.measured_gps_position()[1]
                 distance = math.sqrt(dx ** 2 + dy ** 2)
 
                 # if another drone is near
@@ -161,9 +161,9 @@ class MyDroneLidarCommunication(DroneAbstract):
                 (nearest_position1, nearest_angle1) = nearest_drone_coordinate1
                 (nearest_position2, nearest_angle2) = nearest_drone_coordinate2
                 diff_angle1 = normalize_angle(
-                    nearest_angle1 - self.measured_angle())
+                    nearest_angle1 - self.measured_compass_angle())
                 diff_angle2 = normalize_angle(
-                    nearest_angle2 - self.measured_angle())
+                    nearest_angle2 - self.measured_compass_angle())
                 # The mean of 2 angles can be seen as the angle of a vector, which
                 # is the sum of the two unit vectors formed by the 2 angles.
                 diff_angle = math.atan2(0.5 * math.sin(diff_angle1) + 0.5 * math.sin(diff_angle2),
@@ -173,7 +173,7 @@ class MyDroneLidarCommunication(DroneAbstract):
             elif found_drone and len(received_messages) == 1:
                 (nearest_position1, nearest_angle1) = nearest_drone_coordinate1
                 diff_angle1 = normalize_angle(
-                    nearest_angle1 - self.measured_angle())
+                    nearest_angle1 - self.measured_compass_angle())
                 diff_angle = diff_angle1
 
             # if you are far away, you get closer
@@ -186,8 +186,8 @@ class MyDroneLidarCommunication(DroneAbstract):
             # Desired distance between drones
             desired_dist = 60
 
-            d1x = nearest_position1[0] - self.measured_position()[0]
-            d1y = nearest_position1[1] - self.measured_position()[1]
+            d1x = nearest_position1[0] - self.measured_gps_position()[0]
+            d1y = nearest_position1[1] - self.measured_gps_position()[1]
             distance1 = math.sqrt(d1x ** 2 + d1y ** 2)
 
             d1 = distance1 - desired_dist
@@ -196,7 +196,7 @@ class MyDroneLidarCommunication(DroneAbstract):
             intensity1 = 2 / (1 + math.exp(-d1 / (desired_dist * 0.5))) - 1
 
             direction1 = math.atan2(d1y, d1x)
-            heading1 = normalize_angle(direction1 - self.measured_angle())
+            heading1 = normalize_angle(direction1 - self.measured_compass_angle())
 
             # The drone will slide in the direction of heading
             longi1 = intensity1 * math.cos(heading1)
@@ -209,15 +209,15 @@ class MyDroneLidarCommunication(DroneAbstract):
 
             # If we found at least 2 drones
             elif found_drone and len(received_messages) >= 2:
-                d2x = nearest_position2[0] - self.measured_position()[0]
-                d2y = nearest_position2[1] - self.measured_position()[1]
+                d2x = nearest_position2[0] - self.measured_gps_position()[0]
+                d2y = nearest_position2[1] - self.measured_gps_position()[1]
                 distance2 = math.sqrt(d2x ** 2 + d2y ** 2)
 
                 d2 = distance2 - desired_dist
                 intensity2 = 2 / (1 + math.exp(-d2 / (desired_dist * 0.5))) - 1
 
                 direction2 = math.atan2(d2y, d2x)
-                heading2 = normalize_angle(direction2 - self.measured_angle())
+                heading2 = normalize_angle(direction2 - self.measured_compass_angle())
 
                 longi2 = intensity2 * math.cos(heading2)
                 lat2 = intensity2 * math.sin(heading2)

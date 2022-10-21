@@ -5,6 +5,8 @@ from spg_overlay.utils.team_info import TeamInfo
 from spg_overlay.gui_map.gui_sr import GuiSR
 
 from maps.map_intermediate_01 import MyMapIntermediate01
+from maps.map_complete_01 import MyMapComplete01
+from maps.map_complete_02 import MyMapComplete02
 
 from solutions.my_drone_random import MyDroneRandom
 
@@ -29,7 +31,7 @@ class Launcher:
         self.number_drones = my_map.number_drones
         self.time_step_limit = my_map.time_step_limit
         self.real_time_limit = my_map.real_time_limit
-        self.number_wounded_persons = my_map.number_wounded_persons
+        self.number_wounded_persons = 0
         self.size_area = my_map.size_area
 
         self.score_manager = ScoreManager(number_drones=self.number_drones,
@@ -55,6 +57,8 @@ class Launcher:
         my_map.set_drones(my_drones)
 
         playground = my_map.construct_playground()
+        self.number_wounded_persons = my_map.number_wounded_persons
+
 
         my_gui = GuiSR(playground=playground,
                        drones=my_drones,
