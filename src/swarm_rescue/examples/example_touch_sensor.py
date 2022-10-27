@@ -6,6 +6,7 @@ Example of how to use the touch sensor
 import os
 import random
 import sys
+from typing import Type
 
 # This line add, to sys.path, the path to parent path of this file
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -67,30 +68,35 @@ class MyDroneTouch(DroneAbstract):
 class MyMapTouch(MapAbstract):
     def __init__(self):
         super().__init__()
-        self._size_area = (700, 700)
-        self._number_drones = 1
 
-    def construct_playground(self):
+        # PARAMETERS MAP
+        self._size_area = (700, 700)
+
+        self._number_drones = 1
+        self._drones_pos = [((80, 100), 0)]
+        self._drones = []
+
+    def construct_playground(self, drone_type: Type[DroneAbstract]):
         playground = ClosedPlayground(size=self._size_area)
 
         # POSITIONS OF THE DRONES
-        playground.add(self._drones[0], ((80, 100), 0))
+        misc_data = MiscData(size_area=self._size_area,
+                             number_drones=self._number_drones)
+        for i in range(self._number_drones):
+            drone = drone_type(identifier=i, misc_data=misc_data)
+            self._drones.append(drone)
+            playground.add(drone, self._drones_pos[i])
 
         return playground
 
 
 def main():
     my_map = MyMapTouch()
-    misc_data = MiscData(size_area=my_map.size_area, number_drones=1)
-    my_drone = MyDroneTouch(misc_data=misc_data)
-
-    my_map.set_drones([my_drone])
-    playground = my_map.construct_playground()
+    playground = my_map.construct_playground(drone_type=MyDroneTouch)
 
     # draw_touch : enable the visualization of the touch sensor
     gui = GuiSR(playground=playground,
                 the_map=my_map,
-                drones=[my_drone],
                 draw_touch=True,
                 use_keyboard=False,
                 enable_visu_noises=False,

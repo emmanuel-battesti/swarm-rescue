@@ -8,7 +8,7 @@ from spg_overlay.entities.normal_wall import NormalWall
 
 # Dimension of the map : (800, 500)
 # Dimension factor : 1.0
-def add_boxes(playground):
+def add_boxes(_):
     pass
 
 

@@ -5,7 +5,9 @@ To move the drone, you have to click on the map, then use the arrows on the keyb
 
 import os
 import sys
+from typing import Type
 
+from spg.playground import Playground
 from spg.utils.definitions import CollisionTypes
 
 # This line add, to sys.path, the path to parent path of this file
@@ -17,6 +19,7 @@ from spg_overlay.entities.rescue_center import RescueCenter, wounded_rescue_cent
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.gui_sr import GuiSR
 from spg_overlay.gui_map.map_abstract import MapAbstract
+from spg_overlay.utils.misc_data import MiscData
 
 
 class MyDroneLidar(DroneAbstract):
@@ -44,34 +47,46 @@ class MyMapLidar(MapAbstract):
 
     def __init__(self):
         super().__init__()
-        self._size_area = (1122, 750)
-        self._number_drones = 1
 
-    def construct_playground(self):
+        # PARAMETERS MAP
+        self._size_area = (1113, 750)
+
+        self._rescue_center = RescueCenter(size=(210, 90))
+        self._rescue_center_pos = ((440, 315), 0)
+
+        self._number_drones = 1
+        self._drones_pos = [((-50, 0), 0)]
+        self._drones = []
+
+    def construct_playground(self, drone_type: Type[DroneAbstract]) -> Playground:
         playground = ClosedPlayground(size=self._size_area)
 
         # RESCUE CENTER
         playground.add_interaction(CollisionTypes.GEM,
                                    CollisionTypes.ACTIVABLE_BY_GEM,
                                    wounded_rescue_center_collision)
-        rescue_center = RescueCenter(size=(210, 90))
-        playground.add(rescue_center, ((440, 315), 0))
+
+        playground.add(self._rescue_center, self._rescue_center_pos)
 
         add_walls(playground)
         add_boxes(playground)
 
-        # WOUNDED PERSONS
-        playground.add(self._drones[0], ((-50, 0), 0))
+        # POSITIONS OF THE DRONES
+        misc_data = MiscData(size_area=self._size_area,
+                             number_drones=self._number_drones)
+        for i in range(self._number_drones):
+            drone = drone_type(identifier=i, misc_data=misc_data,
+                               should_display_lidar=True,
+                               should_display_touch=False)
+            self._drones.append(drone)
+            playground.add(drone, self._drones_pos[i])
 
         return playground
 
 
 def main():
     my_map = MyMapLidar()
-    my_drone = MyDroneLidar(should_display_lidar=True,
-                            should_display_touch=False)
-    my_map.set_drones([my_drone])
-    playground = my_map.construct_playground()
+    playground = my_map.construct_playground(drone_type=MyDroneLidar)
 
     # draw_lidar : enable the visualization of the lidar rays
     # enable_visu_noises : to enable the visualization. It will show also a demonstration of the integration
@@ -79,7 +94,6 @@ def main():
     # to the gps sensor and the compass
     gui = GuiSR(playground=playground,
                 the_map=my_map,
-                drones=[my_drone],
                 draw_lidar=True,
                 use_keyboard=True,
                 enable_visu_noises=True,

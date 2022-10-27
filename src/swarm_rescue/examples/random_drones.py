@@ -7,6 +7,7 @@ import math
 import os
 import random
 import sys
+from typing import List, Type
 
 # This line add, to sys.path, the path to parent path of this file
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -16,6 +17,7 @@ from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.gui_sr import GuiSR
 from spg_overlay.gui_map.map_abstract import MapAbstract
 from spg_overlay.utils.utils import normalize_angle
+from spg_overlay.utils.misc_data import MiscData
 
 
 class MyDroneRandom(DroneAbstract):
@@ -77,32 +79,42 @@ class MyDroneRandom(DroneAbstract):
 class MyMapRandom(MapAbstract):
     def __init__(self):
         super().__init__()
-        self._size_area = (900, 900)
-        self._number_drones = 30
 
-    def construct_playground(self):
+        # PARAMETERS MAP
+        self._size_area = (900, 900)
+
+        # POSITIONS OF THE DRONES
+        self._number_drones = 30
+        self._drones_pos = []
+        for i in range(self._number_drones):
+            pos = ((random.uniform(-self._size_area[0] / 2, self._size_area[0] / 2),
+                    random.uniform(-self._size_area[1] / 2, self._size_area[1] / 2)),
+                   random.uniform(-math.pi, math.pi))
+            self._drones_pos.append(pos)
+
+        self._drones: List[DroneAbstract] = []
+
+    def construct_playground(self, drone_type: Type[DroneAbstract]):
         playground = ClosedPlayground(size=self._size_area)
 
         # POSITIONS OF THE DRONES
-        for drone in self._drones:
-            coordinate = ((random.uniform(-self._size_area[0] / 2, self._size_area[0] / 2),
-                           random.uniform(-self._size_area[1] / 2, self._size_area[1] / 2)),
-                          random.uniform(-math.pi, math.pi))
-            playground.add(drone, coordinate)
+        misc_data = MiscData(size_area=self._size_area,
+                             number_drones=self._number_drones)
+        for i in range(self._number_drones):
+            drone = drone_type(identifier=i, misc_data=misc_data)
+            self._drones.append(drone)
+            playground.add(drone, self._drones_pos[i])
 
         return playground
 
 
 def main():
     my_map = MyMapRandom()
-    drones = [MyDroneRandom() for _ in range(my_map.number_drones)]
 
-    my_map.set_drones(drones)
-    playground = my_map.construct_playground()
+    playground = my_map.construct_playground(drone_type=MyDroneRandom)
 
     gui = GuiSR(playground=playground,
                 the_map=my_map,
-                drones=drones,
                 use_keyboard=False,
                 use_mouse_measure=True,
                 enable_visu_noises=False,

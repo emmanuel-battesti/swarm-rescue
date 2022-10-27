@@ -95,3 +95,11 @@ class SaveData:
         filename_path = self._path + "/screen_path_{}_rd{}_eq{}.png".format(envir_str, num_round_str,
                                                                             self._team_number_str)
         cv2.imwrite(filename_path, im_explo_lines)
+
+    @property
+    def disabled(self):
+        return self._disabled
+
+    @property
+    def path(self):
+        return self._path

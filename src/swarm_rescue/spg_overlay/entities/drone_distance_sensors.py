@@ -84,11 +84,12 @@ class DroneLidar(DroneDistanceSensor):
     - max range (maximum range of the sensor): 300 pix
     """
 
-    def __init__(self, noise=True, **kwargs):
+    def __init__(self, noise=True, invisible_elements=None, **kwargs):
         super().__init__(normalize=False,
                          fov=360,
                          resolution=181,
                          max_range=300,
+                         invisible_elements=invisible_elements,
                          noise=noise,
                          **kwargs)
 
@@ -106,11 +107,12 @@ class DroneTouch(DroneDistanceSensor):
     The return value is between 0 and 1.
     """
 
-    def __init__(self, noise=True, **kwargs):
+    def __init__(self, noise=True, invisible_elements=None, **kwargs):
         super().__init__(normalize=False,
                          fov=360,
                          resolution=13,
                          max_range=25,
+                         invisible_elements=invisible_elements,
                          noise=noise,
                          **kwargs)
 
@@ -158,11 +160,12 @@ class DroneSemanticSensor(SemanticSensor):
 
     Data = namedtuple("Data", "distance angle entity_type grasped")
 
-    def __init__(self, playground: Playground, noise=True, **kwargs):
+    def __init__(self, playground: Playground, noise=True, invisible_elements=None, **kwargs):
         super().__init__(normalize=False,
                          resolution=35,
                          max_range=200,
                          fov=360,
+                         invisible_elements=invisible_elements,
                          invisible_when_grasped=True,
                          **kwargs)
 

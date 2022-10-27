@@ -105,7 +105,7 @@ class WritePdf:
         final_scores = []
         self.data.append(['Environnement', 'Sc. Sauvetages', 'Sc. Exploration', 'Sc. Temps', 'Score Total'])
         self.data_displayed.append(True)
-        total_score_weight = 0
+        # total_score_weight = 0
         for df in self.list_df_zone:
             if df.empty is False:
                 final_scores.append(df["Final Score"].mean())
@@ -281,4 +281,5 @@ class WritePdf:
         self._add_screen()
         filename = self.path + '/report_team{}.pdf'.format(self.team_number_str)
         self.pdf.output(filename, 'F')
+        print("")
         print("A new evaluation report is available here : {}".format(filename))

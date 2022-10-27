@@ -58,9 +58,9 @@ class DroneAbstract(Agent):
         if misc_data:
             self.size_area = misc_data.size_area
 
-        self.base.add(DroneTouch())
-        self.base.add(DroneSemanticSensor(playground=self.playground))
-        self.base.add(DroneLidar())
+        self.base.add(DroneTouch(invisible_elements=self._parts))
+        self.base.add(DroneSemanticSensor(playground=self.playground, invisible_elements=self._parts))
+        self.base.add(DroneLidar(invisible_elements=self._parts))
 
         self.base.add(DroneGPS())
         self.base.add(DroneCompass())

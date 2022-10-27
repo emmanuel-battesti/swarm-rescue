@@ -1,6 +1,6 @@
-from spg_overlay.utils.misc_data import MiscData
 from spg_overlay.utils.score_manager import ScoreManager
 from spg_overlay.utils.save_data import SaveData
+from spg_overlay.utils.screen_recorder import ScreenRecorder
 from spg_overlay.utils.team_info import TeamInfo
 from spg_overlay.gui_map.gui_sr import GuiSR
 
@@ -31,7 +31,7 @@ class Launcher:
         self.number_drones = my_map.number_drones
         self.time_step_limit = my_map.time_step_limit
         self.real_time_limit = my_map.real_time_limit
-        self.number_wounded_persons = 0
+        self.number_wounded_persons = my_map.number_wounded_persons
         self.size_area = my_map.size_area
 
         self.score_manager = ScoreManager(number_drones=self.number_drones,
@@ -39,34 +39,33 @@ class Launcher:
                                           real_time_limit=self.real_time_limit,
                                           total_number_wounded_persons=self.number_wounded_persons)
 
-        # BUILD DRONES
-        self.misc_data = MiscData(size_area=self.size_area,
-                                  number_drones=self.number_drones)
-
         self.save_data = SaveData(self.team_info, disabled=True)
-
         self.real_time_limit_reached = False
+        self.video_capture_enabled = True
+        self.video_capture_enabled &= not self.save_data.disabled
 
     def one_round(self, environment_type, num_round):
         my_map = MyMap(environment_type)
+        playground = my_map.construct_playground(drone_type=MyDrone)
 
-        # BUILD DRONES
-        my_drones = [MyDrone(identifier=i, misc_data=self.misc_data)
-                     for i in
-                     range(self.number_drones)]
-        my_map.set_drones(my_drones)
-
-        playground = my_map.construct_playground()
-        self.number_wounded_persons = my_map.number_wounded_persons
-
+        num_round_str = str(num_round)
+        envir_str = environment_type.name.lower()
+        team_number_str = str(self.team_info.team_number).zfill(2)
+        if self.video_capture_enabled:
+            filename_video_capture = self.save_data.path + \
+                                     "/screen_{}_rd{}_eq{}.avi".format(envir_str,
+                                                                       num_round_str,
+                                                                       team_number_str)
+        else:
+            filename_video_capture = None
 
         my_gui = GuiSR(playground=playground,
-                       drones=my_drones,
                        the_map=my_map,
-                       total_number_wounded_persons=self.number_wounded_persons,
-                       draw_interactive=False)
+                       draw_interactive=False,
+                       filename_video_capture=filename_video_capture)
 
         my_map.explored_map.reset()
+
         my_gui.run()
 
         score_exploration = my_map.explored_map.score()
@@ -83,12 +82,12 @@ class Launcher:
 
     def go(self):
         for environment_type in MyMap.environment_series:
+            print("")
             print("*** Environment '{}'".format(environment_type.name.lower()))
             for i_try in range(self.nb_rounds):
                 result = self.one_round(environment_type, i_try)
-                (
-                    elapsed_time_step, rescued_all_time_step, score_exploration, rescued_number,
-                    real_time_elapsed) = result
+                (elapsed_time_step, rescued_all_time_step, score_exploration,
+                 rescued_number, real_time_elapsed) = result
 
                 result_score = self.score_manager.compute_score(rescued_number,
                                                                 score_exploration,
@@ -101,7 +100,7 @@ class Launcher:
                       ", rescued number ={}/{}".format(
                           rescued_number, self.number_wounded_persons),
                       ", exploration score =", "{:.1f}%".format(
-                          score_exploration * 100),
+                        score_exploration * 100),
                       ", elapse time = {}/{} steps".format(
                           elapsed_time_step, self.time_step_limit),
                       ", time to rescue all = {} steps".format(

@@ -5,6 +5,7 @@ To move the drone, you have to click on the map, then use the arrows on the keyb
 
 import os
 import sys
+from typing import List, Type
 
 from spg.utils.definitions import CollisionTypes
 
@@ -18,6 +19,7 @@ from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.gui_sr import GuiSR
 from spg_overlay.gui_map.map_abstract import MapAbstract
+from spg_overlay.utils.misc_data import MiscData
 
 
 class MyDroneDisablers(DroneAbstract):
@@ -47,60 +49,76 @@ class MyMapDisablers(MapAbstract):
 
     def __init__(self):
         super().__init__()
-        self._size_area = (600, 600)
-        self._number_drones = 1
 
-    def construct_playground(self):
+        # PARAMETERS MAP
+        self._size_area = (600, 600)
+
+        self._rescue_center = RescueCenter(size=(100, 100))
+        self._rescue_center_pos = ((0, 100), 0)
+
+        self._no_com_zone = NoComZone(size=(150, 150))
+        self._no_com_zone_pos = ((-150, 0), 0)
+
+        self._no_gps_zone = NoGpsZone(size=(150, 150))
+        self._no_gps_zone_pos = ((150, 0), 0)
+
+        self._kill_zone = KillZone(size=(150, 150))
+        self._kill_zone_pos = ((0, -200), 0)
+
+        self._wounded_persons_pos = [(200, 0), (-200, 0), (200, -200), (-200, -200)]
+        self._number_wounded_persons = len(self._wounded_persons_pos)
+        self._wounded_persons: List[WoundedPerson] = []
+
+        self._number_drones = 1
+        self._drones_pos = [((0, 0), 0)]
+        self._drones = []
+
+    def construct_playground(self, drone_type: Type[DroneAbstract]):
         playground = ClosedPlayground(size=self._size_area)
 
         # RESCUE CENTER
         playground.add_interaction(CollisionTypes.GEM,
                                    CollisionTypes.ACTIVABLE_BY_GEM,
                                    wounded_rescue_center_collision)
-        rescue_center = RescueCenter(size=(100, 100))
-        playground.add(rescue_center, ((0, 100), 0))
 
-        # WOUNDED PERSONS
-        wounded_persons_pos = [(200, 0), (-200, 0), (200, -200), (-200, -200)]
-        self._number_wounded_persons = len(wounded_persons_pos)
+        playground.add(self._rescue_center, self._rescue_center_pos)
 
-        for i in range(self._number_wounded_persons):
-            wounded_person = WoundedPerson(rescue_center=rescue_center)
-            pos = (wounded_persons_pos[i], 0)
-            playground.add(wounded_person, pos)
-
-        # DISABLERS
+        # DISABLER ZONES
         playground.add_interaction(CollisionTypes.DISABLER,
                                    CollisionTypes.DEVICE,
                                    srdisabler_disables_device)
 
-        no_gps_disabler = NoGpsZone(size=(150, 150))
-        playground.add(no_gps_disabler, ((150, 0), 0))
+        playground.add(self._no_com_zone, self._no_com_zone_pos)
+        playground.add(self._no_gps_zone, self._no_gps_zone_pos)
+        playground.add(self._kill_zone, self._kill_zone_pos)
 
-        no_com_disabler = NoComZone(size=(150, 150))
-        playground.add(no_com_disabler, ((-150, 0), 0))
-
-        kill_disabler = KillZone(size=(150, 150))
-        playground.add(kill_disabler, ((0, -200), 0))
+        # POSITIONS OF THE WOUNDED PERSONS
+        for i in range(self._number_wounded_persons):
+            wounded_person = WoundedPerson(rescue_center=self._rescue_center)
+            self._wounded_persons.append(wounded_person)
+            pos = (self._wounded_persons_pos[i], 0)
+            playground.add(wounded_person, pos)
 
         # POSITIONS OF THE DRONES
-        playground.add(self._drones[0], ((0, 0), 0))
+        misc_data = MiscData(size_area=self._size_area,
+                             number_drones=self._number_drones)
+        for i in range(self._number_drones):
+            drone = drone_type(identifier=i, misc_data=misc_data)
+            self._drones.append(drone)
+            playground.add(drone, self._drones_pos[i])
 
         return playground
 
 
 def main():
     my_map = MyMapDisablers()
-    my_drone = MyDroneDisablers()
-    my_map.set_drones([my_drone])
-    playground = my_map.construct_playground()
+    playground = my_map.construct_playground(drone_type=MyDroneDisablers)
 
     # enable_visu_noises : to enable the visualization. It will show also a demonstration of the integration
     # of odometer values, by drawing the estimated path in red. The green circle shows the position of drone according
     # to the gps sensor and the compass.
     gui = GuiSR(playground=playground,
                 the_map=my_map,
-                drones=[my_drone],
                 print_messages=True,
                 use_keyboard=True,
                 enable_visu_noises=True,

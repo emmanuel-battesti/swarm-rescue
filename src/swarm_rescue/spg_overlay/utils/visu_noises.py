@@ -67,7 +67,7 @@ class VisuNoises:
             return
         if not self._scr_pos_odom:
             return
-        if not drone in self._scr_pos_odom:
+        if drone not in self._scr_pos_odom:
             return
 
         prev_pos_screen = None
@@ -86,7 +86,7 @@ class VisuNoises:
     def _draw_true(self, drone: DroneAbstract):
         if not self._scr_pos_true:
             return
-        if not drone in self._scr_pos_true:
+        if drone not in self._scr_pos_true:
             return
 
         prev_pos_screen = None

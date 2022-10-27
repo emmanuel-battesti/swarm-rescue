@@ -11,7 +11,7 @@ def wall_width_correction(image_source: cv2.Mat) -> cv2.Mat:
     # print("image_source.shape", image_source.shape)
     # print("imgTarget.shape", imgTarget.shape)
 
-    N = 9
+    new_width = 9
 
     # line by line
     j_end = 0
@@ -33,8 +33,8 @@ def wall_width_correction(image_source: cv2.Mat) -> cv2.Mat:
 
             prev_value = value
 
-            if 0 < black_size < N:
-                n_to_add = N - black_size
+            if 0 < black_size < new_width:
+                n_to_add = new_width - black_size
                 n_to_add_front = int(n_to_add / 2)
                 n_to_add_back = n_to_add - n_to_add_front
                 j0 = max(0, j_start - n_to_add_front)
@@ -43,8 +43,8 @@ def wall_width_correction(image_source: cv2.Mat) -> cv2.Mat:
                 prev_value = 0
                 j_start = j0
 
-            if N < black_size < 2 * N:
-                n_to_rm = black_size - N
+            if new_width < black_size < 2 * new_width:
+                n_to_rm = black_size - new_width
                 n_to_rm_front = int(n_to_rm / 2)
                 n_to_rm_back = n_to_rm - n_to_rm_front
                 # print(black_size, n_to_rm, n_to_rm_front, n_to_rm_back)
@@ -74,8 +74,8 @@ def wall_width_correction(image_source: cv2.Mat) -> cv2.Mat:
 
             prev_value = value
 
-            if 0 < black_size < N:
-                n_to_add = N - black_size
+            if 0 < black_size < new_width:
+                n_to_add = new_width - black_size
                 n_to_add_front = int(n_to_add / 2)
                 n_to_add_back = n_to_add - n_to_add_front
                 i0 = max(0, i_start - n_to_add_front)
@@ -84,8 +84,8 @@ def wall_width_correction(image_source: cv2.Mat) -> cv2.Mat:
                 prev_value = 0
                 i_start = i0
 
-            if N < black_size < 1.5 * N:
-                n_to_rm = black_size - N
+            if new_width < black_size < 1.5 * new_width:
+                n_to_rm = black_size - new_width
                 n_to_rm_front = int(n_to_rm / 2)
                 n_to_rm_back = n_to_rm - n_to_rm_front
                 # print(black_size, n_to_rm, n_to_rm_front, n_to_rm_back)

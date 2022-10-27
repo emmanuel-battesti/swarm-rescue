@@ -14,6 +14,7 @@ from spg_overlay.entities.keyboard_controller import KeyboardController
 from spg_overlay.utils.fps_display import FpsDisplay
 from spg_overlay.gui_map.map_abstract import MapAbstract
 from spg_overlay.utils.mouse_measure import MouseMeasure
+from spg_overlay.utils.screen_recorder import ScreenRecorder
 from spg_overlay.utils.visu_noises import VisuNoises
 
 
@@ -22,8 +23,6 @@ class GuiSR(TopDownView):
             self,
             playground: Playground,
             the_map: MapAbstract,
-            drones: List[DroneAbstract] = None,
-            total_number_wounded_persons: int = 0,
             size: Optional[Tuple[int, int]] = None,
             center: Tuple[float, float] = (0, 0),
             zoom: float = 1,
@@ -39,6 +38,7 @@ class GuiSR(TopDownView):
             use_keyboard: bool = False,
             use_mouse_measure: bool = False,
             enable_visu_noises: bool = False,
+            filename_video_capture: str = None
     ) -> None:
         super().__init__(
             playground,
@@ -54,10 +54,10 @@ class GuiSR(TopDownView):
         self._playground.window.set_size(*self._size)
         self._playground.window.set_visible(True)
 
-        self._drones = drones
-
         self._the_map = the_map
+        self._drones = self._the_map.drones
         self._number_drones = self._the_map.number_drones
+
         self._real_time_limit = self._the_map.real_time_limit
         if self._real_time_limit is None:
             self._real_time_limit = 100000000
@@ -87,7 +87,7 @@ class GuiSR(TopDownView):
         self._enable_visu_noises = enable_visu_noises
 
         # 'number_wounded_persons' is the number of wounded persons that should be retrieved by the drones.
-        self._total_number_wounded_persons = total_number_wounded_persons
+        self._total_number_wounded_persons = self._the_map.number_wounded_persons
         self._rescued_number = 0
         self._rescued_all_time_step = 0
         self._elapsed_time = 0
@@ -103,12 +103,15 @@ class GuiSR(TopDownView):
         self._mouse_measure = MouseMeasure(playground_size=playground.size)
         self._visu_noises = VisuNoises(playground_size=playground.size, drones=self._drones)
 
+        self.recorder = ScreenRecorder(self._size[0], self._size[1], fps=30, out_file=filename_video_capture)
+
     def run(self):
         self._playground.window.run()
 
     def on_draw(self):
-        self.draw()
+        self._playground.window.clear()
         self._fbo.use()
+        self.draw()
 
     def on_update(self, delta_time):
         self._elapsed_time += 1
@@ -163,12 +166,16 @@ class GuiSR(TopDownView):
 
         self._messages = {}
 
+        # Capture the frame
+        self.recorder.capture_frame(self)
+
         self.fps_display.update(display=False)
 
         # print("can_grasp: {}, entities: {}".format(self._drone.base.grasper.can_grasp,
         #                                            self._drone.base.grasper.grasped_entities))
 
         if self._terminate:
+            self.recorder.end_recording()
             self._last_image = self.get_playground_image()
             arcade.close_window()
 

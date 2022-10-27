@@ -77,7 +77,7 @@ In *Simple-Playgrounds*, the 2d physics library *Pymunk* is used. The physic eng
 
 # Installation on Ubuntu
 
-This installation procedure has been tested with Ubuntu 18.04 and 20.04. Installation is also straightforward on windows 11.
+This installation procedure has been tested with Ubuntu 18.04 and 20.04. Installation is also straightforward on Windows 11.
 
 ## Arcade library dependencies
 
@@ -295,7 +295,7 @@ This sensor returns an array of data containing:
 - alpha, the relative angle of the current position with respect to the previous reference frame of the drone
 - theta, the orientation variation (or rotation) of the drone during the last step in the reference frame
      
-Those information are relative the previous position of the drone. Usually, we use odometry by integrating measurements over time to get an estimate of the current position of the drone. 
+Those data are relative the previous position of the drone. Usually, we use odometry by integrating measurements over time to get an estimate of the current position of the drone. 
 This can be very useful for example when GPS data is no longer provided in some areas of the map.
 
 Angles, alpha and theta, increase with a counter-clockwise rotation of the drone. Their value is between -Pi and Pi. 
@@ -447,7 +447,7 @@ Some examples are provided:
 
 In the folder, you will find stand-alone programs to help you program with examples. In particular:
 - *display_lidar.py* shows a visualization of the lidar on a graph. You can see the noise added.
-- *example_disablers.py* shows a example of each *disabling zone*.
+- *example_disablers.py* shows an example of each *disabling zone*.
 - *example_semantic_sensor.py* shows the use of semantic sensor and actuators, and how to grasp a wounded person and bring it back to the rescue area.
 - *example_touch_sensor.py* shows the use of touch sensors and actuators.
 - *example_keyboard.py* shows how to use the keyboard for developpement or debugging purpose. The usable keyboard keys :

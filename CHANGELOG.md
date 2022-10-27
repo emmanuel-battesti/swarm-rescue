@@ -3,6 +3,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.2.0] - 2022-10-27
+
+### Changed
+- Refactoring of the map construction: now, drones are instantiated in the map class.
+
+### Added
+- Adding screen recorder tool: not really useful for competitors, but for evaluators. It is disabled by default.
+
+### Fixed
+- Fixing bug with macOS: the simulator crashed regularly on macOS. The problem is corrected but at the cost of a decrease in performance on macOS (some calculations done by the GPU are done by the CPU instead)
+
 ## [2.1.0] - 2022-10-21
 
 ### Changed
@@ -137,7 +148,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.5.2...v2.0.0
 [1.5.2]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v1.5.1...v1.5.2

@@ -7,7 +7,7 @@ import os
 import sys
 import random
 import math
-from typing import Optional
+from typing import Optional, List, Type
 from enum import Enum
 
 from spg.utils.definitions import CollisionTypes
@@ -86,7 +86,8 @@ class MyDroneSemantic(DroneAbstract):
         elif self.state is self.Activity.DROPPING_AT_RESCUE_CENTER and not found_rescue_center:
             self.state = self.Activity.SEARCHING_RESCUE_CENTER
 
-        print("state: {}, can_grasp: {}, grasped entities: {}".format(self.state.name, self.base.grasper.can_grasp,
+        print("state: {}, can_grasp: {}, grasped entities: {}".format(self.state.name,
+                                                                      self.base.grasper.can_grasp,
                                                                       self.base.grasper.grasped_entities))
 
         ##########
@@ -221,21 +222,18 @@ class MyDroneSemantic(DroneAbstract):
 class MyMapSemantic(MapAbstract):
     def __init__(self):
         super().__init__()
+
+        # PARAMETERS MAP
         self._size_area = (400, 400)
-        self._number_drones = 1
-        self._number_wounded_persons = 20
 
-    def construct_playground(self):
-        playground = ClosedPlayground(size=self._size_area)
-
-        # RESCUE CENTER
-        playground.add_interaction(CollisionTypes.GEM,
-                                   CollisionTypes.ACTIVABLE_BY_GEM,
-                                   wounded_rescue_center_collision)
-        rescue_center = RescueCenter(size=(100, 100))
-        playground.add(rescue_center, ((0, 150), 0))
+        self._rescue_center = RescueCenter(size=(100, 100))
+        self._rescue_center_pos = ((0, 150), 0)
 
         # WOUNDED PERSONS
+        self._number_wounded_persons = 20
+        self._wounded_persons_pos = []
+        self._wounded_persons: List[WoundedPerson] = []
+
         start_area = (0.0, -30.0)
         nb_per_side = math.ceil(math.sqrt(float(self._number_wounded_persons)))
         dist_inter_wounded = 60.0
@@ -245,29 +243,49 @@ class MyMapSemantic(MapAbstract):
         for i in range(self._number_wounded_persons):
             x = sx + (float(i) % nb_per_side) * dist_inter_wounded
             y = sy + math.floor(float(i) / nb_per_side) * dist_inter_wounded
-            wounded_person = WoundedPerson(rescue_center=rescue_center)
             pos = ((x, y), random.uniform(-math.pi, math.pi))
+            self._wounded_persons_pos.append(pos)
+
+        # POSITIONS OF THE DRONES
+        self._number_drones = 1
+        self._drones_pos = [((40, 40), random.uniform(-math.pi, math.pi))]
+        self._drones = []
+
+    def construct_playground(self, drone_type: Type[DroneAbstract]):
+        playground = ClosedPlayground(size=self._size_area)
+
+        # RESCUE CENTER
+        playground.add_interaction(CollisionTypes.GEM,
+                                   CollisionTypes.ACTIVABLE_BY_GEM,
+                                   wounded_rescue_center_collision)
+
+        playground.add(self._rescue_center, self._rescue_center_pos)
+
+        # POSITIONS OF THE WOUNDED PERSONS
+        for i in range(self._number_wounded_persons):
+            wounded_person = WoundedPerson(rescue_center=self._rescue_center)
+            self._wounded_persons.append(wounded_person)
+            pos = self._wounded_persons_pos[i]
             playground.add(wounded_person, pos)
 
         # POSITIONS OF THE DRONES
-        playground.add(self._drones[0], ((40, 40), random.uniform(-math.pi, math.pi)))
+        misc_data = MiscData(size_area=self._size_area,
+                             number_drones=self._number_drones)
+        for i in range(self._number_drones):
+            drone = drone_type(identifier=i, misc_data=misc_data)
+            self._drones.append(drone)
+            playground.add(drone, self._drones_pos[i])
 
         return playground
 
 
 def main():
     my_map = MyMapSemantic()
-    misc_data = MiscData(size_area=my_map.size_area,
-                         number_drones=my_map.number_drones)
-    my_drone = MyDroneSemantic(misc_data=misc_data)
-
-    my_map.set_drones([my_drone])
-    playground = my_map.construct_playground()
+    playground = my_map.construct_playground(drone_type=MyDroneSemantic)
 
     # draw_semantic : enable the visualization of the semantic rays
     gui = GuiSR(playground=playground,
                 the_map=my_map,
-                drones=[my_drone],
                 draw_semantic=True,
                 use_keyboard=False,
                 )

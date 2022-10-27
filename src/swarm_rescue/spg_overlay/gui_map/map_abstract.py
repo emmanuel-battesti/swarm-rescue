@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Type
 
 from spg.playground import Playground
 
@@ -28,11 +28,8 @@ class MapAbstract(ABC):
         # 'number_wounded_persons' is the number of wounded persons that should be retrieved by the drones.
         self._number_wounded_persons = None
 
-    def set_drones(self, drones: List[DroneAbstract]):
-        self._drones = drones
-
     @abstractmethod
-    def construct_playground(self) -> Playground:
+    def construct_playground(self, drone_type: Type[DroneAbstract]) -> Playground:
         pass
 
     @property

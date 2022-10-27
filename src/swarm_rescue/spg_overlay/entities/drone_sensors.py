@@ -51,7 +51,7 @@ class DroneGPS(InternalSensor, ABC):
 
     @property
     def shape(self):
-        return (2,)
+        return 2,
 
     def _apply_noise(self):
         """
@@ -100,7 +100,7 @@ class DroneCompass(InternalSensor):
 
     @property
     def shape(self) -> tuple:
-        return (1,)
+        return 1,
 
     def _apply_noise(self):
         """
@@ -178,7 +178,7 @@ class DroneOdometer(InternalSensor):
 
     @property
     def shape(self) -> tuple:
-        return (3,)
+        return 3,
 
     def _apply_noise(self):
         """

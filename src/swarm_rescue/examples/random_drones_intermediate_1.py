@@ -74,14 +74,11 @@ class MyDroneRandom(DroneAbstract):
 
 def main():
     my_map = MyMapIntermediate01()
-    my_drone = MyDroneRandom()
 
-    my_map.set_drones([my_drone])
-    playground = my_map.construct_playground()
+    playground = my_map.construct_playground(drone_type=MyDroneRandom)
 
     gui = GuiSR(playground=playground,
                 the_map=my_map,
-                drones=[my_drone],
                 use_keyboard=False,
                 use_mouse_measure=True,
                 enable_visu_noises=False,
