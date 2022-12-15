@@ -102,7 +102,7 @@ class ExploredMap:
         # print("width", width, "height", height)
 
         for drone in drones:
-            position_ocv = (round(drone.position[0] + width / 2), round(-drone.position[1] + height / 2))
+            position_ocv = (round(drone.true_position()[0] + width / 2), round(-drone.true_position()[1] + height / 2))
             if 0 <= position_ocv[0] < width and 0 <= position_ocv[1] < height:
                 if drone in self._last_position.keys():
                     cv2.line(img=self._map_explo_lines, pt1=self._last_position[drone], pt2=position_ocv,

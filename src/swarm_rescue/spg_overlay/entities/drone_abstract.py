@@ -90,7 +90,7 @@ class DroneAbstract(Agent):
         You should return want you want to send to all nearest drone.
         For example:
             def define_message_for_all(self):
-                msg_data = (self.identifier, (self.measured_position(), self.angle))
+                msg_data = (self.identifier, (self.measured_gps_position(), self.measured_compass_angle()))
                 return msg_data
         """
         pass
@@ -107,6 +107,9 @@ class DroneAbstract(Agent):
                    "grasper": 0}
         """
         pass
+
+    def grasped_entities(self):
+        self.base.grasper.grasped_entities
 
     def touch(self):
         """
@@ -134,6 +137,24 @@ class DroneAbstract(Agent):
 
     def lidar_is_disabled(self):
         return self.lidar().is_disabled()
+
+    def measured_velocity(self):
+        """
+        Give the measured velocity of the drone, in pixels per second
+        You must use this value for your calculation in the control() function.
+        """
+        speed = self.odometer_values()[0]
+        angle = self.compass_values()
+        vx = speed * math.cos(angle)
+        vy = speed * math.sin(angle)
+        return vx, vy
+
+    def measured_angular_velocity(self):
+        """
+        Give the measured angular velocity of the drone, in radians per second
+        You must use this value for your calculation in the control() function.
+        """
+        return self.odometer_values()[2]
 
     def measured_gps_position(self):
         """
@@ -176,21 +197,37 @@ class DroneAbstract(Agent):
     def compass_values(self):
         return self.sensors[self.SensorType.COMPASS].get_sensor_values()
 
+    @property
+    def position(self):
+        raise Exception('Function Disabled')
+
+    @property
+    def angle(self):
+        raise Exception('Function Disabled')
+
+    @property
+    def velocity(self):
+        raise Exception('Function Disabled')
+
+    @property
+    def angular_velocity(self):
+        raise Exception('Function Disabled')
+
     def true_position(self):
         """
         Give the true orientation of the drone, in pixels
-        You must NOT use this value for your calculation in the control() function, you should use measured_position()
+        You must NOT use this value for your calculation in the control() function, you should use measured_gps_position()
         instead. But you can use it for debugging or logging.
         """
-        return self.position
+        return self.base._pm_body.position
 
     def true_angle(self):
         """
         Give the true orientation of the drone, in radians between 0 and 2Pi.
-        You must NOT use this value for your calculation in the control() function, you should use measured_angle()
+        You must NOT use this value for your calculation in the control() function, you should use measured_compass_angle()
         instead. But you can use it for debugging or logging.
         """
-        return normalize_angle(self.angle)
+        return normalize_angle(self.base._pm_body.angle)
 
     def true_velocity(self):
         """
@@ -198,7 +235,7 @@ class DroneAbstract(Agent):
         You must NOT use this value for your calculation in the control() function, you should use GPS, Compass or
         odometry data instead. But you can use it for debugging or logging.
         """
-        return self.base.velocity
+        return self.base._pm_body.velocity
 
     def true_angular_velocity(self):
         """
@@ -206,7 +243,7 @@ class DroneAbstract(Agent):
         You must NOT use this value for your calculation in the control() function, you should use GPS, Compass or
         odometry data instead. But you can use it for debugging or logging.
         """
-        return self.base.angular_velocity
+        return self.base._pm_body.angular_velocity
 
     def display(self):
         if self._should_display_lidar:

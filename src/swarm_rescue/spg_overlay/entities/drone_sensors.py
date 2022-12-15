@@ -21,9 +21,9 @@ class DroneGPS(InternalSensor, ABC):
 
         self._noise = True
         model_param = 0.98
-        std_dev_noise = 5
+        self.std_dev_noise = 5
         self._noise_model = AutoregressiveModelNoise(model_param=model_param,
-                                                     std_dev_noise=std_dev_noise)
+                                                     std_dev_noise=self.std_dev_noise)
 
         self._values = self._default_value
 
@@ -74,9 +74,9 @@ class DroneCompass(InternalSensor):
 
         self._noise = True
         model_param = 0.98
-        std_dev_noise_angle = deg2rad(4.0)
+        self.std_dev_noise_angle = deg2rad(4.0)
         self._noise_model = AutoregressiveModelNoise(model_param=model_param,
-                                                     std_dev_noise=std_dev_noise_angle)
+                                                     std_dev_noise=self.std_dev_noise_angle)
 
         self._values = self._default_value
 
@@ -126,14 +126,14 @@ class DroneOdometer(InternalSensor):
         super().__init__(**kwargs)
         self._noise = True
 
-        std_dev_dist_travel = 0.2
-        self._noise_dist_travel_model = GaussianNoise(std_dev_noise=std_dev_dist_travel)
+        self.std_dev_dist_travel = 0.2
+        self._noise_dist_travel_model = GaussianNoise(std_dev_noise=self.std_dev_dist_travel)
 
-        std_dev_alpha = deg2rad(8.0)
-        self._noise_alpha_model = GaussianNoise(std_dev_noise=std_dev_alpha)
+        self.std_dev_alpha = deg2rad(8.0)
+        self._noise_alpha_model = GaussianNoise(std_dev_noise=self.std_dev_alpha)
 
-        std_dev_theta = deg2rad(1.0)
-        self._noise_theta_model = GaussianNoise(std_dev_noise=std_dev_theta)
+        self.std_dev_theta = deg2rad(1.0)
+        self._noise_theta_model = GaussianNoise(std_dev_noise=self.std_dev_theta)
 
         self._values = self._default_value
         self.prev_angle = None

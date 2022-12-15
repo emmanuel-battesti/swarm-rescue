@@ -5,13 +5,14 @@ from spg_overlay.utils.team_info import TeamInfo
 from spg_overlay.gui_map.gui_sr import GuiSR
 
 from maps.map_intermediate_01 import MyMapIntermediate01
+from maps.map_intermediate_02 import MyMapIntermediate02
 from maps.map_complete_01 import MyMapComplete01
 from maps.map_complete_02 import MyMapComplete02
 
 from solutions.my_drone_random import MyDroneRandom
 
 
-class MyMap(MyMapIntermediate01):
+class MyMap(MyMapIntermediate02):
     pass
 
 

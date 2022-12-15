@@ -8,6 +8,8 @@ def normalize_angle(angle):
     :param angle: (float)
     :return: (float) Angle in radian in [-pi, pi]
     """
+    if np.isnan(angle):
+        return np.nan
 
     angle = angle % (2 * math.pi)
     if angle > math.pi:

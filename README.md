@@ -1,10 +1,10 @@
-
 # Table of Content
 
 - [Welcome to *Swarm-Rescue*](#welcome-to--swarm-rescue-)
 - [The Competition](#the-competition)
 - [Simple-Playgrounds](#simple-playgrounds)
 - [Installation on Ubuntu](#installation-on-ubuntu)
+- [Installation on Windows 10](#installation-on-windows-10)
 - [Elements of the environment](#elements-of-the-environment)
 - [Programming](#programming)
 - [Contact](#contact)
@@ -17,7 +17,7 @@ Your job will be to propose your own version of the controller of the drone. In 
 
 *Swarm-Rescue* is the environment that simulates the drones and that describes the maps used, the drones and the different elements of the map.
 
-[Access to the GitHub repository *Swam-Rescue*](https://github.com/emmanuel-battesti/swarm-rescue)
+[Access to the GitHub repository *Swarm-Rescue*](https://github.com/emmanuel-battesti/swarm-rescue)
 
 The Challenge does not require any particular technical skills (beyond basic knowledge of *Python*), and will mainly mobilize creativity and curiosity from the participants.
 
@@ -77,7 +77,7 @@ In *Simple-Playgrounds*, the 2d physics library *Pymunk* is used. The physic eng
 
 # Installation on Ubuntu
 
-This installation procedure has been tested with Ubuntu 18.04 and 20.04. Installation is also straightforward on Windows 11.
+This installation procedure has been tested with Ubuntu 18.04 and 20.04.
 
 ## Arcade library dependencies
 
@@ -183,6 +183,81 @@ python3.8 ./src/swarm_rescue/launcher.py
 Although not mandatory, it is a good idea to use an IDE to code in *Python*. It makes programming easier.
 
 For example, you can use the free *community* version of [*PyCharm*](https://www.jetbrains.com/pycharm/). In this case, you have to set your *interpreter* path to your venv path to make it work. 
+
+
+# Installation on Windows 10
+
+This installation procedure has been tested with Windows 10. Installation is also straightforward on Windows 11.
+
+## *Python* installation
+
+- Open this link in your web browser:  https://www.python.org/downloads/windows/
+- Don't choose the lastest version of Python, but choose the 3.8 version. Currently (11/2022), it is the "*Python 3.8.10 - May 3, 2021*".
+- For modern machine, you have to choose the *Windows x86-64 executable installer*.
+- Once the installer is downloaded, run the Python installer.
+- **Important** : you should check the "**Add Python 3.8 to path**"  check box to include the interpreter in the execution path.
+
+## *Git* installation
+
+Git is a tool for source code management. [Git is used](https://www.simplilearn.com/tutorials/git-tutorial/what-is-git "Git is used") to tracking changes in the source code of *swarm-rescue*.
+
+ - Download the [latest version of    Git](https://git-scm.com/download/win) and choose the 64/32 bit version.
+ - After the file is downloaded, install it in the system.
+ - Once installed, select *Launch the Git Bash*, then click on *finish*. The *Git Bash* is now launched.
+
+We want to work later on the project by using the *Git Bash* terminal.
+
+## Configure *Git Bash*
+
+- Launch the *Git Bash* terminal
+- **Warning**, you are **not** by default to your home directory. So to go there, just type : *cd*
+- To facilitate the use of the command *python*, you have to create an alias to real position of the program python.exe : `echo "alias python='winpty python.exe'" >> ~/.bashrc`
+- Then `source .bashrc` to activate the modification.
+- If things are working, the command `python -V` should give the version of the python installed, for example: `Python 3.8.10`
+
+## Install this *swarm-rescue* repository
+
+- To install this git repository, go to the directory you want to work in (for example: *~/code/*).
+- With *Git Bash*, you have to use the linux command, for example:
+```bash
+cd
+mkdir code
+cd code
+```
+- Git-clone the code of [*Swarm-Rescue*](https://github.com/emmanuel-battesti/swarm-rescue):
+
+```bash
+git clone https://github.com/emmanuel-battesti/swarm-rescue.git
+```
+This command will create the directory *swarm-rescue* with all the code inside it.
+
+- Create your virtual environment. This command will create a directory *env* where all dependencies will be installed:
+
+```bash
+cd swarm-rescue
+python -m venv env
+```
+
+- To use this newly create virtual environment, as each time you need it, use the command:
+
+```bash
+source env/Scripts/activate
+```
+
+To deactivate this virtual environment, simply type: `deactivate`
+
+- With this virtual environment activated, we can install all the dependency with the command:
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+- To test, you can launch:
+
+```bash
+python ./src/swarm_rescue/launcher.py
+```
 
 # Elements of the environment
 
@@ -435,7 +510,7 @@ Each Drone must inherit from the class *DroneAbstract*. You have 2 mandatory mem
 
 Keep in mind, that the same code will be in each of the 10 drones. Each drone will be an instance of your Drone class.
 
-For your calculation in the control() function, it is mandatory to use only the sensor and communication data, without directly accessing the class members. In particular, you should not use the *position* and *angle* variables, but use the *measured_position()* and *measured_angle()* functions to have access to the position and orientation of the drone. These values are noisy, representing more realistic sensors, and can be altered by special zones in the map where the position information can be scrambled.
+For your calculation in the control() function, it is mandatory to use only the sensor and communication data, without directly accessing the class members. In particular, you should not use the *position* and *angle* variables, but use the *measured_gps_position()* and *measured_compass_angle()* functions to have access to the position and orientation of the drone. These values are noisy, representing more realistic sensors, and can be altered by special zones in the map where the position information can be scrambled.
 
 The true position of the drone can be accessed with the functions *true_position()* and *true_angle()* (or directly with the variable *position* and *angle*), BUT it is only for debugging or logging.
 
@@ -450,7 +525,7 @@ In the folder, you will find stand-alone programs to help you program with examp
 - *example_disablers.py* shows an example of each *disabling zone*.
 - *example_semantic_sensor.py* shows the use of semantic sensor and actuators, and how to grasp a wounded person and bring it back to the rescue area.
 - *example_touch_sensor.py* shows the use of touch sensors and actuators.
-- *example_keyboard.py* shows how to use the keyboard for developpement or debugging purpose. The usable keyboard keys :
+- *example_keyboard.py* shows how to use the keyboard for development or debugging purpose. The usable keyboard keys :
 	- up / down key : forward and backward
 	- left / right key : turn left / right
 	- shift + left/right key : left/right lateral movement

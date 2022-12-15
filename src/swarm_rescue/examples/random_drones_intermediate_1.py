@@ -46,13 +46,13 @@ class MyDroneRandom(DroneAbstract):
 
         if not self._is_turning() and self.counterStraight > self.counterStopStraight:
             self.angleStopTurning = random.uniform(-math.pi, math.pi)
-            diff_angle = normalize_angle(self.angleStopTurning - self.angle)
+            diff_angle = normalize_angle(self.angleStopTurning - self.measured_compass_angle())
             if diff_angle > 0:
                 self.isTurningLeft = True
             else:
                 self.isTurningRight = True
 
-        diff_angle = normalize_angle(self.angleStopTurning - self.angle)
+        diff_angle = normalize_angle(self.angleStopTurning - self.measured_compass_angle())
         if self._is_turning() and abs(diff_angle) < 0.2:
             self.isTurningLeft = False
             self.isTurningRight = False
@@ -60,7 +60,7 @@ class MyDroneRandom(DroneAbstract):
             self.counterStopStraight = random.uniform(10, 30)
 
         # print("\nself.isTurning : {}, abs(diff_angle) = {}".format(self.isTurning, abs(diff_angle)))
-        # print("self.angleStopTurning = {}, self.angle = {}, diff_angle = {}".format(self.angleStopTurning, self.angle, diff_angle))
+        # print("self.angleStopTurning = {}, self.measured_compass_angle() = {}, diff_angle = {}".format(self.angleStopTurning, self.measured_compass_angle(), diff_angle))
         if self.isTurningLeft:
             return command_turn_left
         elif self.isTurningRight:

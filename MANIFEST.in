@@ -1,3 +1,5 @@
 # Include requirements:
 include requirements.txt
 
++# Include configs:
++recursive-include src/swarm_rescue/resources *.txt *.md *.url *.png *.jpg *.jpeg
