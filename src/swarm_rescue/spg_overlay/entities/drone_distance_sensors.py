@@ -181,7 +181,7 @@ class DroneSemanticSensor(SemanticSensor):
     def _compute_raw_sensor(self, *_):
         super()._compute_raw_sensor()
 
-        id_detections = self._values[:, 0].astype(np.int)
+        id_detections = self._values[:, 0].astype(int)
         distances = self._values[:, 1]
 
         new_values = []
