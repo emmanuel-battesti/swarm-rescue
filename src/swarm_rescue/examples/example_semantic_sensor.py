@@ -72,10 +72,10 @@ class MyDroneSemantic(DroneAbstract):
             self.state = self.Activity.GRASPING_WOUNDED
 
         elif self.state is self.Activity.GRASPING_WOUNDED and self.base.grasper.grasped_entities:
-            self.state = self.state.SEARCHING_RESCUE_CENTER
+            self.state = self.Activity.SEARCHING_RESCUE_CENTER
 
         elif self.state is self.Activity.GRASPING_WOUNDED and not found_wounded:
-            self.state = self.state.SEARCHING_WOUNDED
+            self.state = self.Activity.SEARCHING_WOUNDED
 
         elif self.state is self.Activity.SEARCHING_RESCUE_CENTER and found_rescue_center:
             self.state = self.Activity.DROPPING_AT_RESCUE_CENTER

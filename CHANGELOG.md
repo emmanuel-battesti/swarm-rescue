@@ -3,6 +3,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.2.2] - 2023-02-07
+
+### Changed
+- Walls are no longer detected as OTHER, they are remove from the results of the semantic sensor.
+- Improve the generated report. Now, in english.
+
+### Added
+- Add a new example for the semantic sensor.
+
+### Fixed
+- Drones are correctly detected as DRONE in the results of the semantic sensor.
+- Bug fix concerning a random crash.
+- Bug fix in the computation of the number of wounded person bring to the rescue center, in the case of multi-grasping.
+- Fixed a bug in the calculation of the number of wounded person brought to the rescue center when they are brought by more than one drone.
+- Spelling in README.md
+- Compatibility with the new version of numpy : numpy.int has been deprecated, use int instead.
+
 ## [2.2.1] - 2022-12-15
 
 ### Changed
@@ -167,7 +184,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.1...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.2...HEAD
+[2.2.2]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.0.0...v2.1.0

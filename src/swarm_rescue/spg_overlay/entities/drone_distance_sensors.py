@@ -9,6 +9,7 @@ from spg.agent.sensor import DistanceSensor, SemanticSensor
 from spg.element import ColorWall
 from spg.playground import Playground
 
+from spg_overlay.entities.drone_base import DroneBase
 from spg_overlay.entities.normal_wall import NormalWall, NormalBox
 from spg_overlay.entities.rescue_center import RescueCenter
 from spg_overlay.utils.utils_noise import GaussianNoise
@@ -200,11 +201,11 @@ class DroneSemanticSensor(SemanticSensor):
                 entity_type = self.TypeEntity.WOUNDED_PERSON
             elif isinstance(entity, RescueCenter):
                 entity_type = self.TypeEntity.RESCUE_CENTER
-            elif isinstance(entity, Agent):
+            elif isinstance(entity, Agent) or isinstance(entity, DroneBase):
                 entity_type = self.TypeEntity.DRONE
             else:
                 entity_type = self.TypeEntity.OTHER
-                # print(__file__, type(detection.entity))
+                # print(__file__, type(entity))
 
             grasped = False
             if hasattr(entity, 'graspable') and entity.graspable and len(entity.grasped_by) > 0:
@@ -213,18 +214,16 @@ class DroneSemanticSensor(SemanticSensor):
             distance = distances[index]
             angle = self.ray_angles[index]
 
+            # We remove the walls, so that it is not too easy
             if entity_type == self.TypeEntity.WALL:
-                distance = 0.0
-                angle = 0.0
-                entity_type = self.TypeEntity.OTHER
-                grasped = False
+                continue
 
             new_detection = self.Data(distance=distance,
                                       angle=angle,
                                       entity_type=entity_type,
                                       grasped=grasped)
-
             new_values.append(new_detection)
+
         self._values = new_values
 
     def fov_rad(self):

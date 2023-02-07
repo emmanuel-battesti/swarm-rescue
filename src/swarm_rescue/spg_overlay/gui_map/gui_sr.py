@@ -155,6 +155,7 @@ class GuiSR(TopDownView):
         end_real_time = time.time()
         self._real_time_elapsed = (end_real_time - self._start_real_time)
         if self._real_time_elapsed > self._real_time_limit:
+            self._real_time_elapsed = self._real_time_limit
             self._real_time_limit_reached = True
             self._terminate = True
 

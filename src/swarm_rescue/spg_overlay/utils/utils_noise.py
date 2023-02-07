@@ -45,7 +45,13 @@ class GaussianNoise:
 
 class AutoregressiveModelNoise:
     """
-     We use a noise that follow an autoregressive model of order 1 : https://en.wikipedia.org/wiki/Autoregressive_model#AR(1)
+     We use a noise that follow an autoregressive model of order 1 : https://en.wikipedia.org/wiki/Autoregressive_model#Example:_An_AR(1)_process
+     We have two parameters :
+     - std_dev_noise : it is the standard deviation of the resulted noise
+     - model_param : value between 0 and 1 (but <1)
+     noise = model_param * previous_noise + white_noise
+     if model_param = 0 : the final noise is a white noise
+     if model_param -> 1 : the noise get some derive
      """
 
     def __init__(self, model_param: float, std_dev_noise: float):
@@ -79,15 +85,12 @@ class AutoregressiveModelNoise:
                 self._shape = values2.shape
 
             assert (self._shape == values2.shape)
+            assert white_noise.all()
 
         elif isinstance(values, float):
-
             white_noise = np.random.normal(0, self._std_dev_wn)
-
             if self._last_noise is None:
                 self._last_noise = 0
-
-        assert white_noise.all()
 
         additive_noise = self._model_param * self._last_noise + white_noise
         self._last_noise = additive_noise

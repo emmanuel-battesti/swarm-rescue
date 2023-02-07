@@ -50,9 +50,12 @@ class RescueCenter(PhysicalElement):
     def activate(self, entity: WoundedPerson):
         assert self._playground
 
-        for part in entity.grasped_by:
+        grasped_by_list = entity.grasped_by.copy()
+        grasped_by_size = len(entity.grasped_by)
+
+        for part in grasped_by_list:
             agent = part.agent
-            agent.reward += entity.reward / len(entity.grasped_by)
+            agent.reward += entity.reward / grasped_by_size
             agent.base.grasper.reset()
 
         # if not entity.grasped_by:

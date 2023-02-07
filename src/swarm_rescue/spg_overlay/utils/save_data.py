@@ -31,10 +31,10 @@ class SaveData:
         except FileExistsError as error:
             print(error)
 
-        self.filename = self._path + "/stats_eq{}".format(self._team_number_str) + ".csv"
-        file = open(self.filename, 'w')
+        self.stats_filename = self._path + "/stats_team_{}".format(self._team_number_str) + ".csv"
+        file = open(self.stats_filename, 'w')
         file.close()
-        if os.path.getsize(self.filename) == 0:
+        if os.path.getsize(self.stats_filename) == 0:
             self._add_line([('Group', 'Environment', 'Round', 'Rescued Percent', 'Exploration Score',
                              'Elapsed Time Step', 'Rescue All Time step', 'Time Score', 'Final Score')])
 
@@ -47,7 +47,7 @@ class SaveData:
         self._my_pdf.generate_pdf()
 
     def _add_line(self, data):
-        file = open(self.filename, 'a')
+        file = open(self.stats_filename, 'a')
         obj = csv.writer(file)
         for element in data:
             obj.writerow(element)
@@ -67,11 +67,11 @@ class SaveData:
         data = [(self._team_info.team_number,
                  str(environment_type.name.lower()),
                  str(i_try),
-                 str(percent_rescued),
-                 "%.2f" % score_exploration,
+                 "%.1f" % percent_rescued,
+                 "%.1f" % score_exploration,
                  str(elapsed_time_step),
                  str(rescued_all_time_step),
-                 str(score_time_step),
+                 "%.1f" % score_time_step,
                  "%.2f" % final_score)]
 
         self._add_line(data)
@@ -81,18 +81,18 @@ class SaveData:
             return
         num_round_str = str(num_round)
         envir_str = environment_type.name.lower()
-        filename = self._path + "/screen_{}_rd{}_eq{}.png".format(envir_str, num_round_str, self._team_number_str)
+        filename = self._path + "/screen_{}_rd{}_team{}.png".format(envir_str, num_round_str, self._team_number_str)
         im_norm = cv2.normalize(src=im, dst=None, alpha=0, beta=255,
                                 norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         cv2.imwrite(filename, im_norm)
 
         # Save the screen capture of the explored zone done by all drones
-        filename_explo = self._path + "/screen_explo_{}_rd{}_eq{}.png".format(envir_str, num_round_str,
+        filename_explo = self._path + "/screen_explo_{}_rd{}_team{}.png".format(envir_str, num_round_str,
                                                                               self._team_number_str)
         cv2.imwrite(filename_explo, im_explo_zones)
 
         # Save the screen capture of the path done by each drone
-        filename_path = self._path + "/screen_path_{}_rd{}_eq{}.png".format(envir_str, num_round_str,
+        filename_path = self._path + "/screen_path_{}_rd{}_team{}.png".format(envir_str, num_round_str,
                                                                             self._team_number_str)
         cv2.imwrite(filename_path, im_explo_lines)
 

@@ -1,3 +1,5 @@
+import gc
+
 from spg_overlay.utils.score_manager import ScoreManager
 from spg_overlay.utils.save_data import SaveData
 from spg_overlay.utils.screen_recorder import ScreenRecorder
@@ -54,9 +56,9 @@ class Launcher:
         team_number_str = str(self.team_info.team_number).zfill(2)
         if self.video_capture_enabled:
             filename_video_capture = self.save_data.path + \
-                                     "/screen_{}_rd{}_eq{}.avi".format(envir_str,
-                                                                       num_round_str,
-                                                                       team_number_str)
+                                     "/screen_{}_rd{}_team{}.avi".format(envir_str,
+                                                                         num_round_str,
+                                                                         team_number_str)
         else:
             filename_video_capture = None
 
@@ -69,7 +71,7 @@ class Launcher:
 
         my_gui.run()
 
-        score_exploration = my_map.explored_map.score()
+        score_exploration = my_map.explored_map.score() * 100.0
 
         last_image_explo_lines = my_map.explored_map.get_pretty_map_explo_lines()
         last_image_explo_zones = my_map.explored_map.get_pretty_map_explo_zones()
@@ -83,9 +85,11 @@ class Launcher:
 
     def go(self):
         for environment_type in MyMap.environment_series:
+            gc.collect()
             print("")
             print("*** Environment '{}'".format(environment_type.name.lower()))
             for i_try in range(self.nb_rounds):
+                gc.collect()
                 result = self.one_round(environment_type, i_try)
                 (elapsed_time_step, rescued_all_time_step, score_exploration,
                  rescued_number, real_time_elapsed) = result
@@ -95,18 +99,13 @@ class Launcher:
                                                                 rescued_all_time_step)
                 (final_score, percent_rescued, score_time_step) = result_score
 
-                print("\t* Round n°{}".format(i_try),
-                      ", real time elapsed = {:.1f}/{}s".format(
-                          real_time_elapsed, self.real_time_limit),
-                      ", rescued number ={}/{}".format(
-                          rescued_number, self.number_wounded_persons),
-                      ", exploration score =", "{:.1f}%".format(
-                        score_exploration * 100),
-                      ", elapse time = {}/{} steps".format(
-                          elapsed_time_step, self.time_step_limit),
-                      ", time to rescue all = {} steps".format(
-                          rescued_all_time_step),
-                      ", final score =", "{:.2f}/100".format(final_score)
+                print("\t* Round n°{}".format(i_try) +
+                      ", real time elapsed: {:.0f}s/{}s".format(real_time_elapsed, self.real_time_limit) +
+                      ", rescued nb: {}/{}".format(int(rescued_number), self.number_wounded_persons) +
+                      ", explor. score: {:.0f}%".format(score_exploration) +
+                      ", elapse time: {}/{} steps".format(elapsed_time_step, self.time_step_limit) +
+                      ", time to rescue all: {} steps".format(rescued_all_time_step) +
+                      ", final score: {:.1f}%".format(final_score)
                       )
                 if self.real_time_limit_reached:
                     print("\t\tThe real time limit of {}s is reached first.".format(
@@ -124,5 +123,6 @@ class Launcher:
 
 
 if __name__ == "__main__":
+    gc.disable()
     launcher = Launcher()
     launcher.go()

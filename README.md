@@ -1,6 +1,6 @@
 # Table of Content
 
-- [Welcome to *Swarm-Rescue*](#welcome-to--swarm-rescue-)
+- [Welcome to *Swarm-Rescue*](#welcome-to-swarm-rescue)
 - [The Competition](#the-competition)
 - [Simple-Playgrounds](#simple-playgrounds)
 - [Installation on Ubuntu](#installation-on-ubuntu)
@@ -192,7 +192,7 @@ This installation procedure has been tested with Windows 10. Installation is als
 ## *Python* installation
 
 - Open this link in your web browser:  https://www.python.org/downloads/windows/
-- Don't choose the lastest version of Python, but choose the 3.8 version. Currently (11/2022), it is the "*Python 3.8.10 - May 3, 2021*".
+- Don't choose the latest version of Python, but choose the 3.8 version. Currently (11/2022), it is the "*Python 3.8.10 - May 3, 2021*".
 - For modern machine, you have to choose the *Windows x86-64 executable installer*.
 - Once the installer is downloaded, run the Python installer.
 - **Important** : you should check the "**Add Python 3.8 to path**"  check box to include the interpreter in the execution path.
@@ -450,7 +450,7 @@ This zone cannot be directly detected by the drone.
 It is represented on the map by a transparent grey rectangle.
 This zone cannot be directly detected by the drone.
 
-### Killing zone (or desactivation zone)
+### Killing zone (or deactivation zone)
 
 *Killing zone* where a **drone is destroyed automatically.**
 It is represented on the map by a transparent pink rectangle.
@@ -486,7 +486,7 @@ class MyDrone(MyAwesomeDrone):
 
 As its name indicates, this folder is a software overlay of the spg (simple-playground) code.
  It contains three sub-directories:
- - *entities*: contains description of differents entities used in the program.
+ - *entities*: contains description of different entities used in the program.
 - *gui_map*: contains description of default map and the gui interface.
 - *utils*: contains various functions and useful tools.
 
@@ -504,7 +504,7 @@ Each map must inherit from the class *MapAbstract*.
 
 ### directory *solutions*
 
-This repository will contain your solutions. Taking inspiration from what is there and going beyond, you will put in the code that will define your drones and how they interact with their environment.
+This directory will contain your solutions. Taking inspiration from what is there and going beyond, you will put in the code that will define your drones and how they interact with their environment.
 
 Each Drone must inherit from the class *DroneAbstract*. You have 2 mandatory member functions: **define_message_for_all()** that will define the message sent between drone, and **control()** that will give the action to do for each time step.
 

@@ -35,20 +35,18 @@ class ScoreManager:
             'rescued_all_time_step': number of time step used by the time all the wounded person are saved
         """
         if self.total_number_wounded_persons > 0:
-            percentage_rescue = number_rescued_persons / self.total_number_wounded_persons
+            percentage_rescue = number_rescued_persons / self.total_number_wounded_persons * 100.0
         else:
-            percentage_rescue = 1.0
+            percentage_rescue = 100.0
 
-        if number_rescued_persons == self.total_number_wounded_persons and score_exploration > 0.97:
+        if number_rescued_persons == self.total_number_wounded_persons and score_exploration > 97:
             rescued_all_time_step = min(rescued_all_time_step, self.time_step_limit)
-            score_time_step = (self.time_step_limit - rescued_all_time_step) / self.time_step_limit
+            score_time_step = (self.time_step_limit - rescued_all_time_step) / self.time_step_limit * 100.0
         else:
             score_time_step = 0
 
         score = self.w_rescue * percentage_rescue + \
                 self.w_exploration * score_exploration + \
                 self.w_time * score_time_step
-
-        score = score * 100.0
 
         return score, percentage_rescue, score_time_step
