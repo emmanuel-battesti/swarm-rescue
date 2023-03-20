@@ -10,11 +10,12 @@ from maps.map_intermediate_01 import MyMapIntermediate01
 from maps.map_intermediate_02 import MyMapIntermediate02
 from maps.map_complete_01 import MyMapComplete01
 from maps.map_complete_02 import MyMapComplete02
+from maps.map_final import MyMapFinal
 
 from solutions.my_drone_random import MyDroneRandom
 
 
-class MyMap(MyMapIntermediate02):
+class MyMap(MyMapFinal):
     pass
 
 
@@ -43,7 +44,6 @@ class Launcher:
                                           total_number_wounded_persons=self.number_wounded_persons)
 
         self.save_data = SaveData(self.team_info, disabled=True)
-        self.real_time_limit_reached = False
         self.video_capture_enabled = True
         self.video_capture_enabled &= not self.save_data.disabled
 
@@ -81,7 +81,11 @@ class Launcher:
                                    environment_type,
                                    num_round)
 
-        return my_gui.elapsed_time, my_gui.rescued_all_time_step, score_exploration, my_gui.rescued_number, my_gui.real_time_elapsed
+        return my_gui.elapsed_time, \
+            my_gui.rescued_all_time_step, \
+            score_exploration, my_gui.rescued_number, \
+            my_gui.real_time_elapsed, \
+            my_gui.real_time_limit_reached
 
     def go(self):
         for environment_type in MyMap.environment_series:
@@ -92,7 +96,7 @@ class Launcher:
                 gc.collect()
                 result = self.one_round(environment_type, i_try)
                 (elapsed_time_step, rescued_all_time_step, score_exploration,
-                 rescued_number, real_time_elapsed) = result
+                 rescued_number, real_time_elapsed, real_time_limit_reached) = result
 
                 result_score = self.score_manager.compute_score(rescued_number,
                                                                 score_exploration,
@@ -107,7 +111,7 @@ class Launcher:
                       ", time to rescue all: {} steps".format(rescued_all_time_step) +
                       ", final score: {:.1f}%".format(final_score)
                       )
-                if self.real_time_limit_reached:
+                if real_time_limit_reached:
                     print("\t\tThe real time limit of {}s is reached first.".format(
                         self.real_time_limit))
 

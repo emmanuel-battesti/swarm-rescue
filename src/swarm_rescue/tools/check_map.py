@@ -4,9 +4,10 @@ from spg_overlay.gui_map.gui_sr import GuiSR
 from maps.map_intermediate_01 import MyMapIntermediate01
 from maps.map_complete_01 import MyMapComplete01
 from maps.map_complete_02 import MyMapComplete02
+from maps.map_final import MyMapFinal
 
 
-class MyMap(MyMapComplete02):
+class MyMap(MyMapFinal):
     pass
 
 

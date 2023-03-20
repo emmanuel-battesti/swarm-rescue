@@ -25,8 +25,8 @@ class MyMapComplete02(MapAbstract):
 
     def __init__(self, environment_type: EnvironmentType = EnvironmentType.EASY):
         super().__init__(environment_type)
-        self._time_step_limit = 1200
-        self._real_time_limit = 240  # In seconds
+        self._time_step_limit = 7200
+        self._real_time_limit = 720  # In seconds
 
         # PARAMETERS MAP
         self._size_area = (1113, 750)

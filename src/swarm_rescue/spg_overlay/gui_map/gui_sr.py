@@ -62,6 +62,10 @@ class GuiSR(TopDownView):
         if self._real_time_limit is None:
             self._real_time_limit = 100000000
 
+        self._time_step_limit = self._the_map.time_step_limit
+        if self._time_step_limit is None:
+            self._time_step_limit = 100000000
+
         self._drones_commands: Union[Dict[DroneAbstract, Dict[Union[str, Controller], Command]], Type[None]] = None
         if self._drones:
             self._drones_commands = {}
@@ -153,10 +157,22 @@ class GuiSR(TopDownView):
             self._rescued_all_time_step = self._elapsed_time
 
         end_real_time = time.time()
+        last_real_time_elapsed = self._real_time_elapsed
         self._real_time_elapsed = (end_real_time - self._start_real_time)
+        delta = self._real_time_elapsed - last_real_time_elapsed
+        # if delta > 0.5:
+        #     print("self._real_time_elapsed = {:.1f}, delta={:.1f}, freq={:.1f}, freq moy={:.1f}".format(
+        #         self._real_time_elapsed,
+        #         delta,
+        #         1 / (delta + 0.0001),
+        #         self._elapsed_time / (self._real_time_elapsed + 0.00001)))
         if self._real_time_elapsed > self._real_time_limit:
             self._real_time_elapsed = self._real_time_limit
             self._real_time_limit_reached = True
+            self._terminate = True
+
+        if self._elapsed_time > self._time_step_limit:
+            self._elapsed_time = self._time_step_limit
             self._terminate = True
 
         if self._print_rewards:
@@ -292,3 +308,7 @@ class GuiSR(TopDownView):
     @property
     def rescued_all_time_step(self):
         return self._rescued_all_time_step
+
+    @property
+    def real_time_limit_reached(self):
+        return self._real_time_limit_reached

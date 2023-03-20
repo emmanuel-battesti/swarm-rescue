@@ -3,6 +3,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.2.3] - 2023-03-20
+
+### Changed
+- Change the tool image_to_map.py
+
+### Added
+- Add the map of the final !
+
+### Fixed
+- Now, round terminates when the time_step exceeds the time_step_limit
+
 ## [2.2.2] - 2023-02-07
 
 ### Changed
@@ -184,7 +195,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.2...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.3...HEAD
+[2.2.3]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.2...v2.2.3
 [2.2.2]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.1.0...v2.2.0

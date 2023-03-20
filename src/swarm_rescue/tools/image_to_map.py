@@ -150,7 +150,7 @@ class ImageToMap:
             "This tool permits to create this kind of file by providing it an image of the map we want to create.\n")
         f.write("\"\"\"\n\n")
 
-        f.write("from spg_overlay.normal_wall import NormalWall, NormalBox\n\n\n")
+        f.write("from spg_overlay.entities.normal_wall import NormalWall, NormalBox\n\n\n")
 
         f.write("# Dimension of the map : ({}, {})\n".format(self.width_map, self.height_map))
 
@@ -160,17 +160,19 @@ class ImageToMap:
 
         if len(self.boxes) != 0:
             for i, box in enumerate(self.boxes):
-                x0 = int(round(self.factor * box[0]))
-                y0 = int(round(self.factor * box[1]))
-                width = int(round(self.factor * box[2]))
-                height = int(round(self.factor * box[3]))
+                x0 = self.factor * box[0]
+                y0 = self.factor * box[1]
+                width = self.factor * box[2]
+                height = self.factor * box[3]
 
-                xw = x0 - self.width_map / 2
-                yw = -y0 + self.height_map / 2
+                xw = int(round(x0 - self.width_map / 2))
+                yw = int(round(-y0 + self.height_map / 2))
+                width_w = int(round(width))
+                height_w = int(round(height))
 
                 f.write("    # box {}\n".format(i))
                 f.write("    box = NormalBox(up_left_point=({}, {}),\n".format(xw, yw))
-                f.write("                    width={}, height={})\n".format(width, height))
+                f.write("                    width={}, height={})\n".format(width_w, height_w))
                 f.write("    playground.add(box, box.wall_coordinates)\n\n")
         else:
             f.write("    pass\n\n")
@@ -184,20 +186,24 @@ class ImageToMap:
         #   oblique = 2
         if len(self.lines) != 0:
             for i, line in enumerate(self.lines):
-                x0 = int(round(self.factor * line[0][0]))
-                y0 = int(round(self.factor * line[0][1]))
-                x1 = int(round(self.factor * line[0][2]))
-                y1 = int(round(self.factor * line[0][3]))
+                x0 = self.factor * line[0][0]
+                y0 = self.factor * line[0][1]
+                x1 = self.factor * line[0][2]
+                y1 = self.factor * line[0][3]
 
                 orient = 2
 
-                if y0 == y1:
+                if abs(y0 - y1) < 2.0:
                     # horizontal
                     orient = 0
+                    y0 = (y0 + y1)/2
+                    y1 = y0
 
-                if x0 == x1:
+                if abs(x0 - x1) < 2.0:
                     # vertical
                     orient = 1
+                    x0 = (x0 + x1) / 2
+                    x1 = x0
 
                 # Correct orientation
                 if orient == 0 and x0 > x1:  # horizontal
@@ -236,11 +242,11 @@ class ImageToMap:
                 else:
                     f.write("    # oblique wall {}\n".format(i))
 
-                xw0 = x0 - self.width_map / 2
-                yw0 = -y0 + self.height_map / 2
+                xw0 = int(round(x0 - self.width_map / 2))
+                yw0 = int(round(-y0 + self.height_map / 2))
 
-                xw1 = x1 - self.width_map / 2
-                yw1 = -y1 + self.height_map / 2
+                xw1 = int(round(x1 - self.width_map / 2))
+                yw1 = int(round(-y1 + self.height_map / 2))
 
                 f.write("    wall = NormalWall(pos_start=({}, {}),\n".format(xw0, yw0))
                 f.write("                      pos_end=({}, {}))\n".format(xw1, yw1))
@@ -254,8 +260,8 @@ class ImageToMap:
         print("nombre de lignes =", len(self.lines))
 
 
-# img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue-alixia/map_data/complete_map_1.png"
-img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue-alixia/map_data/intermediate_eval_1.png"
+#img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/map_data/complete_map_1.png"
+img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/map_data/final_eval_simpleWalls_v2.png"
 should_auto_resized = False
 img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
 image_to_map = ImageToMap(image_source=img, auto_resized=should_auto_resized)

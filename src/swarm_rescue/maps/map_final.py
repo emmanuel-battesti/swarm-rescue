@@ -14,10 +14,10 @@ from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.map_abstract import MapAbstract
 from spg_overlay.utils.misc_data import MiscData
 
-from .walls_complete_map_1 import add_walls, add_boxes
+from .walls_final_map import add_walls, add_boxes
 
 
-class MyMapComplete01(MapAbstract):
+class MyMapFinal(MapAbstract):
     environment_series = [EnvironmentType.EASY,
                           EnvironmentType.NO_COM_ZONE,
                           EnvironmentType.NO_GPS_ZONE,
@@ -26,33 +26,35 @@ class MyMapComplete01(MapAbstract):
     def __init__(self, environment_type: EnvironmentType = EnvironmentType.EASY):
         super().__init__(environment_type)
         self._time_step_limit = 7200
-        self._real_time_limit = 720  # In seconds
+        self._real_time_limit = 1440  # In seconds
 
         # PARAMETERS MAP
-        self._size_area = (1110, 750)
+        self._size_area = (1819, 1350)
 
-        self._rescue_center = RescueCenter(size=(90, 170))
-        self._rescue_center_pos = ((-505, -285), 0)
+        self._rescue_center = RescueCenter(size=(293, 140))
+        self._rescue_center_pos = ((-6, 63), 0)
 
-        self._no_com_zone = NoComZone(size=(270, 500))
-        self._no_com_zone_pos = ((-220, 46), 0)
+        self._no_com_zone = NoComZone(size=(377,486))
+        self._no_com_zone_pos = ((-697, 54), 0)
 
-        self._no_gps_zone = NoGpsZone(size=(380, 252))
-        self._no_gps_zone_pos = ((-360, 21), 0)
+        self._no_gps_zone = NoGpsZone(size=(248, 544))
+        self._no_gps_zone_pos = ((-282, -377), 0)
 
-        self._kill_zone = KillZone(size=(55, 55))
-        self._kill_zone_pos = ((-387, 75), 0)
+        self._kill_zone = KillZone(size=(96, 242))
+        self._kill_zone_pos = ((-674, -68), 0)
 
-        self._wounded_persons_pos = [(-516, 335), (-466, 335), (-226, 335),
-                                     (-481, 75), (-61, 325), (-311, 100),
-                                     (-171, -145), (-100, -155), (524, 325)]
+        self._wounded_persons_pos = [ (-838, 599), (-356, 555), (-304, 555), (38, 575),
+                                      (316, 585), (852, 621), (-552, 453), (640, 215),
+                                      (-860, 265), (-538, 265), (-450, -55), (850, -41),
+                                      (-550, -365), (-370, -365), (840, -385), (840, -625),
+                                      (320, -495), (-110, -615), (-202, -615), (-850, -615), ]
         self._number_wounded_persons = len(self._wounded_persons_pos)
         self._wounded_persons: List[WoundedPerson] = []
 
         # POSITIONS OF THE DRONES
         self._number_drones = 10
         # They are positioned in a square whose side size depends on the total number of drones.
-        start_area_drones = (-375, -300)
+        start_area_drones = (0, 217)
         nb_per_side = math.ceil(math.sqrt(float(self._number_drones)))
         dist_inter_drone = 30.0
         # print("nb_per_side", nb_per_side)
