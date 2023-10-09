@@ -271,8 +271,8 @@ def image_cleaning(image_source: cv2.Mat) -> cv2.Mat:
     return img_clean
 
 
-img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue-alixia/map_data/intermediate_eval_1.png"
-# img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue-alixia/map_data/complete_map_2.png"
+img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/map_data/map_medium_01_color.png"
+# img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/map_data/map_complete_map_2.png"
 print("image path : {}".format(img_path))
 img_source = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
 cv2.imshow("img_source", img_source)
@@ -289,6 +289,6 @@ cv2.imshow("img_clean3", img_clean3)
 img_clean4 = remove_white_patch(img_clean3)
 cv2.imshow("img_clean4", img_clean4)
 
-cv2.imwrite('/home/battesti/projetCompetDronesDGA/private-swarm-rescue-alixia/map_data/clean.png', img_clean4)
+cv2.imwrite('/home/battesti/projetCompetDronesDGA/private-swarm-rescue/map_data/map_clean.png', img_clean4)
 
 cv2.waitKey(0)

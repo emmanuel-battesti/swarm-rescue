@@ -10,6 +10,7 @@ import math
 from typing import Optional, List, Type
 from enum import Enum
 
+import numpy as np
 from spg.utils.definitions import CollisionTypes
 
 # This line add, to sys.path, the path to parent path of this file
@@ -23,7 +24,7 @@ from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.gui_sr import GuiSR
 from spg_overlay.gui_map.map_abstract import MapAbstract
 from spg_overlay.utils.misc_data import MiscData
-from spg_overlay.utils.utils import normalize_angle
+from spg_overlay.utils.utils import normalize_angle, circular_mean
 
 
 class MyDroneSemantic(DroneAbstract):
@@ -39,7 +40,7 @@ class MyDroneSemantic(DroneAbstract):
     def __init__(self,
                  identifier: Optional[int] = None, **kwargs):
         super().__init__(identifier=identifier,
-                         should_display_lidar=False,
+                         display_lidar_graph=False,
                          **kwargs)
         # The state is initialized to searching wounded person
         self.state = self.Activity.SEARCHING_WOUNDED
@@ -61,8 +62,7 @@ class MyDroneSemantic(DroneAbstract):
                    "rotation": 0.0,
                    "grasper": 0}
 
-        found_wounded, found_rescue_center, command_semantic = self.process_semantic_sensor(
-            self.semantic())
+        found_wounded, found_rescue_center, command_semantic = self.process_semantic_sensor()
 
         #############
         # TRANSITIONS OF THE STATE MACHINE
@@ -112,20 +112,20 @@ class MyDroneSemantic(DroneAbstract):
 
         return command
 
-    def process_touch_sensor(self):
+    def process_lidar_sensor(self):
         """
-        Returns True if the drone hits an obstacle
+        Returns True if the drone collided an obstacle
         """
-        if self.touch().get_sensor_values() is None:
+        if self.lidar_values() is None:
             return False
 
-        touched = False
-        detection = max(self.touch().get_sensor_values())
+        collided = False
+        dist = min(self.lidar_values())
 
-        if detection > 0.5:
-            touched = True
+        if dist < 40:
+            collided = True
 
-        return touched
+        return collided
 
     def control_random(self):
         """
@@ -137,11 +137,11 @@ class MyDroneSemantic(DroneAbstract):
         command_turn = {"forward": 0.0,
                         "rotation": 1.0}
 
-        touched = self.process_touch_sensor()
+        collided = self.process_lidar_sensor()
 
         self.counterStraight += 1
 
-        if touched and not self.isTurning and self.counterStraight > 20:
+        if collided and not self.isTurning and self.counterStraight > 20:
             self.isTurning = True
             self.angleStopTurning = random.uniform(-math.pi, math.pi)
 
@@ -156,7 +156,7 @@ class MyDroneSemantic(DroneAbstract):
         else:
             return command_straight
 
-    def process_semantic_sensor(self, the_semantic_sensor):
+    def process_semantic_sensor(self):
         """
         According to his state in the state machine, the Drone will move towards a wound person or the rescue center
         """
@@ -165,8 +165,8 @@ class MyDroneSemantic(DroneAbstract):
                    "rotation": 0.0}
         angular_vel_controller_max = 1.0
 
-        detection_semantic = the_semantic_sensor.get_sensor_values()
-        best_angle = 1000
+        detection_semantic = self.semantic_values()
+        best_angle = 0
 
         found_wounded = False
         if (self.state is self.Activity.SEARCHING_WOUNDED
@@ -190,14 +190,18 @@ class MyDroneSemantic(DroneAbstract):
 
         found_rescue_center = False
         is_near = False
+        angles_list = []
         if (self.state is self.Activity.SEARCHING_RESCUE_CENTER
             or self.state is self.Activity.DROPPING_AT_RESCUE_CENTER) \
                 and detection_semantic:
             for data in detection_semantic:
                 if data.entity_type == DroneSemanticSensor.TypeEntity.RESCUE_CENTER:
                     found_rescue_center = True
-                    best_angle = data.angle
-                    is_near = (data.distance < 30)
+                    angles_list.append(data.angle)
+                    is_near = (data.distance < 50)
+
+            if found_rescue_center:
+                best_angle = circular_mean(np.array(angles_list))
 
         if found_rescue_center or found_wounded:
             # simple P controller
@@ -214,7 +218,7 @@ class MyDroneSemantic(DroneAbstract):
 
         if found_rescue_center and is_near:
             command["forward"] = 0
-            command["rotation"] = random.uniform(0.1, 1)
+            command["rotation"] = random.uniform(0.5, 1)
 
         return found_wounded, found_rescue_center, command
 
@@ -283,10 +287,10 @@ def main():
     my_map = MyMapSemantic()
     playground = my_map.construct_playground(drone_type=MyDroneSemantic)
 
-    # draw_semantic : enable the visualization of the semantic rays
+    # draw_semantic_rays : enable the visualization of the semantic rays
     gui = GuiSR(playground=playground,
                 the_map=my_map,
-                draw_semantic=True,
+                draw_semantic_rays=True,
                 use_keyboard=False,
                 )
     gui.run()

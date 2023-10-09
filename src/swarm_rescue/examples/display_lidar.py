@@ -13,7 +13,7 @@ from spg.utils.definitions import CollisionTypes
 # This line add, to sys.path, the path to parent path of this file
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from maps.walls_complete_map_2 import add_walls, add_boxes
+from maps.walls_medium_02 import add_walls, add_boxes
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.entities.rescue_center import RescueCenter, wounded_rescue_center_collision
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
@@ -76,8 +76,7 @@ class MyMapLidar(MapAbstract):
                              number_drones=self._number_drones)
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data,
-                               should_display_lidar=True,
-                               should_display_touch=False)
+                               display_lidar_graph=True)
             self._drones.append(drone)
             playground.add(drone, self._drones_pos[i])
 
@@ -88,13 +87,13 @@ def main():
     my_map = MyMapLidar()
     playground = my_map.construct_playground(drone_type=MyDroneLidar)
 
-    # draw_lidar : enable the visualization of the lidar rays
+    # draw_lidar_rays : enable the visualization of the lidar rays
     # enable_visu_noises : to enable the visualization. It will show also a demonstration of the integration
     # of odometer values, by drawing the estimated path in red. The green circle shows the position of drone according
     # to the gps sensor and the compass
     gui = GuiSR(playground=playground,
                 the_map=my_map,
-                draw_lidar=True,
+                draw_lidar_rays=True,
                 use_keyboard=True,
                 enable_visu_noises=True,
                 )

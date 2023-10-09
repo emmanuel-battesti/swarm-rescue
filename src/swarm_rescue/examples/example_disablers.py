@@ -9,6 +9,9 @@ from typing import List, Type
 
 from spg.utils.definitions import CollisionTypes
 
+from spg_overlay.reporting.data_saver import DataSaver
+from spg_overlay.reporting.team_info import TeamInfo
+
 # This line add, to sys.path, the path to parent path of this file
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -114,6 +117,15 @@ def main():
     my_map = MyMapDisablers()
     playground = my_map.construct_playground(drone_type=MyDroneDisablers)
 
+    team_info = TeamInfo()
+    data_saver = DataSaver(team_info, enabled=True)
+    video_capture_enabled = False
+    video_capture_enabled &= data_saver.enabled
+    if video_capture_enabled:
+        filename_video_capture = data_saver.path + "/example_disablers.avi"
+    else:
+        filename_video_capture = None
+
     # enable_visu_noises : to enable the visualization. It will show also a demonstration of the integration
     # of odometer values, by drawing the estimated path in red. The green circle shows the position of drone according
     # to the gps sensor and the compass.
@@ -122,6 +134,7 @@ def main():
                 print_messages=True,
                 use_keyboard=True,
                 enable_visu_noises=True,
+                filename_video_capture=filename_video_capture
                 )
     gui.run()
 

@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.0.0] - 2023-10-09
+
+### Changed
+- A lot of changes !!
+
 ## [2.2.3] - 2023-03-20
 
 ### Changed
@@ -195,7 +200,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.3...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.0.0...HEAD
+[2.2.3]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.3...v3.0.0
 [2.2.3]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.2...v2.2.3
 [2.2.2]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.1...v2.2.2
 [2.2.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.0...v2.2.1

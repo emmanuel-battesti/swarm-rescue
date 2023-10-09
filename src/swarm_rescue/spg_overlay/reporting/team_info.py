@@ -6,7 +6,8 @@ import yaml
 
 class TeamInfo:
     """
-        Parser yaml about the team information file.
+        The TeamInfo class is responsible for parsing a YAML file containing team information and storing the
+         data in its fields. It also prints out the team's name, number, and members.
     """
 
     def __init__(self):

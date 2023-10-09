@@ -1,6 +1,6 @@
 import math
 
-from cv2 import cv2 as cv2
+import cv2
 import numpy as np
 from typing import List
 # from spg.engine import Engine
@@ -11,16 +11,48 @@ from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.utils.utils import bresenham, circular_kernel
 
 
+def _create_black_white_image(img_playground):
+    map_color = cv2.normalize(src=img_playground, dst=None, alpha=0, beta=255,
+                              norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    map_gray = cv2.cvtColor(map_color, cv2.COLOR_BGR2GRAY)
+    ret, map_playground = cv2.threshold(map_gray, 127, 255, cv2.THRESH_BINARY_INV)
+    return map_playground
+
+
 class ExploredMap:
     """
-     Keep memory of which parts of the map was explored by drones.
-     It is used to compute the score of exploration of your swarm of drones.
+     The ExploredMap class is used to keep track of which parts of the map have been explored by drones. It provides
+     methods to initialize the map, update it with the positions of the drones, and compute the score of exploration
+     based on the percentage of explored area.
+
+     Example Usage:
+        # Create an instance of ExploredMap
+        explored_map = ExploredMap()
+
+        # Initialize the map with the playground
+        explored_map.initialize_walls(playground)
+
+        # Update the map with the positions of the drones
+        explored_map.update_drones(drones)
+
+        # Compute the score of exploration
+        score = explored_map.score()
+
+        # Display the map
+        explored_map.display()
+
+    Main functionalities
+        Keep memory of which parts of the map have been explored by drones
+        Compute the score of exploration based on the percentage of explored area
      """
 
     def __init__(self):
+        """
+        Initializes the ExploredMap object with empty maps and counters
+        """
         # img_playground : colored image of the playground without wounded persons and without drones
         self._img_playground = np.zeros((0, 0))
-        # map_playground : black and white map of the playground without wounded persons and without drones
+        # map_playground : black and white map of the playground without wounded persons and drones
         self._map_playground = np.zeros((0, 0))
 
         # _map_explo_lines : map of the point visited by drones (all positions of the drones)
@@ -29,18 +61,21 @@ class ExploredMap:
         # _map_explo_zones : map of the zone explored by drones
         # Initialize _map_explo_zones with zeros (black)
         self._map_explo_zones = np.zeros((0, 0))
+        # Dictionary to store the positions of the drones
         self._explo_pts = dict()
+        # Dictionary to store the last position of each drone
         self._last_position = dict()
 
         self._count_pixel_walls = 0
         self._count_pixel_explored = 0
         self._count_pixel_total = 0
 
+        # Flag to indicate if the map has been initialized or not
         self.initialized = False
 
     def reset(self):
         """
-        Reset everything to zero
+        Resets all the maps and counters to zero
         """
         # _map_explo_lines : map of the point visited by drones (all positions of the drones)
         # Initialize _map_explo_lines with 255 (white)
@@ -68,20 +103,15 @@ class ExploredMap:
 
     def initialize_walls(self, playground: Playground):
         """
-        From _img_playground, it creates a black and white image of the walls saved in _map_playground
+        From _img_playground, it creates a black and white image of the walls saved in _map_playground.
+        Creates an image of the playground without drones and wounded persons
         """
         self.initialized = True
         img_playground = self._create_image_walls(playground)
 
         # cv2.imshow("img_playground", img_playground)
         # cv2.waitKey(0)
-
-        map_color = cv2.normalize(src=img_playground, dst=None, alpha=0, beta=255,
-                                  norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-
-        map_gray = cv2.cvtColor(map_color, cv2.COLOR_BGR2GRAY)
-
-        ret, self._map_playground = cv2.threshold(map_gray, 127, 255, cv2.THRESH_BINARY_INV)
+        self._map_playground = _create_black_white_image(img_playground)
 
         # _map_explo_lines : map of the point visited by drones (all positions of the drones)
         # Initialize _map_explo_lines with 255 (white)
@@ -90,7 +120,7 @@ class ExploredMap:
         # Initialize _map_explo_zones with zeros (black)
         self._map_explo_zones = np.zeros(self._map_playground.shape, np.uint8)
 
-    def update(self, drones: [List[DroneAbstract]]):
+    def update_drones(self, drones: [List[DroneAbstract]]):
         """
         Update the list of the positions of the drones
         """
@@ -116,6 +146,9 @@ class ExploredMap:
             #     print("Error")
 
     def get_pretty_map_explo_lines(self):
+        """
+        Returns a map with the explored lines highlighted
+        """
         pretty_map = np.zeros(self._map_playground.shape, np.uint8)
         pretty_map[self._map_playground == 255] = 255
         pretty_map[self._map_explo_lines == 0] = 128
@@ -180,7 +213,7 @@ class ExploredMap:
 
     def _process_positions_bresenham(self):
         """
-        computed with bresenham ray casting
+        Processes the positions of the drones using Bresenham ray casting algorithm to draw the map of explored zones
         """
         width = self._map_playground.shape[1]
         height = self._map_playground.shape[0]
@@ -249,7 +282,7 @@ class ExploredMap:
 
     def score(self):
         """
-        Give a score of the exploration of all the drones by computing of the percentage of exploration
+        Computes a score of the exploration of all the drones based on the percentage of explored area
         """
         if not self.initialized:
             return 0

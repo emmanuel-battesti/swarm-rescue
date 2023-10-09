@@ -8,6 +8,10 @@ from spg_overlay.utils.constants import LINEAR_SPEED_RATIO, ANGULAR_SPEED_RATIO
 
 
 class DroneBase(PhysicalPart):
+    """
+    The DroneBase class represents a drone base in a simulation. It defines the behavior and properties of the drone,
+    including its movement and control mechanisms.
+    """
     def __init__(
         self,
         linear_ratio: float = LINEAR_SPEED_RATIO,

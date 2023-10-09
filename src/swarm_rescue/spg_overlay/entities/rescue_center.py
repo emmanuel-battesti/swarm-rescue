@@ -24,7 +24,9 @@ def wounded_rescue_center_collision(arbiter, _, data):
 
 class RescueCenter(PhysicalElement):
     """
-    When in contact with a wounded_person, provide a reward of 1 to the drone closest to the wounded_person.
+    The RescueCenter class represents a rescue center in the simulation. When a WoundedPerson comes into contact with
+    the rescue center, it provides a reward of 1 to the drone bringing the wounded person. Then the wounded person
+    disappears.
     """
 
     def __init__(self, size: Tuple[int, int], **kwargs):
@@ -48,7 +50,8 @@ class RescueCenter(PhysicalElement):
             pm_shape.collision_type = CollisionTypes.ACTIVABLE_BY_GEM
 
     def activate(self, entity: WoundedPerson):
-        assert self._playground
+        if self._playground is None:
+            raise ValueError("RescueCenter is not associated with a playground.")
 
         grasped_by_list = entity.grasped_by.copy()
         grasped_by_size = len(entity.grasped_by)

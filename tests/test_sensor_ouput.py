@@ -38,8 +38,6 @@ class MyMap(MapAbstract):
         # POSITIONS OF THE DRONES
         self._number_drones = 1
         self._drones_pos = [((0, 0), 0)]
-        self._drones = []
-
         self._drones: List[DroneAbstract] = []
 
     def construct_playground(self, drone_type: Type[DroneAbstract]):
@@ -58,15 +56,15 @@ class MyMap(MapAbstract):
 
 def test_move():
     my_map = MyMap()
-
     playground = my_map.construct_playground(drone_type=MyDrone)
+
     drones_commands = {}
     for _ in range(100):
         command = my_map.drones[0].control()
         drones_commands[my_map.drones[0]] = command
         playground.step(commands=drones_commands)
 
-    moved = playground.agents[0].true_position() != (0, 0)
+    moved = not np.array_equal(playground.agents[0].true_position(), [0, 0])
 
     assert moved is True
 
@@ -78,12 +76,18 @@ def test_lidar():
     my_map = MyMap()
     playground = my_map.construct_playground(drone_type=MyDrone)
 
+    ok1 = True
+    if my_map.drones[0].lidar().get_sensor_values() is None:
+        ok1 = False
+    assert ok1 is True
+
     for _ in range(1):
         playground.step()
 
-    ok = True
+    ok2 = True
     if my_map.drones[0].lidar().get_sensor_values() is None:
-        ok = False
+        ok2 = False
+    assert ok2 is True
 
     w, h = my_map.size_area
     max_dist_theoretical = math.sqrt(w * w + h * h) / 2
@@ -94,7 +98,6 @@ def test_lidar():
     # print("half_diag = ", half_diag)
     # print("max_dist = ", max_dist)
 
-    assert ok is True
     assert max_dist < (max_dist_theoretical + 20)
     assert max_dist > (max_dist_theoretical - 20)
     assert min_dist > (min_dist_theoretical - 20)
@@ -133,21 +136,17 @@ def test_positions():
     gps_pos = my_map.drones[0].measured_gps_position()
     # gps_pos = (12.3, 456.78)
     assert gps_pos is not None
-    assert type(gps_pos) is tuple
-
+    assert isinstance(gps_pos, np.ndarray)
     # -- TRUE POSITION -- #
     true_pos = my_map.drones[0].true_position()
     # true_pos = Vec2d(12.3, 456.78)
     assert true_pos is not None
-    assert type(true_pos) is pymunk.vec2d.Vec2d
+    assert isinstance(true_pos, np.ndarray)
 
     # -- COMPASS -- #
-    compass_angle_array = my_map.drones[0].measured_compass_angle()
-    compass_angle = compass_angle_array[0]
-    # compass_angle_array = array([1.2345])
-    assert compass_angle_array is not None
-    assert type(compass_angle_array) is np.ndarray
-    assert isinstance(compass_angle, np.floating)
+    compass_angle = my_map.drones[0].measured_compass_angle()
+    assert compass_angle is not None
+    assert type(compass_angle) is float
 
     # -- TRUE ANGLE -- #
     true_angle = my_map.drones[0].true_angle()
@@ -167,7 +166,7 @@ def test_positions_nan():
     gps_pos = my_map.drones[0].measured_gps_position()
     # gps_pos = (nan, nan)
     assert gps_pos is not None
-    assert type(gps_pos) is tuple
+    assert isinstance(gps_pos, np.ndarray)
     assert np.isnan(gps_pos[0])
     assert np.isnan(gps_pos[1])
 
@@ -175,7 +174,7 @@ def test_positions_nan():
     true_pos = my_map.drones[0].true_position()
     # true_pos = Vec2d(12.3, 456.78)
     assert true_pos is not None
-    assert type(true_pos) is pymunk.vec2d.Vec2d
+    assert isinstance(true_pos, np.ndarray)
 
     # -- COMPASS -- #
     # compass_angle_array = nan

@@ -75,6 +75,9 @@ class MyDroneRandom(DroneAbstract):
     def _is_turning(self):
         return self.isTurningLeft or self.isTurningRight
 
+    def draw_top_layer(self):
+        self.draw_identifier()
+
 
 class MyMapRandom(MapAbstract):
     def __init__(self):

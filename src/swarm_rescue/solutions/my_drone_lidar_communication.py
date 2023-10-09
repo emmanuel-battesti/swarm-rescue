@@ -16,7 +16,7 @@ class MyDroneLidarCommunication(DroneAbstract):
                  **kwargs):
         super().__init__(identifier=identifier,
                          misc_data=misc_data,
-                         should_display_lidar=False,
+                         display_lidar_graph=False,
                          **kwargs)
 
     def define_message_for_all(self):
@@ -29,9 +29,9 @@ class MyDroneLidarCommunication(DroneAbstract):
 
     def control(self):
         """
-        In this example, we only use the lidar sensor and the communication to move the drone
+        In this example, we only use the sensors sensor and the communication to move the drone
         The idea is to make the drones move like a school of fish.
-        The lidar will help avoid running into walls.
+        The sensors will help avoid running into walls.
         The communication will allow to know the position of the drones in the vicinity, to then correct its own
         position to stay at a certain distance and have the same orientation.
         """
@@ -39,8 +39,7 @@ class MyDroneLidarCommunication(DroneAbstract):
                    "lateral": 0.0,
                    "rotation": 0.0}
 
-        command_lidar, collision_lidar = self.process_lidar_sensor(
-            self.lidar())
+        command_lidar, collision_lidar = self.process_lidar_sensor(self.lidar())
         found, command_comm = self.process_communication_sensor()
 
         alpha = 0.4

@@ -91,12 +91,14 @@ def print_keyboard_man():
     print("\t- up / down key : forward and backward")
     print("\t- left / right key : turn left / right")
     print("\t- shift + left/right key : left/right lateral movement")
-    print("\t- g key : grasp objects")
-    print("\t- l key : display (or not) the lidar sensor")
-    print("\t- s key : display (or not) the semantic sensor")
-    print("\t- t key : display (or not) the touch sensor")
-    print("\t- q key : exit the program")
-    print("\t- r key : reset")
+    print("\t- G key : grasp objects")
+    print("\t- L key : display (or not) the lidar sensor")
+    print("\t- S key : display (or not) the semantic sensor")
+    print("\t- P key : draw position from GPS sensor")
+    print("\t- C key : draw communication between drones")
+    print("\t- M key : print messages between drones")
+    print("\t- Q key : exit the program")
+    print("\t- R key : reset")
 
 
 def main():
@@ -105,14 +107,12 @@ def main():
 
     playground = my_map.construct_playground(drone_type=MyDroneKeyboard)
 
-    # draw_lidar : enable the visualization of the lidar rays
-    # draw_semantic : enable the visualization of the semantic rays
-    # draw_touch : enable the visualization of the touch sensor
+    # draw_lidar_rays : enable the visualization of the lidar rays
+    # draw_semantic_rays : enable the visualization of the semantic rays
     gui = GuiSR(playground=playground,
                 the_map=my_map,
-                draw_lidar=True,
-                draw_semantic=True,
-                draw_touch=True,
+                draw_lidar_rays=True,
+                draw_semantic_rays=True,
                 use_keyboard=True,
                 )
     gui.run()

@@ -32,8 +32,8 @@ class MyDrone(DroneAbstract):
         """
         pass
 
-    def process_semantic_sensor(self, the_semantic_sensor):
-        detection_semantic = the_semantic_sensor.get_sensor_values()
+    def process_semantic_sensor(self):
+        detection_semantic = self.semantic_values()
 
         print("********************************************")
         if detection_semantic is not None:
@@ -52,7 +52,7 @@ class MyDrone(DroneAbstract):
 
     def control(self):
         if self.identifier == 0:
-            self.process_semantic_sensor(self.semantic())
+            self.process_semantic_sensor()
 
 
 class MyMap(MapAbstract):
@@ -116,6 +116,7 @@ def main():
     playground = my_map.construct_playground(drone_type=MyDrone)
     gui = GuiSR(playground=playground,
                 the_map=my_map,
+                draw_semantic_rays=True,
                 use_keyboard=True,
                 use_mouse_measure=True,
                 enable_visu_noises=False,

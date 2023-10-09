@@ -1,6 +1,17 @@
 class ScoreManager:
     """
-     Tool to compute the final score
+     The ScoreManager class is a tool used to compute the final score in a drone rescue simulation. It takes into
+     account the number of drones, time limits, and the number of wounded persons to calculate the score based on
+     rescue percentage, exploration score, and time taken to rescue all the wounded persons.
+
+     Attributes:
+        number_drones: The number of drones that will be generated in the map.
+        time_step_limit: The number of time steps after which the session will end.
+        real_time_limit: The elapsed time (in seconds) after which the session will end.
+        total_number_wounded_persons: The number of wounded persons that should be retrieved by the drones.
+        w_rescue: Weight for the rescue part of the score.
+        w_exploration: Weight for the exploration part of the score.
+        w_time: Weight for the time part of the score.
     """
 
     def __init__(self,
@@ -22,9 +33,9 @@ class ScoreManager:
         self.total_number_wounded_persons = total_number_wounded_persons
 
         # weight for the different parts of the score. The sum must be equal to 1.
-        self.w_rescue = 0.7
+        self.w_rescue = 0.6
         self.w_exploration = 0.2
-        self.w_time = 0.1
+        self.w_time = 0.2
 
     def compute_score(self, number_rescued_persons, score_exploration, rescued_all_time_step):
         """
@@ -32,7 +43,7 @@ class ScoreManager:
         Needed information :
             'number_rescued_persons': number of rescued persons by the drones
             'score_exploration': score of exploration computed by the ExploredMap class
-            'rescued_all_time_step': number of time step used by the time all the wounded person are saved
+            'rescued_all_time_step': number of time steps used by the time all the wounded person are saved
         """
         if self.total_number_wounded_persons > 0:
             percentage_rescue = number_rescued_persons / self.total_number_wounded_persons * 100.0

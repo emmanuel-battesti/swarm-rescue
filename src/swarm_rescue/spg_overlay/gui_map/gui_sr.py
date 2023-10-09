@@ -8,17 +8,22 @@ from spg.playground import Playground
 from spg.playground.playground import SentMessagesDict
 from spg.view import TopDownView
 
-from spg_overlay.utils.constants import FRAME_RATE
+from spg_overlay.utils.constants import FRAME_RATE, DRONE_INITIAL_HEALTH
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.entities.keyboard_controller import KeyboardController
 from spg_overlay.utils.fps_display import FpsDisplay
 from spg_overlay.gui_map.map_abstract import MapAbstract
 from spg_overlay.utils.mouse_measure import MouseMeasure
-from spg_overlay.utils.screen_recorder import ScreenRecorder
+from spg_overlay.reporting.screen_recorder import ScreenRecorder
 from spg_overlay.utils.visu_noises import VisuNoises
 
 
 class GuiSR(TopDownView):
+    """
+    The GuiSR class is a subclass of TopDownView and provides a graphical user interface for the simulation. It handles
+    the rendering of the playground, drones, and other visual elements, as well as user input and interaction.
+    """
+
     def __init__(
             self,
             playground: Playground,
@@ -26,16 +31,17 @@ class GuiSR(TopDownView):
             size: Optional[Tuple[int, int]] = None,
             center: Tuple[float, float] = (0, 0),
             zoom: float = 1,
+            use_keyboard: bool = False,
             display_uid: bool = False,
             draw_transparent: bool = False,
             draw_interactive: bool = False,
             draw_zone: bool = True,
-            draw_lidar: bool = False,
-            draw_semantic: bool = False,
-            draw_touch: bool = False,
+            draw_lidar_rays: bool = False,
+            draw_semantic_rays: bool = False,
+            draw_gps: bool = False,
+            draw_com: bool = False,
             print_rewards: bool = False,
             print_messages: bool = False,
-            use_keyboard: bool = False,
             use_mouse_measure: bool = False,
             enable_visu_noises: bool = False,
             filename_video_capture: str = None
@@ -74,6 +80,8 @@ class GuiSR(TopDownView):
         self._print_rewards = print_rewards
         self._print_messages = print_messages
 
+        self._use_keyboard = use_keyboard
+
         self._playground.window.on_draw = self.on_draw
         self._playground.window.on_update = self.on_update
         self._playground.window.on_key_press = self.on_key_press
@@ -83,14 +91,17 @@ class GuiSR(TopDownView):
         self._playground.window.on_mouse_release = self.on_mouse_release
         self._playground.window.set_update_rate(FRAME_RATE)
 
-        self._draw_lidar = draw_lidar
-        self._draw_semantic = draw_semantic
-        self._draw_touch = draw_touch
-        self._use_keyboard = use_keyboard
+        self._draw_lidar_rays = draw_lidar_rays
+        self._draw_semantic_rays = draw_semantic_rays
+        self._draw_gps = draw_gps
+        self._draw_com = draw_com
         self._use_mouse_measure = use_mouse_measure
         self._enable_visu_noises = enable_visu_noises
 
         # 'number_wounded_persons' is the number of wounded persons that should be retrieved by the drones.
+        self._percent_drones_destroyed = 0.0
+        self._mean_drones_health = 0.0
+
         self._total_number_wounded_persons = self._the_map.number_wounded_persons
         self._rescued_number = 0
         self._rescued_all_time_step = 0
@@ -122,9 +133,14 @@ class GuiSR(TopDownView):
 
         if self._elapsed_time < 2:
             self._playground.step(commands=self._drones_commands, messages=self._messages)
+            # self._the_map.explored_map.update(self._drones)
+            # self._the_map.explored_map._process_positions()
+            # self._the_map.explored_map.display()
             return
 
-        self._the_map.explored_map.update(self._drones)
+        self._the_map.explored_map.update_drones(self._drones)
+        # self._the_map.explored_map._process_positions()
+        # self._the_map.explored_map.display()
 
         # COMPUTE ALL THE MESSAGES
         self._messages = self.collect_all_messages(self._drones)
@@ -197,6 +213,7 @@ class GuiSR(TopDownView):
         #                                            self._drone.base.grasper.grasped_entities))
 
         if self._terminate:
+            self.compute_health_stats()
             self.recorder.end_recording()
             self._last_image = self.get_playground_image()
             arcade.close_window()
@@ -215,17 +232,24 @@ class GuiSR(TopDownView):
         self._playground.window.use()
         self._playground.window.clear(self._background)
 
-        if self._draw_lidar:
+        for drone in self._playground.agents:
+            drone.draw_bottom_layer()
+
+        if self._draw_lidar_rays:
             for drone in self._playground.agents:
                 drone.lidar().draw()
 
-        if self._draw_semantic:
+        if self._draw_semantic_rays:
             for drone in self._playground.agents:
                 drone.semantic().draw()
 
-        if self._draw_touch:
+        if self._draw_gps:
             for drone in self._playground.agents:
-                drone.touch().draw()
+                drone.draw_gps()
+
+        if self._draw_com:
+            for drone in self._playground.agents:
+                drone.draw_com()
 
         self._mouse_measure.draw(enable=self._use_mouse_measure)
         self._visu_noises.draw(enable=self._enable_visu_noises)
@@ -236,9 +260,35 @@ class GuiSR(TopDownView):
         self._visible_sprites.draw(pixelated=True)
         self._traversable_sprites.draw(pixelated=True)
 
+        for drone in self._playground.agents:
+            drone.draw_top_layer()
+
+        # display a circle representing semantic detection radius
+        # width, height = self._size
+        # drone = self._playground.agents[0]
+        # x, y = drone.true_position()
+        # x = x + width / 2
+        # y = y + height / 2
+        #
+        # r = drone.true_angle()
+        # for i in range(34):
+        #     arcade.draw_line(x, y, x + 200 * cos(r + i * (2 * pi / 34)),
+        #     y + 200 * sin(r + i * (2 * pi / 34)), (60, 120, 80))
+        # # endregion
+
     def on_key_press(self, key, modifiers):
         """Called whenever a key is pressed."""
         self._keyboardController.on_key_press(key, modifiers)
+
+        if key == arcade.key.C:
+            self._draw_com = not self._draw_com
+
+        if key == arcade.key.P:
+            self._draw_gps = not self._draw_gps
+
+        if key == arcade.key.L:
+            self._draw_lidar_rays = not self._draw_lidar_rays
+
         if self._drones:
 
             if key == arcade.key.M:
@@ -260,13 +310,7 @@ class GuiSR(TopDownView):
             self._visu_noises.reset()
 
         if key == arcade.key.S:
-            self._draw_semantic = not self._draw_semantic
-
-        if key == arcade.key.T:
-            self._draw_touch = not self._draw_touch
-
-        if key == arcade.key.L:
-            self._draw_lidar = not self._draw_lidar
+            self._draw_semantic_rays = not self._draw_semantic_rays
 
     def on_key_release(self, key, modifiers):
         self._keyboardController.on_key_release(key, modifiers)
@@ -289,9 +333,31 @@ class GuiSR(TopDownView):
             messages[drones[i]] = {drones[i].communicator: (None, msg_data)}
         return messages
 
+    def compute_health_stats(self):
+        sum_health = 0
+        for drone in self._playground.agents:
+            sum_health += drone.drone_health
+
+        nb_destroyed = self._number_drones - len(self._playground.agents)
+
+        if self._number_drones > 0:
+            self._mean_drones_health = sum_health / self._number_drones
+            self._percent_drones_destroyed = nb_destroyed / self._number_drones * 100
+        else:
+            self._mean_drones_health = DRONE_INITIAL_HEALTH
+            self._percent_drones_destroyed = 0.0
+
     @property
     def last_image(self):
         return self._last_image
+
+    @property
+    def percent_drones_destroyed(self):
+        return self._percent_drones_destroyed
+
+    @property
+    def mean_drones_health(self):
+        return self._mean_drones_health
 
     @property
     def elapsed_time(self):

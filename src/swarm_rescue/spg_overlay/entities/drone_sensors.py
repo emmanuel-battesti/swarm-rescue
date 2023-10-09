@@ -10,8 +10,8 @@ from spg_overlay.utils.utils_noise import AutoregressiveModelNoise, GaussianNois
 
 class DroneGPS(InternalSensor, ABC):
     """
-      DroneGPS sensor returns a numpy array containing the position of the drone,
-      with a noise that follow an autoregressive model of order 1
+      The DroneGPS class is a subclass of InternalSensor that represents a GPS sensor for a drone. It returns the
+      position of the drone as a numpy array, with a noise that follows an autoregressive model of order 1
     """
 
     def __init__(self, **kwargs):
@@ -25,13 +25,20 @@ class DroneGPS(InternalSensor, ABC):
         self._noise_model = AutoregressiveModelNoise(model_param=model_param,
                                                      std_dev_noise=self.std_dev_noise)
 
+        self._null_sensor = np.empty(self.shape)
+        self._null_sensor[:] = np.nan
+
         self._values = self._default_value
 
     def _compute_raw_sensor(self):
         self._values = np.array(self._anchor.position)
 
     def set_playground_size(self, size):
-        self._pg_size = size
+        if (isinstance(size, tuple) and len(size) == 2 and
+                all(isinstance(num, (int, float)) and num > 0 for num in size)):
+            self._pg_size = size
+        else:
+            raise ValueError("Invalid playground size. Size should be a tuple of two positive numbers.")
 
     def _apply_normalization(self):
         if self._pg_size:
@@ -39,12 +46,13 @@ class DroneGPS(InternalSensor, ABC):
 
     @property
     def _default_value(self):
-        null_sensor = np.empty(self.shape)
-        null_sensor[:] = np.nan
-        return null_sensor
+        return self._null_sensor
 
     def get_sensor_values(self):
-        return self._values
+        if not self._disabled:
+            return self._values
+        else:
+            return None
 
     def draw(self):
         pass
@@ -66,7 +74,7 @@ class DroneGPS(InternalSensor, ABC):
 
 class DroneCompass(InternalSensor):
     """
-      DroneCompass sensor returns a numpy array containing the orientation of the drone.
+      DroneCompass sensor returns the orientation of the drone as a float
     """
 
     def __init__(self, **kwargs):
@@ -78,22 +86,25 @@ class DroneCompass(InternalSensor):
         self._noise_model = AutoregressiveModelNoise(model_param=model_param,
                                                      std_dev_noise=self.std_dev_noise_angle)
 
+        self._null_sensor = np.nan
+
         self._values = self._default_value
 
     def _compute_raw_sensor(self):
-        self._values = np.array([normalize_angle(self._anchor.angle)])
+        self._values = normalize_angle(self._anchor.angle)
 
     def _apply_normalization(self):
         self._values /= math.pi
 
     @property
-    def _default_value(self) -> np.ndarray:
-        null_sensor = np.empty(self.shape)
-        null_sensor[:] = np.nan
-        return null_sensor
+    def _default_value(self) -> float:
+        return self._null_sensor
 
     def get_sensor_values(self):
-        return self._values
+        if not self._disabled:
+            return self._values
+        else:
+            return None
 
     def draw(self):
         pass
@@ -108,7 +119,7 @@ class DroneCompass(InternalSensor):
         We use a noise that follow an autoregressive model of order 1 : https://en.wikipedia.org/wiki/Autoregressive_model#AR(1)
         """
         angle = self._noise_model.add_noise(self._values)
-        self._values = np.array([normalize_angle(angle)])
+        self._values = normalize_angle(angle)
 
     def is_disabled(self):
         return self._disabled
@@ -135,7 +146,11 @@ class DroneOdometer(InternalSensor):
         self.std_dev_theta = deg2rad(1.0)
         self._noise_theta_model = GaussianNoise(std_dev_noise=self.std_dev_theta)
 
+        self._null_sensor = np.empty(self.shape)
+        self._null_sensor[:] = np.nan
+
         self._values = self._default_value
+
         self.prev_angle = None
         self.prev_position = None
 
@@ -168,10 +183,13 @@ class DroneOdometer(InternalSensor):
 
     @property
     def _default_value(self) -> np.ndarray:
-        return np.zeros(self.shape)
+        return self._null_sensor
 
     def get_sensor_values(self):
-        return self._values
+        if not self._disabled:
+            return self._values
+        else:
+            return None
 
     def draw(self):
         pass

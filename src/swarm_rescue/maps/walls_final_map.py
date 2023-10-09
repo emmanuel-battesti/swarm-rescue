@@ -61,6 +61,7 @@ def add_boxes(playground):
                     width=23, height=1350)
     playground.add(box, box.wall_coordinates)
 
+
 def add_walls(playground):
     # vertical wall 0
     wall = NormalWall(pos_start=(-891, 663),
@@ -616,4 +617,3 @@ def add_walls(playground):
     wall = NormalWall(pos_start=(-892, -655),
                       pos_end=(886, -655))
     playground.add(wall, wall.wall_coordinates)
-

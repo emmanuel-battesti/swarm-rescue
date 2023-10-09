@@ -4,20 +4,20 @@ from typing import List, Type
 from spg.playground import Playground
 
 from spg_overlay.entities.drone_abstract import DroneAbstract
-from spg_overlay.utils.explored_map import ExploredMap
-from spg_overlay.entities.sensor_disablers import EnvironmentType
+from spg_overlay.reporting.evaluation import ZonesConfig
+from spg_overlay.reporting.explored_map import ExploredMap
 
 
 class MapAbstract(ABC):
     """
-    It is abstract class to construct every maps used in the directory maps
+    The MapAbstract class is an abstract class that serves as a blueprint for constructing different types of maps
+    used in the directory "maps".
     """
-    environment_series = [EnvironmentType.EASY]
 
-    def __init__(self, environment_type: EnvironmentType = EnvironmentType.EASY):
+    def __init__(self, zones_config: ZonesConfig = ()):
         self._explored_map = ExploredMap()
         self._size_area = None
-        self._environment_type = environment_type
+        self._zones_config = zones_config
         self._drones: List[DroneAbstract] = []
         # '_number_drones' is the number of drones that will be generated in the map
         self._number_drones = None
@@ -57,8 +57,8 @@ class MapAbstract(ABC):
         return self._size_area
 
     @property
-    def environment_type(self):
-        return self._environment_type
+    def zones_config(self):
+        return self._zones_config
 
     @property
     def explored_map(self):

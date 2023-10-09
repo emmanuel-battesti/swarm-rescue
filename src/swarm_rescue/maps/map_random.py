@@ -7,15 +7,14 @@ from spg.playground import Playground
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
-from spg_overlay.entities.sensor_disablers import EnvironmentType
 from spg_overlay.gui_map.map_abstract import MapAbstract
+from spg_overlay.reporting.evaluation import ZonesConfig
 
 
 class MyMapRandom(MapAbstract):
-    environment_series = [EnvironmentType.EASY, EnvironmentType.NO_COM_ZONE]
 
-    def __init__(self, environment_type: EnvironmentType = EnvironmentType.EASY):
-        super().__init__(environment_type)
+    def __init__(self, zones_config: ZonesConfig = ()):
+        super().__init__(zones_config)
         self._number_drones = 10
         self._time_step_limit = 480
         self._real_time_limit = 22  # In seconds

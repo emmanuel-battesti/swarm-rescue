@@ -18,7 +18,7 @@ class MyDroneRandom(DroneAbstract):
                  **kwargs):
         super().__init__(identifier=identifier,
                          misc_data=misc_data,
-                         should_display_lidar=False,
+                         display_lidar_graph=False,
                          **kwargs)
         self.counterStraight = 0
         self.angleStopTurning = random.uniform(-math.pi, math.pi)
@@ -31,20 +31,20 @@ class MyDroneRandom(DroneAbstract):
         """
         pass
 
-    def process_touch_sensor(self):
+    def process_lidar_sensor(self):
         """
-        Returns True if the drone hits an obstacle
+        Returns True if the drone collided an obstacle
         """
-        if self.touch().get_sensor_values() is None:
+        if self.lidar_values() is None:
             return False
 
-        touched = False
-        detection = max(self.touch().get_sensor_values())
+        collided = False
+        dist = min(self.lidar_values())
 
-        if detection > 0.5:
-            touched = True
+        if dist < 40:
+            collided = True
 
-        return touched
+        return collided
 
     def control(self):
         """
@@ -60,11 +60,11 @@ class MyDroneRandom(DroneAbstract):
                         "rotation": 1.0,
                         "grasper": 0}
 
-        touched = self.process_touch_sensor()
+        collided = self.process_lidar_sensor()
 
         self.counterStraight += 1
 
-        if touched and not self.isTurning and self.counterStraight > self.distStopStraight:
+        if collided and not self.isTurning and self.counterStraight > self.distStopStraight:
             self.isTurning = True
             self.angleStopTurning = random.uniform(-math.pi, math.pi)
 

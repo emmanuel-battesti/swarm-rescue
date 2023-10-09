@@ -7,22 +7,20 @@ from spg.utils.definitions import CollisionTypes
 
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.entities.rescue_center import RescueCenter, wounded_rescue_center_collision
-from spg_overlay.entities.sensor_disablers import EnvironmentType, NoComZone, KillZone, srdisabler_disables_device
+from spg_overlay.entities.sensor_disablers import ZoneType, NoComZone, KillZone, srdisabler_disables_device
 from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.map_abstract import MapAbstract
+from spg_overlay.reporting.evaluation import ZonesConfig
 from spg_overlay.utils.misc_data import MiscData
 
 
 class MyMapIntermediate02(MapAbstract):
-    environment_series = [EnvironmentType.EASY,
-                          EnvironmentType.NO_COM_ZONE,
-                          EnvironmentType.KILL_ZONE]
 
-    def __init__(self, environment_type: EnvironmentType = EnvironmentType.EASY):
-        super().__init__(environment_type)
-        self._time_step_limit = 7200
-        self._real_time_limit = 180  # In seconds
+    def __init__(self, zones_config: ZonesConfig = ()):
+        super().__init__(zones_config)
+        self._time_step_limit = 3000
+        self._real_time_limit = 120
 
         # PARAMETERS MAP
         self._size_area = (1200, 500)
@@ -37,12 +35,10 @@ class MyMapIntermediate02(MapAbstract):
         self._kill_zone_pos = ((-484, 0), 0)
 
         self._wounded_persons_pos = [(-555, 188), (-420, 188), (-285, 188), (-150, 188), (-15, 188), (120, 188),
-                                     (255, 188),
-                                     (-555, 63), (-420, 63), (-285, 63), (-150, 63), (-15, 63), (120, 63), (255, 63),
-                                     (-555, -62), (-420, -62), (-285, -62), (-150, -62), (-15, -62), (120, -62),
-                                     (255, -62),
-                                     (-555, -187), (-420, -187), (-285, -187), (-150, -187), (-15, -187), (120, -187),
-                                     (255, -187)]
+                                     (255, 188), (-555, 63), (-420, 63), (-285, 63), (-150, 63), (-15, 63), (120, 63),
+                                     (255, 63), (-555, -62), (-420, -62), (-285, -62), (-150, -62), (-15, -62),
+                                     (120, -62), (255, -62), (-555, -187), (-420, -187), (-285, -187), (-150, -187),
+                                     (-15, -187), (120, -187), (255, -187)]
         self._number_wounded_persons = len(self._wounded_persons_pos)
         self._wounded_persons: List[WoundedPerson] = []
 
@@ -83,10 +79,10 @@ class MyMapIntermediate02(MapAbstract):
                                    CollisionTypes.DEVICE,
                                    srdisabler_disables_device)
 
-        if self._environment_type == EnvironmentType.NO_COM_ZONE:
+        if ZoneType.NO_COM_ZONE in self._zones_config:
             playground.add(self._no_com_zone, self._no_com_zone_pos)
 
-        if self._environment_type == EnvironmentType.KILL_ZONE:
+        if ZoneType.KILL_ZONE in self._zones_config:
             playground.add(self._kill_zone, self._kill_zone_pos)
 
         # POSITIONS OF THE WOUNDED PERSONS

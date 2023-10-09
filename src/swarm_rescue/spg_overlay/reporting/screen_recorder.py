@@ -4,7 +4,18 @@ from spg.view import TopDownView
 
 class ScreenRecorder:
     """
-        This class is used to record a view and save it to a video file.
+        The ScreenRecorder class is used to record a view and save it to a video file. It initializes the recorder
+        with the parameters of the view, captures frames from the view, and stops the recording when needed.
+
+        Example Usage
+            # Create a ScreenRecorder object with the desired parameters
+            recorder = ScreenRecorder(width=640, height=480, fps=30, out_file='output.avi')
+
+            # Call the capture_frame method for each frame to record
+            recorder.capture_frame(gui)
+
+            # Stop the recording
+            recorder.end_recording()
     """
 
     def __init__(self, width, height, fps, out_file):

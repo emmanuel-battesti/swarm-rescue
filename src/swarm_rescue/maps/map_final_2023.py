@@ -7,24 +7,21 @@ from spg.utils.definitions import CollisionTypes
 
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.entities.rescue_center import RescueCenter, wounded_rescue_center_collision
-from spg_overlay.entities.sensor_disablers import EnvironmentType, NoComZone, NoGpsZone, KillZone, \
+from spg_overlay.entities.sensor_disablers import ZoneType, NoComZone, NoGpsZone, KillZone, \
     srdisabler_disables_device
 from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.map_abstract import MapAbstract
+from spg_overlay.reporting.evaluation import ZonesConfig
 from spg_overlay.utils.misc_data import MiscData
 
 from .walls_final_map import add_walls, add_boxes
 
 
 class MyMapFinal(MapAbstract):
-    environment_series = [EnvironmentType.EASY,
-                          EnvironmentType.NO_COM_ZONE,
-                          EnvironmentType.NO_GPS_ZONE,
-                          EnvironmentType.KILL_ZONE]
 
-    def __init__(self, environment_type: EnvironmentType = EnvironmentType.EASY):
-        super().__init__(environment_type)
+    def __init__(self, zones_config: ZonesConfig = ()):
+        super().__init__(zones_config)
         self._time_step_limit = 7200
         self._real_time_limit = 1440  # In seconds
 
@@ -34,7 +31,7 @@ class MyMapFinal(MapAbstract):
         self._rescue_center = RescueCenter(size=(293, 140))
         self._rescue_center_pos = ((-6, 63), 0)
 
-        self._no_com_zone = NoComZone(size=(377,486))
+        self._no_com_zone = NoComZone(size=(377, 486))
         self._no_com_zone_pos = ((-697, 54), 0)
 
         self._no_gps_zone = NoGpsZone(size=(248, 544))
@@ -43,11 +40,11 @@ class MyMapFinal(MapAbstract):
         self._kill_zone = KillZone(size=(96, 242))
         self._kill_zone_pos = ((-674, -68), 0)
 
-        self._wounded_persons_pos = [ (-838, 599), (-356, 555), (-304, 555), (38, 575),
-                                      (316, 585), (852, 621), (-552, 453), (640, 215),
-                                      (-860, 265), (-538, 265), (-450, -55), (850, -41),
-                                      (-550, -365), (-370, -365), (840, -385), (840, -625),
-                                      (320, -495), (-110, -615), (-202, -615), (-850, -615), ]
+        self._wounded_persons_pos = [(-200, -200), (-838, 599), (-356, 555), (-304, 555), (38, 575),
+                                     (316, 585), (852, 621), (-552, 453), (640, 215),
+                                     (-860, 265), (-538, 265), (-450, -55), (850, -41),
+                                     (-550, -365), (-370, -365), (840, -385), (840, -625),
+                                     (320, -495), (-110, -615), (-202, -615), (-850, -615), ]
         self._number_wounded_persons = len(self._wounded_persons_pos)
         self._wounded_persons: List[WoundedPerson] = []
 
@@ -92,13 +89,16 @@ class MyMapFinal(MapAbstract):
                                    CollisionTypes.DEVICE,
                                    srdisabler_disables_device)
 
-        if self._environment_type == EnvironmentType.NO_COM_ZONE:
+        # self._kill_zone_pos = ((200, 217), 0)
+        # playground.add(self._kill_zone, self._kill_zone_pos)
+
+        if ZoneType.NO_COM_ZONE in self._zones_config:
             playground.add(self._no_com_zone, self._no_com_zone_pos)
 
-        if self._environment_type == EnvironmentType.NO_GPS_ZONE:
+        if ZoneType.NO_GPS_ZONE in self._zones_config:
             playground.add(self._no_gps_zone, self._no_gps_zone_pos)
 
-        if self._environment_type == EnvironmentType.KILL_ZONE:
+        if ZoneType.KILL_ZONE in self._zones_config:
             playground.add(self._kill_zone, self._kill_zone_pos)
 
         # POSITIONS OF THE WOUNDED PERSONS

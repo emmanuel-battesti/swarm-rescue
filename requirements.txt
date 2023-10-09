@@ -1,10 +1,10 @@
 PyYAML
-pymunk>=6.0.0
+pymunk>=6.4.0
 numpy
 scikit-image
 Pillow
 pytest
-opencv-contrib-python==4.5.5.64
+opencv-contrib-python==4.8.0.74
 matplotlib
 setuptools
 -e git+https://github.com/emmanuel-battesti/simple-playgrounds.git@swarm-rescue-v2#egg=spg
@@ -12,8 +12,13 @@ setuptools
 #simple-playgrounds
 #spg
 fpdf
-pandas
+pandas==2.0.3
 pathlib2
 gym
-arcade
+arcade==2.6.17
 tripy
+python-statemachine
+
+numba
+coverage
+gprof2dot

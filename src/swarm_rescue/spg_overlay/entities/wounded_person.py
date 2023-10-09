@@ -7,8 +7,16 @@ from resources import path_resources
 
 class WoundedPerson(PhysicalElement, RewardElement):
     """
-    WoundedPerson are used with a RescueCenter to get rewards.
-    A WoundedPerson disappears when in contact with its RescueCenter.
+    The WoundedPerson class represents a wounded person in a simulation. It inherits from the PhysicalElement and
+    RewardElement classes. This class is used in conjunction with a RescueCenter to receive rewards. When a
+    WoundedPerson comes into contact with its associated RescueCenter, it disappears.
+
+    Example Usage
+        rescue_center = RescueCenter()
+        wounded_person = WoundedPerson(rescue_center)
+        In this example, a RescueCenter object is created and then a WoundedPerson object is instantiated, passing the
+        rescue_center object as an argument. This creates a connection between the WoundedPerson and the RescueCenter.
+        The WoundedPerson can now receive rewards when it comes into contact with the RescueCenter.
     """
 
     def __init__(self, rescue_center):
