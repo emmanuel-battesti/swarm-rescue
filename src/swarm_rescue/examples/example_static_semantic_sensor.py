@@ -9,12 +9,11 @@ import random
 import sys
 from typing import List, Type
 
-from spg_overlay.entities.drone_distance_sensors import DroneSemanticSensor
-from spg_overlay.entities.wounded_person import WoundedPerson
-
 # This line add, to sys.path, the path to parent path of this file
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from spg_overlay.entities.drone_distance_sensors import DroneSemanticSensor
+from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.gui_sr import GuiSR

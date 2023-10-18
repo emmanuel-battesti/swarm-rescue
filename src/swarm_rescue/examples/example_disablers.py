@@ -9,12 +9,11 @@ from typing import List, Type
 
 from spg.utils.definitions import CollisionTypes
 
-from spg_overlay.reporting.data_saver import DataSaver
-from spg_overlay.reporting.team_info import TeamInfo
-
 # This line add, to sys.path, the path to parent path of this file
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from spg_overlay.reporting.data_saver import DataSaver
+from spg_overlay.reporting.team_info import TeamInfo
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.entities.rescue_center import RescueCenter, wounded_rescue_center_collision
 from spg_overlay.entities.sensor_disablers import NoGpsZone, NoComZone, KillZone, srdisabler_disables_device
