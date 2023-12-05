@@ -1,4 +1,6 @@
 import math
+import os
+import sys
 from collections import namedtuple
 
 import arcade
@@ -206,7 +208,15 @@ class DroneSemanticSensor(SemanticSensor):
         for index, id_detection in enumerate(id_detections):
             if id_detection == 0:
                 continue
-            entity = self._playground.get_entity_from_uid(id_detection)
+            try:
+                entity = self._playground.get_entity_from_uid(id_detection)
+            except KeyError as error:
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                print(f"KeyError in file {fname} at line {exc_tb.tb_lineno}")
+                print("Wrong Key for detected entity:", error)
+                continue
+
             if isinstance(entity, ColorWall):
                 entity_type = self.TypeEntity.WALL
             elif isinstance(entity, NormalWall):
@@ -301,7 +311,14 @@ class DroneSemanticSensor(SemanticSensor):
 
         for (view, center, id_detect) in zip(view_xy, center_xy, id_detection):
             if id_detect != 0:
-                entity = self._playground.get_entity_from_uid(id_detect)
+                try:
+                    entity = self._playground.get_entity_from_uid(id_detect)
+                except KeyError as error:
+                    exc_type, exc_obj, exc_tb = sys.exc_info()
+                    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                    print(f"KeyError in file {fname} at line {exc_tb.tb_lineno}")
+                    print("Wrong Key for detected entity:", error)
+                    continue
                 color = self.entity_colors.get(type(entity), [204, 204, 204])
             else:
                 color = [204, 204, 204]

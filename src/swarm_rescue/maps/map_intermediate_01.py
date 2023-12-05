@@ -5,7 +5,7 @@ from typing import List, Type
 from spg.playground import Playground
 from spg.utils.definitions import CollisionTypes
 
-from spg_overlay.entities.drone_abstract import DroneAbstract
+from spg_overlay.entities.drone_abstract import DroneAbstract, drone_collision_wall, drone_collision_drone
 from spg_overlay.entities.rescue_center import RescueCenter, wounded_rescue_center_collision
 from spg_overlay.entities.sensor_disablers import ZoneType, NoGpsZone, srdisabler_disables_device
 from spg_overlay.entities.wounded_person import WoundedPerson
@@ -79,5 +79,12 @@ class MyMapIntermediate01(MapAbstract):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
             playground.add(drone, self._drones_pos[i])
+
+        playground.add_interaction(CollisionTypes.PART,
+                                   CollisionTypes.ELEMENT,
+                                   drone_collision_wall)
+        playground.add_interaction(CollisionTypes.PART,
+                                   CollisionTypes.PART,
+                                   drone_collision_drone)
 
         return playground

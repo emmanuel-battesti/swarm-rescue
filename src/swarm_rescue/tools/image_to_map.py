@@ -176,7 +176,7 @@ class ImageToMap:
         print("\tself._size_area = ({0:.0f},{1:.0f})".format(self.width_map, self.height_map))
 
     def img_to_segments(self):
-        fld = cv2.ximgproc.createFastLineDetector(do_merge=True)
+        fld = cv2.ximgproc.createFastLineDetector(canny_aperture_size=7, do_merge=True)
         size_kernel = 9
         kernel = np.ones((size_kernel, size_kernel), np.uint8)
         img_erode = cv2.erode(self._img_src_walls, kernel, iterations=1)
@@ -344,23 +344,24 @@ class ImageToMap:
                     y0, y1 = y1, y0  # swap
 
                 # Correct size
-                if orient == 0:
-                    x0 -= 2
-                    x1 += 2
+                correction = 4
+                if orient == 0:  # horizontal
+                    x0 -= correction
+                    x1 += correction
 
-                if orient == 1:
-                    y0 -= 2
-                    y1 += 2
+                if orient == 1:  # vertical
+                    y0 -= correction
+                    y1 += correction
 
-                if orient == 2:
-                    x0 -= 2
-                    x1 += 2
+                if orient == 2:  # oblique
+                    x0 -= correction
+                    x1 += correction
                     if y1 > y0:  # oblique
-                        y0 -= 2
-                        y1 += 2
+                        y0 -= correction
+                        y1 += correction
                     else:
-                        y1 -= 2
-                        y0 += 2
+                        y1 -= correction
+                        y0 += correction
 
                 if orient == 0:
                     f.write("    # horizontal wall {}\n".format(i))

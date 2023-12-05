@@ -279,7 +279,7 @@ class DroneAbstract(Agent):
 
     def measured_compass_angle(self) -> Union[float, None]:
         """
-        Give the measured orientation of the drone, in radians between 0 and 2Pi. The measurement comes from the compass
+        Give the measured orientation of the drone, in radians between -Pi and Pi. The measurement comes from the compass
         sensor. You can use this value for your calculation in the control() function. These values can be altered
         by special areas in the map where the position information can be scrambled.
         """
@@ -297,11 +297,12 @@ class DroneAbstract(Agent):
         You must use this value for your calculation in the control() function.
         """
         odom = self.odometer_values()
-        angle = self.compass_values()
-        if odom and angle:
+        angle_compass = self.compass_values()
+        if odom is not None and angle_compass is not None:
             speed = odom[0]
-            vx = speed * math.cos(angle)
-            vy = speed * math.sin(angle)
+            alpha = odom[1]
+            vx = speed * math.cos(angle_compass + alpha)
+            vy = speed * math.sin(angle_compass + alpha)
             return np.array([vx, vy])
         else:
             return None
@@ -312,7 +313,7 @@ class DroneAbstract(Agent):
         You must use this value for your calculation in the control() function.
         """
         odometer = self.odometer_values()
-        if odometer:
+        if odometer is not None:
             return odometer[2]
         else:
             return None
@@ -343,7 +344,7 @@ class DroneAbstract(Agent):
 
     def true_angle(self) -> float:
         """
-        Give the true orientation of the drone, in radians between 0 and 2Pi.
+        Give the true orientation of the drone, in radians between -Pi and Pi.
         You must NOT use this value for your calculation in the control() function, you should use
         measured_compass_angle() instead. But you can use it for debugging or logging.
         """

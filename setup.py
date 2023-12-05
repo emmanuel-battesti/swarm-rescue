@@ -11,7 +11,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     
 setup(
     name='swarm-rescue',
-    version='2.2.3',
+    version='3.1.0',
     description='Set up a team of drones to rescue wounded people in different locations...',
     author='Emmanuel Battesti',
     author_email='emmanuel.battesti@ensta-paris.fr',

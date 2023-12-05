@@ -17,6 +17,7 @@ class StatsComputation:
         self.df_summary = None
         self.df_graph_scores = None
         self.df_screenshots = None
+        self.df_data_website = None
 
         file = pandas.read_csv(self.path + f'/stats_team_{self.team_number_str}.csv')
         self.dataframe: DataFrame = file.copy()
@@ -43,7 +44,7 @@ class StatsComputation:
          from the input data frame.
         """
         self.df_configs = self.dataframe[["Id Config", "Map", "Zones Casual",
-                                           "Config Weight", "Nb of Rounds"]].drop_duplicates()
+                                          "Config Weight", "Nb of Rounds"]].drop_duplicates()
 
     def _compute_dataframe_detailed_stats(self):
         """
@@ -85,13 +86,30 @@ class StatsComputation:
 
     def _compute_dataframe_screenshots(self):
         df = self.dataframe[["Id Config", "Map", "Zones", "Zones Casual",
-                              "Config Weight", "Round", "Nb of Rounds", "Percent Drones Destroyed",
-                              "Mean Drones Health", "Elapsed Time Step", "Real Time Elapsed", "Round Score"]]
+                             "Config Weight", "Round", "Nb of Rounds", "Percent Drones Destroyed",
+                             "Mean Drones Health", "Elapsed Time Step", "Real Time Elapsed", "Round Score"]]
         # Return index of the max round score for each group of "Id Config"
         index_best = df.groupby("Id Config")["Round Score"].idxmax()
         self.df_screenshots = df.loc[index_best]
 
         # print(self.df_screenshots.to_string())
+
+    def _compute_dataframe_data_website(self):
+        """
+        """
+        df = self.dataframe[
+            ["Zones Casual", "Rescued Percent",
+             "Exploration Score", "Time Score", "Round Score"]]
+        df2 = df.groupby('Zones Casual').mean()
+        df2 = df2.reset_index()
+
+        self.df_data_website = df2.rename(columns={'Zones Casual': 'Configuration',
+                                                   'Round Score': 'Config Score'},
+                                          copy=True)
+        self.df_data_website["Rescued Percent"] = self.df_data_website["Rescued Percent"].apply(lambda x: f"{x:.0f}")
+        self.df_data_website["Exploration Score"] = self.df_data_website["Exploration Score"].apply(lambda x: f"{x:.0f}")
+        self.df_data_website["Time Score"] = self.df_data_website["Time Score"].apply(lambda x: f"{x:.0f}")
+        self.df_data_website["Config Score"] = self.df_data_website["Config Score"].apply(lambda x: f"{x:.2f}")
 
     def process(self):
         self._compute_final_score()
@@ -102,3 +120,5 @@ class StatsComputation:
         self._compute_dataframe_summary_stats()
         self._compute_dataframe_graph_scores()
         self._compute_dataframe_screenshots()
+
+        self._compute_dataframe_data_website()

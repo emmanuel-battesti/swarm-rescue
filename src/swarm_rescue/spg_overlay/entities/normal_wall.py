@@ -74,7 +74,7 @@ class NormalWall(SrColorWall):
     def __init__(self, pos_start: Union[Tuple[float, float], pymunk.Vec2d],
                  pos_end: Union[Tuple[float, float], pymunk.Vec2d],
                  **kwargs):
-        width_wall = 4
+        width_wall = 6
 
         self.color = (200, 240, 230)
 

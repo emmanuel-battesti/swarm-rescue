@@ -3,6 +3,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.1.0] - 2023-12-05
+
+### Changed
+- Improve and update the README.md
+- Moved installation instructions to a separate file, INSTALL.md, for easier access and organization.
+- Modified image_to_map.py tool
+- Add management of collision to all the maps
+
+### Fixed
+- Refined the score exploration algorithm to ensure higher accuracy.
+- Rectified an issue in the computation of velocity within the function measured_velocity() which was resulting in incorrect outputs.
+- Restricted lateral and forward commands to have a maximum norm of 1.0
+
 ## [3.0.1] - 2023-10-18
 
 ### Fixed
@@ -205,7 +218,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.0.1...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.3...v3.0.0
 [2.2.3]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.2...v2.2.3

@@ -296,6 +296,7 @@ class ExploredMap:
 
         # Compute count_pixel_walls
         self._count_pixel_walls = cv2.countNonZero(self._map_playground)
+        self._count_pixel_walls += 1592  # cross on rescue center
         # print("self._count_pixel_walls=", self._count_pixel_walls)
 
         # Compute count_pixel_explored
@@ -309,6 +310,8 @@ class ExploredMap:
         # Compute percentage_explored
         count_explorable = self._count_pixel_total - self._count_pixel_walls
         score = self._count_pixel_explored / count_explorable
+        if score > 1.0:
+            score = 1.0
         # print("score exploration as % =", score * 100)
 
         return score

@@ -40,6 +40,8 @@ class ClosedPlayground(Playground):
 
         self._walls_creation()
 
+        # print(f"Version OpenGL : {self._window.ctx.gl_version}")
+
     def _walls_creation(self):
         h = self._height / 2
         w = self._width / 2

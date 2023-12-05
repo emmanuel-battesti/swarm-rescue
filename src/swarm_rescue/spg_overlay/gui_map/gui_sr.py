@@ -90,6 +90,7 @@ class GuiSR(TopDownView):
         self._playground.window.on_mouse_press = self.on_mouse_press
         self._playground.window.on_mouse_release = self.on_mouse_release
         self._playground.window.set_update_rate(FRAME_RATE)
+        # self._playground.window.set_location(4500, 0)
 
         self._draw_lidar_rays = draw_lidar_rays
         self._draw_semantic_rays = draw_semantic_rays
@@ -254,9 +255,15 @@ class GuiSR(TopDownView):
         self._mouse_measure.draw(enable=self._use_mouse_measure)
         self._visu_noises.draw(enable=self._enable_visu_noises)
 
-        self._transparent_sprites.draw(pixelated=True)
-        self._interactive_sprites.draw(pixelated=True)
-        self._zone_sprites.draw(pixelated=True)
+        if self._draw_transparent:
+            self._transparent_sprites.draw(pixelated=True)
+
+        if self._draw_interactive:
+            self._interactive_sprites.draw(pixelated=True)
+
+        if self._draw_zone:
+            self._zone_sprites.draw(pixelated=True)
+
         self._visible_sprites.draw(pixelated=True)
         self._traversable_sprites.draw(pixelated=True)
 

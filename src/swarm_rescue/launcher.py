@@ -171,7 +171,7 @@ class Launcher:
                 print(
                     f"\t* Round n°{num_round + 1}/{eval_config.nb_rounds}: "
                     f"\n\t\trescued nb: {int(rescued_number)}/{self.number_wounded_persons}, "
-                    f"explor. score: {score_exploration:.0f}%, "
+                    f"explor. score: {score_exploration:.1f}%, "
                     f"real time elapsed: {real_time_elapsed:.0f}s/{self.real_time_limit}s, "
                     f"elapse time: {elapsed_time_step}/{self.time_step_limit} steps, "
                     f"time to rescue all: {rescued_all_time_step} steps."

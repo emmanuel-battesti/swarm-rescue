@@ -185,10 +185,10 @@ class EvaluationPdfReport:
         for index, col_name in enumerate(df_detailed.columns):
             self.pdf.set_xy(x, y)
             if index == 0:
-                self.pdf.multi_cell(w=0.5 * col_width, h=0.8*self.th, txt=col_name, border=1, align='C')
+                self.pdf.multi_cell(w=0.5 * col_width, h=0.8 * self.th, txt=col_name, border=1, align='C')
                 x += 0.5 * col_width
             else:
-                self.pdf.multi_cell(w=col_width, h=0.8*self.th, txt=col_name, border=1, align='C')
+                self.pdf.multi_cell(w=col_width, h=0.8 * self.th, txt=col_name, border=1, align='C')
                 x += col_width
 
         for row in df_detailed.itertuples():
@@ -200,10 +200,10 @@ class EvaluationPdfReport:
                     continue
 
                 if index_col == 1:
-                    self.pdf.multi_cell(w=0.5 * col_width, h=0.7*self.th, txt=str(value), border=1, align='C')
+                    self.pdf.multi_cell(w=0.5 * col_width, h=0.7 * self.th, txt=str(value), border=1, align='C')
                     x += 0.5 * col_width
                 else:
-                    self.pdf.multi_cell(w=col_width, h=0.7*self.th, txt=str(value), border=1, align='C')
+                    self.pdf.multi_cell(w=col_width, h=0.7 * self.th, txt=str(value), border=1, align='C')
                     x += col_width
 
     def _add_perf_freq_health(self):
@@ -218,6 +218,7 @@ class EvaluationPdfReport:
         self._empty_line(height=1)
         for text in text_list:
             self.pdf.multi_cell(w=self.epw, h=0.8 * self.th, txt=text)
+
     def _add_table_summary_stats(self):
         # Header 1
         self._header_1_font()
@@ -247,10 +248,10 @@ class EvaluationPdfReport:
         for index, col_name in enumerate(df_summary.columns):
             self.pdf.set_xy(x, y)
             if index == 0:
-                self.pdf.multi_cell(w=0.5 * col_width, h=0.8*self.th, txt=col_name, border=1, align='C')
+                self.pdf.multi_cell(w=0.5 * col_width, h=0.8 * self.th, txt=col_name, border=1, align='C')
                 x += 0.5 * col_width
             else:
-                self.pdf.multi_cell(w=col_width, h=0.8*self.th, txt=col_name, border=1, align='C')
+                self.pdf.multi_cell(w=col_width, h=0.8 * self.th, txt=col_name, border=1, align='C')
                 x += col_width
 
         for row in df_summary.itertuples():
@@ -262,10 +263,10 @@ class EvaluationPdfReport:
                     continue
 
                 if index_col == 1:
-                    self.pdf.multi_cell(w=0.5 * col_width, h=0.7*self.th, txt=str(value), border=1, align='C')
+                    self.pdf.multi_cell(w=0.5 * col_width, h=0.7 * self.th, txt=str(value), border=1, align='C')
                     x += 0.5 * col_width
                 else:
-                    self.pdf.multi_cell(w=col_width, h=0.7*self.th, txt=str(value), border=1, align='C')
+                    self.pdf.multi_cell(w=col_width, h=0.7 * self.th, txt=str(value), border=1, align='C')
                     x += col_width
 
         text_list = [
@@ -397,6 +398,20 @@ class EvaluationPdfReport:
                 self._center_image(img_filename=filename_routes, offset_from_left_margin=offset)
                 self._empty_line(height=1)
 
+    def _print_data_website(self):
+        df_data_website = self.stats_computation.df_data_website
+
+        print("Data for the website:")
+        for index, row in df_data_website.iterrows():
+            if not row.empty:
+                configuration = row["Configuration"]
+                rescued_percent = row["Rescued Percent"]
+                exploration_score = row["Exploration Score"]
+                time_score = row["Time Score"]
+                config_score = row["Config Score"]
+
+                print(f"{self.team_info.team_number},{configuration},{rescued_percent},{exploration_score},{time_score},{config_score}")
+
     def generate_pdf(self, stats_computation: StatsComputation):
         self.stats_computation = stats_computation
 
@@ -413,5 +428,7 @@ class EvaluationPdfReport:
             self.pdf.output(filename_pdf, 'F')
             print("")
             print(f"A new evaluation report is available here: {filename_pdf}")
+
+            self._print_data_website()
         else:
             print(f"self.stats_computation is None !!")
