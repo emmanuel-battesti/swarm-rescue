@@ -69,8 +69,9 @@ class DataSaver:
         file.close()
         if os.path.getsize(self.stats_filename) == 0:
             self._add_line([('Group', 'Id Config', 'Map', 'Zones', "Zones Casual", 'Config Weight', 'Round',
-                             'Nb of Rounds', 'Percent Drones Destroyed', 'Mean Drones Health', 'Rescued Percent',
-                             'Exploration Score', 'Elapsed Time Step', 'Real Time Elapsed', 'Rescue All Time Step', 'Time Score',
+                             'Nb of Rounds', 'Percent Drones Destroyed', 'Mean Health Percent', 'Rescued Percent',
+                             'Exploration Score', 'Elapsed Time Step', 'Real Time Elapsed', 'Rescue All Time Step',
+                             'Time Score',
                              'Round Score')])
 
     def generate_pdf_report(self):
@@ -95,7 +96,7 @@ class DataSaver:
                        eval_config: EvalConfig,
                        num_round,
                        percent_drones_destroyed,
-                       mean_drones_health,
+                       mean_drones_health_percent,
                        percent_rescued,
                        score_exploration,
                        elapsed_time_step,
@@ -115,7 +116,7 @@ class DataSaver:
                  str(num_round),
                  eval_config.nb_rounds,
                  "%.1f" % percent_drones_destroyed,
-                 "%.1f" % mean_drones_health,
+                 "%.1f" % mean_drones_health_percent,
                  "%.1f" % percent_rescued,
                  "%.1f" % score_exploration,
                  str(elapsed_time_step),
@@ -136,19 +137,22 @@ class DataSaver:
 
         im_norm = cv2.normalize(src=im, dst=None, alpha=0, beta=255,
                                 norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-        cv2.imwrite(filename, im_norm)
+        if im_norm is not None:
+            cv2.imwrite(filename, im_norm)
 
         # Save the screen capture of the explored zone done by all drones
         filename_explo = (f"{self.path}/"
                           f"screen_explo_{map_name}_{zones_name}_rd{num_round_str}_team{self._team_number_str}.png")
 
-        cv2.imwrite(filename_explo, im_explo_zones)
+        if im_explo_zones is not None:
+            cv2.imwrite(filename_explo, im_explo_zones)
 
         # Save the screen capture of the path done by each drone
         filename_path = (f"{self.path}/"
                          f"screen_path_{map_name}_{zones_name}_rd{num_round_str}_team{self._team_number_str}.png")
 
-        cv2.imwrite(filename_path, im_explo_lines)
+        if im_explo_lines is not None:
+            cv2.imwrite(filename_path, im_explo_lines)
 
     @property
     def enabled(self):

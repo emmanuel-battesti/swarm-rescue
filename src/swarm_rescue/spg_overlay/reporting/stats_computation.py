@@ -10,7 +10,7 @@ class StatsComputation:
 
         self.final_score = 0
         self.mean_computation_freq = 0
-        self.mean_drones_health = 0
+        self.mean_drones_health_percent = 0
         self.percent_drones_destroyed = 0
         self.df_configs = None
         self.df_detailed = None
@@ -35,7 +35,7 @@ class StatsComputation:
         self.mean_computation_freq = df_freq.mean()
 
     def _compute_drones_health(self):
-        self.mean_drones_health = self.dataframe["Mean Drones Health"].mean()
+        self.mean_drones_health_percent = self.dataframe["Mean Health Percent"].mean()
         self.percent_drones_destroyed = self.dataframe["Percent Drones Destroyed"].mean()
 
     def _compute_dataframe_configurations(self):
@@ -87,7 +87,7 @@ class StatsComputation:
     def _compute_dataframe_screenshots(self):
         df = self.dataframe[["Id Config", "Map", "Zones", "Zones Casual",
                              "Config Weight", "Round", "Nb of Rounds", "Percent Drones Destroyed",
-                             "Mean Drones Health", "Elapsed Time Step", "Real Time Elapsed", "Round Score"]]
+                             "Mean Health Percent", "Elapsed Time Step", "Real Time Elapsed", "Round Score"]]
         # Return index of the max round score for each group of "Id Config"
         index_best = df.groupby("Id Config")["Round Score"].idxmax()
         self.df_screenshots = df.loc[index_best]
@@ -99,7 +99,8 @@ class StatsComputation:
         """
         df = self.dataframe[
             ["Zones Casual", "Rescued Percent",
-             "Exploration Score", "Time Score", "Round Score"]]
+             "Exploration Score", "Time Score",
+             "Mean Health Percent", "Round Score"]]
         df2 = df.groupby('Zones Casual').mean()
         df2 = df2.reset_index()
 
@@ -109,6 +110,7 @@ class StatsComputation:
         self.df_data_website["Rescued Percent"] = self.df_data_website["Rescued Percent"].apply(lambda x: f"{x:.0f}")
         self.df_data_website["Exploration Score"] = self.df_data_website["Exploration Score"].apply(lambda x: f"{x:.0f}")
         self.df_data_website["Time Score"] = self.df_data_website["Time Score"].apply(lambda x: f"{x:.0f}")
+        self.df_data_website["Mean Health Percent"] = self.df_data_website["Mean Health Percent"].apply(lambda x: f"{x:.0f}")
         self.df_data_website["Config Score"] = self.df_data_website["Config Score"].apply(lambda x: f"{x:.2f}")
 
     def process(self):

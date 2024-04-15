@@ -68,6 +68,7 @@ class ScreenRecorder:
 
         # stop recording
         self.video.release()
+        print("\n")
         print("Output of the screen recording saved to {}.".format(self._out_file))
 
 # References

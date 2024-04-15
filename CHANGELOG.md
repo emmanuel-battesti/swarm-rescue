@@ -3,6 +3,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.2.0] - 2024-04-15
+
+### Changed
+- Use drones health percentage instead of drones health value
+- If the execution crash, now it continue with the next configuration
+- new way to computed reachable pixel in the map to compute the exploration score
+
+### Added
+- add title to the window
+- add boolean arguments stop_at_first_crash and hide_solution_output
+- add border_thickness in ClosedPlayground
+- add wall_thickness in NormalWall
+
 ## [3.1.0] - 2023-12-05
 
 ### Changed
@@ -218,7 +231,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v2.2.3...v3.0.0

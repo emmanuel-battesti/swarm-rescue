@@ -69,10 +69,13 @@ class EvaluationPdfReport:
         self.pdf.ln(height * self.th)
 
     def _center_image(self, img_filename, offset_from_left_margin):
-        self.pdf.image(name=img_filename,
-                       x=self.pdf.l_margin + offset_from_left_margin,
-                       w=self.epw - 2 * offset_from_left_margin)
-
+        try:
+            self.pdf.image(name=img_filename,
+                           x=self.pdf.l_margin + offset_from_left_margin,
+                           w=self.epw - 2 * offset_from_left_margin)
+        except FileNotFoundError as error:
+            print(f"File {img_filename} was not found for the PDF.")
+            self.pdf.cell(txt=f"Error: File {img_filename} was not found...")
     def _header(self):
         # Title
         self._title_font()
@@ -211,7 +214,7 @@ class EvaluationPdfReport:
             f"Average computation frequency over all rounds: {self.stats_computation.mean_computation_freq:.1f} steps/s.",
             f"Percentage of drones destroyed in collisions over of all rounds: "
             f"{self.stats_computation.percent_drones_destroyed:.1f} %.",
-            f"Average level of drone health over all rounds: {self.stats_computation.mean_drones_health:.1f}/{DRONE_INITIAL_HEALTH}.",
+            f"Average percentage of drone health over all rounds: {self.stats_computation.mean_drones_health_percent:.0f} %.",
         ]
 
         self._body_text_font()
@@ -357,7 +360,7 @@ class EvaluationPdfReport:
                 best_rd_str = str(row["Round"])
                 round_score = str(row["Round Score"])
                 mean_computation_freq = row["Elapsed Time Step"] / row["Real Time Elapsed"]
-                mean_drones_health = row["Mean Drones Health"]
+                mean_drones_health_percent = row["Mean Health Percent"]
                 percent_drones_destroyed = row["Percent Drones Destroyed"]
 
                 self._body_text_font(style='B')
@@ -368,7 +371,7 @@ class EvaluationPdfReport:
                 self._empty_line(height=0.7)
                 self.pdf.cell(txt=f"Percentage of drones destroyed = {percent_drones_destroyed:.1f} %")
                 self._empty_line(height=0.7)
-                self.pdf.cell(txt=f"Mean level of drones health = {mean_drones_health:.1f}/{DRONE_INITIAL_HEALTH}")
+                self.pdf.cell(txt=f"Percentage of drones health = {mean_drones_health_percent:.0f} %")
                 self._empty_line(height=1)
                 self._body_text_font()
                 self.pdf.cell(txt="Last image of the simulation:")
@@ -401,16 +404,18 @@ class EvaluationPdfReport:
     def _print_data_website(self):
         df_data_website = self.stats_computation.df_data_website
 
-        print("Data for the website:")
+        print("\nData for the website:")
         for index, row in df_data_website.iterrows():
             if not row.empty:
                 configuration = row["Configuration"]
                 rescued_percent = row["Rescued Percent"]
                 exploration_score = row["Exploration Score"]
                 time_score = row["Time Score"]
+                drone_health_percent = row["Mean Health Percent"]
                 config_score = row["Config Score"]
 
-                print(f"{self.team_info.team_number},{configuration},{rescued_percent},{exploration_score},{time_score},{config_score}")
+                print(f"{self.team_info.team_number},{configuration},{rescued_percent},"
+                      f"{exploration_score},{time_score},{drone_health_percent},{config_score}")
 
     def generate_pdf(self, stats_computation: StatsComputation):
         self.stats_computation = stats_computation

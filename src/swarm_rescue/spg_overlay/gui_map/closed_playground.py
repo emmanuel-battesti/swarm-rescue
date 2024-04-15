@@ -24,7 +24,8 @@ class ClosedPlayground(Playground):
         _width: The width of the playground.
         _height: The height of the playground.
     """
-    def __init__(self, size: Tuple[int, int]):
+
+    def __init__(self, size: Tuple[int, int], border_thickness: int = 6):
         background = (220, 220, 220)
         use_shaders = True
         if platform.system() == "Darwin":
@@ -38,14 +39,14 @@ class ClosedPlayground(Playground):
         assert isinstance(self._width, int)
         assert isinstance(self._height, int)
 
-        self._walls_creation()
+        self._walls_creation(border_thickness)
 
         # print(f"Version OpenGL : {self._window.ctx.gl_version}")
 
-    def _walls_creation(self):
+    def _walls_creation(self, border_thickness):
         h = self._height / 2
         w = self._width / 2
-        o = 2
+        o = border_thickness / 2
         pts = [
             [(-w + o, -h), (-w + o, h), ],
             [(-w, h - o), (w, h - o)],
@@ -53,5 +54,5 @@ class ClosedPlayground(Playground):
             [(w, -h + o), (-w, -h + o), ],
         ]
         for begin_pt, end_pt in pts:
-            wall = NormalWall(begin_pt, end_pt)
+            wall = NormalWall(pos_start=begin_pt, pos_end=end_pt, wall_thickness=border_thickness)
             self.add(wall, wall.wall_coordinates)

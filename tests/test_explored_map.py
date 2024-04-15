@@ -92,5 +92,5 @@ def test_reset_explored_map():
     explored_map.reset()
     assert explored_map._explo_pts == {}
     assert explored_map._last_position == {}
-    assert explored_map._count_pixel_explored == 0
+    assert explored_map._count_explored_pixels == 0
     assert explored_map._count_pixel_total == 0

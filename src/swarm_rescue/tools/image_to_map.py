@@ -3,6 +3,8 @@ import random
 import cv2
 import numpy as np
 
+from spg_overlay.utils.utils import circular_kernel
+
 
 class ImageToMap:
     def __init__(self, image_source: cv2.Mat, auto_resized: bool = True):
@@ -154,8 +156,8 @@ class ImageToMap:
         w_rec *= self.factor
         x = x_rec + w_rec * 0.5 - self.width_map * 0.5
         y = self.height_map * 0.5 - (y_rec + h_rec * 0.5)
-        txt_rescue1 = "\tself._rescue_center = RescueCenter(size=({0:.0f},{1:.0f}))".format(w_rec, h_rec)
-        txt_rescue2 = "\tself._rescue_center_pos = (({0:.0f},{1:.0f}), 0)".format(x, y)
+        txt_rescue1 = "\tself._rescue_center = RescueCenter(size=({0:.0f}, {1:.0f}))".format(w_rec, h_rec)
+        txt_rescue2 = "\tself._rescue_center_pos = (({0:.0f}, {1:.0f}), 0)".format(x, y)
         print(txt_rescue1)
         print(txt_rescue2)
 
@@ -177,8 +179,10 @@ class ImageToMap:
 
     def img_to_segments(self):
         fld = cv2.ximgproc.createFastLineDetector(canny_aperture_size=7, do_merge=True)
-        size_kernel = 9
-        kernel = np.ones((size_kernel, size_kernel), np.uint8)
+        # size_kernel = 9
+        # kernel = np.ones((size_kernel, size_kernel), np.uint8)
+        radius_kernel = 5
+        kernel = circular_kernel(radius_kernel)
         img_erode = cv2.erode(self._img_src_walls, kernel, iterations=1)
         cv2.imshow("img_erode", img_erode)
 

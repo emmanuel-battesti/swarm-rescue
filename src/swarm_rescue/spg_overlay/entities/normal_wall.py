@@ -24,14 +24,15 @@ class SrColorWall(PhysicalElement):
         # Creating a textured wall
         wall = SrColorWall(pos_start=(0, 0), pos_end=(10, 0), width=2, file_name="wall_texture.png")
     """
+
     def __init__(self,
                  pos_start: Union[Tuple[float, float], pymunk.Vec2d],
                  pos_end: Union[Tuple[float, float], pymunk.Vec2d],
-                 width: float,
+                 wall_thickness: float,
                  color: Tuple[int, int, int] = None,
                  file_name: str = None,
                  **kwargs):
-        height = (pymunk.Vec2d(*pos_start) - pos_end).length + width
+        length = (pymunk.Vec2d(*pos_start) - pos_end).length + wall_thickness
 
         position = (pymunk.Vec2d(*pos_start) + pos_end) / 2
         angle = (pymunk.Vec2d(*pos_end) - pos_start).angle + math.pi / 2
@@ -39,9 +40,9 @@ class SrColorWall(PhysicalElement):
         self.wall_coordinates = position, angle
 
         if color is not None:
-            img = Image.new("RGBA", (int(width), int(height)), color)
+            img = Image.new("RGBA", (int(wall_thickness), int(length)), color)
             texture = Texture(
-                name=f"Barrier_{width}_{height}_{color}",
+                name=f"Barrier_{wall_thickness}_{length}_{color}",
                 image=img,
                 hit_box_algorithm="Detailed",
                 hit_box_detail=1,
@@ -49,13 +50,13 @@ class SrColorWall(PhysicalElement):
         elif file_name is not None:
             w_img = 2000
             h_img = 2000
-            x = random.randint(0, int(w_img - width - 1))
-            y = random.randint(0, int(h_img - height - 1))
+            x = random.randint(0, int(w_img - wall_thickness - 1))
+            y = random.randint(0, int(h_img - length - 1))
             texture = load_texture(file_name=file_name,
                                    x=x,
                                    y=y,
-                                   width=width,
-                                   height=height)
+                                   width=wall_thickness,
+                                   height=length)
         else:
             raise ValueError('Either color or file_name must be provided')
 
@@ -73,9 +74,8 @@ class NormalWall(SrColorWall):
 
     def __init__(self, pos_start: Union[Tuple[float, float], pymunk.Vec2d],
                  pos_end: Union[Tuple[float, float], pymunk.Vec2d],
+                 wall_thickness: int = 6,
                  **kwargs):
-        width_wall = 6
-
         self.color = (200, 240, 230)
 
         p_start = np.asarray(pos_start)
@@ -85,14 +85,14 @@ class NormalWall(SrColorWall):
         magnitude_v = math.sqrt(v[0] ** 2 + v[1] ** 2)
         uv = v / magnitude_v
 
-        new_pos_start = tuple(p_start + width_wall / 2 * uv)
-        new_pos_end = tuple(p_end - width_wall / 2 * uv)
+        new_pos_start = tuple(p_start + wall_thickness / 2 * uv)
+        new_pos_end = tuple(p_end - wall_thickness / 2 * uv)
 
         filename = path_resources + "/stone_texture_g_04.png"
 
         super().__init__(pos_start=new_pos_start,
                          pos_end=new_pos_end,
-                         width=width_wall,
+                         wall_thickness=wall_thickness,
                          file_name=filename,
                          **kwargs)
 
@@ -115,17 +115,17 @@ class NormalBox(SrColorWall):
             correction = 0.5 * height
             pos_start = (up_left_point[0] + correction, up_left_point[1] - 0.5 * height)
             pos_end = (up_left_point[0] + width - correction, up_left_point[1] - 0.5 * height)
-            width_wall = height
+            wall_thickness = height
         else:  # vertical box
             correction = 0.5 * width
             pos_start = (up_left_point[0] + 0.5 * width, up_left_point[1] - correction)
             pos_end = (up_left_point[0] + 0.5 * width, up_left_point[1] - height + correction)
-            width_wall = width
+            wall_thickness = width
 
         filename = path_resources + "/stone_texture_g_04.png"
 
         super().__init__(pos_start=pos_start,
                          pos_end=pos_end,
-                         width=width_wall,
+                         wall_thickness=wall_thickness,
                          file_name=filename,
                          **kwargs)

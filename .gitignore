@@ -2,6 +2,7 @@
 /docs
 src/swarm_rescue/tools/generated_code.py
 src/swarm_rescue/various
+src/swarm_rescue/solutions_off
 __pycache__
 *.profile
 *.calltree

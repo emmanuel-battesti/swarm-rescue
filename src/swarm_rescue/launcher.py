@@ -1,5 +1,9 @@
+import argparse
 import gc
+import os
+import sys
 from typing import Tuple
+import traceback
 
 from spg_overlay.entities.sensor_disablers import ZoneType
 from spg_overlay.utils.constants import DRONE_INITIAL_HEALTH
@@ -83,7 +87,7 @@ class Launcher:
         self.data_saver = DataSaver(self.team_info, enabled=False)
         self.video_capture_enabled = False
 
-    def one_round(self, eval_config: EvalConfig, num_round: int):
+    def one_round(self, eval_config: EvalConfig, num_round: int, hide_solution_output: bool = False):
         """
         The one_round method is responsible for running a single round of the session. It creates an instance of the
         map class with the specified eval_config, constructs a playground using the construct_playground method
@@ -91,6 +95,8 @@ class Launcher:
         user to interact with. After the GUI finishes, it calculates the score for the exploration of the map and saves
         the images and data related to the round.
         """
+        print("\n********************************")
+
         my_map = eval_config.map_type(eval_config.zones_config)
         self.number_drones = my_map.number_drones
         self.time_step_limit = my_map.time_step_limit
@@ -119,10 +125,32 @@ class Launcher:
                        draw_interactive=False,
                        filename_video_capture=filename_video_capture)
 
+        window_title = f"Team: {team_number_str}   -   Map: {type(my_map).__name__}   -   Round: {num_round_str}"
+        my_gui.set_caption(window_title)
+
         my_map.explored_map.reset()
 
-        # this function below is a blocking function until the round is finished
-        my_gui.run()
+        has_crashed = False
+        error_msg = ""
+
+        if hide_solution_output:
+            original_stdout = sys.stdout
+            sys.stdout = open(os.devnull, 'w')
+
+        try:
+            # this function below is a blocking function until the round is finished
+            my_gui.run()
+        except Exception as error:
+            error_msg = traceback.format_exc()
+            my_gui.close()
+            has_crashed = True
+        finally:
+            if hide_solution_output:
+                sys.stdout.close()
+                sys.stdout = original_stdout
+
+        if has_crashed:
+            print(error_msg)
 
         score_exploration = my_map.explored_map.score() * 100.0
 
@@ -141,13 +169,16 @@ class Launcher:
                 my_gui.rescued_all_time_step,
                 score_exploration, my_gui.rescued_number,
                 my_gui.real_time_elapsed,
-                my_gui.real_time_limit_reached)
+                my_gui.real_time_limit_reached,
+                has_crashed)
 
-    def go(self):
+    def go(self, stop_at_first_crash: bool = False, hide_solution_output: bool = False):
         """
         The go method in the Launcher class is responsible for running the simulation for different eval_config,
          and calculating the score for each one.
         """
+        ok = True
+
         for eval_config in self.eval_plan.list_eval_config:
             gc.collect()
             print("")
@@ -155,18 +186,21 @@ class Launcher:
             if not isinstance(eval_config.zones_config, Tuple) and not isinstance(eval_config.zones_config[0], Tuple):
                 raise ValueError("Invalid eval_config.zones_config. It should be a tuple of tuples of ZoneType.")
 
+            print(f"////////////////////////////////////////////////////////////////////////////////////////////")
             print(f"*** Map: {eval_config.map_name}, special zones: {eval_config.zones_name_casual}")
 
             for num_round in range(eval_config.nb_rounds):
                 gc.collect()
-                result = self.one_round(eval_config, num_round + 1)
+                result = self.one_round(eval_config, num_round + 1, hide_solution_output)
                 (percent_drones_destroyed, mean_drones_health, elapsed_time_step, rescued_all_time_step,
-                 score_exploration, rescued_number, real_time_elapsed, real_time_limit_reached) = result
+                 score_exploration, rescued_number, real_time_elapsed, real_time_limit_reached, has_crashed) = result
 
                 result_score = self.score_manager.compute_score(rescued_number,
                                                                 score_exploration,
                                                                 rescued_all_time_step)
                 (round_score, percent_rescued, score_time_step) = result_score
+
+                mean_drones_health_percent = mean_drones_health / DRONE_INITIAL_HEALTH * 100.
 
                 print(
                     f"\t* Round n°{num_round + 1}/{eval_config.nb_rounds}: "
@@ -175,8 +209,8 @@ class Launcher:
                     f"real time elapsed: {real_time_elapsed:.0f}s/{self.real_time_limit}s, "
                     f"elapse time: {elapsed_time_step}/{self.time_step_limit} steps, "
                     f"time to rescue all: {rescued_all_time_step} steps."
-                    f"\n\t\tpercent of drones destroyed: {percent_drones_destroyed:.1f} %, "
-                    f"mean drones health: {mean_drones_health:.1f}/{DRONE_INITIAL_HEALTH}."
+                    f"\n\t\tpercentage of drones destroyed: {percent_drones_destroyed:.1f} %, "
+                    f"mean percentage of drones health : {mean_drones_health_percent:.1f} %."
                     f"\n\t\tround score: {round_score:.1f}%, "
                     f"frequency: {elapsed_time_step / real_time_elapsed:.2f} steps/s.")
                 if real_time_limit_reached:
@@ -185,7 +219,7 @@ class Launcher:
                 self.data_saver.save_one_round(eval_config,
                                                num_round + 1,
                                                percent_drones_destroyed,
-                                               mean_drones_health,
+                                               mean_drones_health_percent,
                                                percent_rescued,
                                                score_exploration,
                                                elapsed_time_step,
@@ -193,10 +227,28 @@ class Launcher:
                                                rescued_all_time_step,
                                                score_time_step,
                                                round_score)
+
+                if has_crashed:
+                    print(f"\t* WARNING, this program have crashed !")
+                    ok = False
+                    if stop_at_first_crash:
+                        self.data_saver.generate_pdf_report()
+                        return ok
+
         self.data_saver.generate_pdf_report()
+
+        return ok
 
 
 if __name__ == "__main__":
     gc.disable()
+    parser = argparse.ArgumentParser(description="Launcher of a swarm-rescue simulator for the competition")
+    parser.add_argument("--stop_at_first_crash", "-s", action="store_true", help="Stop the code at first crash")
+    parser.add_argument("--hide_solution_output", "-o", action="store_true", help="Hide print output of the solution")
+    args = parser.parse_args()
+
     launcher = Launcher()
-    launcher.go()
+    ok = launcher.go(stop_at_first_crash=args.stop_at_first_crash,
+                     hide_solution_output=args.hide_solution_output)
+    if not ok:
+        exit(1)

@@ -2,6 +2,7 @@ import arcade
 import time
 from typing import Optional, Tuple, List, Dict, Union, Type
 import cv2
+import pyglet
 
 from spg.agent.controller.controller import Command, Controller
 from spg.playground import Playground
@@ -60,6 +61,10 @@ class GuiSR(TopDownView):
         self._playground.window.set_size(*self._size)
         self._playground.window.set_visible(True)
 
+        # image_icon = pyglet.resource.image("resources/drone_v2.png")
+        # self._playground.window.set_icon(image_icon)
+        # Ok for the first round, crash for the second round ! I dont know why...
+
         self._the_map = the_map
         self._drones = self._the_map.drones
         self._number_drones = self._the_map.number_drones
@@ -109,7 +114,7 @@ class GuiSR(TopDownView):
         self._elapsed_time = 0
         self._start_real_time = time.time()
         self._real_time_limit_reached = False
-        self._real_time_elapsed = 0
+        self._real_time_elapsed = 0.001
 
         self._last_image = None
         self._terminate = False
@@ -120,6 +125,12 @@ class GuiSR(TopDownView):
         self._visu_noises = VisuNoises(playground_size=playground.size, drones=self._drones)
 
         self.recorder = ScreenRecorder(self._size[0], self._size[1], fps=30, out_file=filename_video_capture)
+
+    def close(self):
+        self._playground.window.close()
+
+    def set_caption(self, window_title: str):
+        self._playground.window.set_caption(window_title)
 
     def run(self):
         self._playground.window.run()

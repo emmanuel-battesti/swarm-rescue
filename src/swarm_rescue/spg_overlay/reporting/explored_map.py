@@ -15,8 +15,28 @@ def _create_black_white_image(img_playground):
     map_color = cv2.normalize(src=img_playground, dst=None, alpha=0, beta=255,
                               norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
     map_gray = cv2.cvtColor(map_color, cv2.COLOR_BGR2GRAY)
-    ret, map_playground = cv2.threshold(map_gray, 127, 255, cv2.THRESH_BINARY_INV)
+    # In map_playground, walls are black and free zone white
+    ret, map_playground = cv2.threshold(map_gray, 127, 255, cv2.THRESH_BINARY)
     return map_playground
+
+
+def fill_empty_blob_of_wall(map_img):
+    # In map_img, wall should be black and free zone (and inside some walls) should be white.
+    # cv2.imshow("map_img", map_img)
+    # cv2.waitKey(0)
+
+    # Find connected components and count pixels
+    analysis = cv2.connectedComponentsWithStats(map_img)
+    (totalLabels, label_ids, stats, centroid) = analysis
+
+    # Find the index of the biggest component. Label 0 is the wall (background, here) so we start at 1
+    biggest_area_index = np.argmax(stats[1:, cv2.CC_STAT_AREA]) + 1
+
+    filled_wall_map = (label_ids == biggest_area_index).astype("uint8") * 255
+    # cv2.imshow("filled_wall_map", filled_wall_map)
+    # cv2.waitKey(0)
+    # In filled_wall_map, walls are black and free zone white
+    return filled_wall_map
 
 
 class ExploredMap:
@@ -54,6 +74,7 @@ class ExploredMap:
         self._img_playground = np.zeros((0, 0))
         # map_playground : black and white map of the playground without wounded persons and drones
         self._map_playground = np.zeros((0, 0))
+        self._map_shape = (0, 0)
 
         # _map_explo_lines : map of the point visited by drones (all positions of the drones)
         # Initialize _map_explo_lines with 255 (white)
@@ -66,8 +87,7 @@ class ExploredMap:
         # Dictionary to store the last position of each drone
         self._last_position = dict()
 
-        self._count_pixel_walls = 0
-        self._count_pixel_explored = 0
+        self._count_explored_pixels = 0
         self._count_pixel_total = 0
 
         # Flag to indicate if the map has been initialized or not
@@ -79,14 +99,13 @@ class ExploredMap:
         """
         # _map_explo_lines : map of the point visited by drones (all positions of the drones)
         # Initialize _map_explo_lines with 255 (white)
-        self._map_explo_lines = np.ones(self._map_playground.shape, np.uint8) * 255
+        self._map_explo_lines = np.ones(self._map_shape, np.uint8) * 255
         # _map_explo_zones : map of the zone explored by drones
         # Initialize _map_explo_zones with zeros (black)
-        self._map_explo_zones = np.zeros(self._map_playground.shape, np.uint8)
+        self._map_explo_zones = np.zeros(self._map_shape, np.uint8)
         self._explo_pts = dict()
         self._last_position = dict()
-        self._count_pixel_walls = 0
-        self._count_pixel_explored = 0
+        self._count_explored_pixels = 0
         self._count_pixel_total = 0
 
     def _create_image_walls(self, playground: Playground):
@@ -111,14 +130,16 @@ class ExploredMap:
 
         # cv2.imshow("img_playground", img_playground)
         # cv2.waitKey(0)
-        self._map_playground = _create_black_white_image(img_playground)
+        map_playground_tmp = _create_black_white_image(img_playground)
+        self._map_playground = fill_empty_blob_of_wall(map_playground_tmp)
+        self._map_shape = self._map_playground.shape
 
         # _map_explo_lines : map of the point visited by drones (all positions of the drones)
         # Initialize _map_explo_lines with 255 (white)
-        self._map_explo_lines = np.ones(self._map_playground.shape, np.uint8) * 255
+        self._map_explo_lines = np.ones(self._map_shape, np.uint8) * 255
         # _map_explo_zones : map of the zone explored by drones
         # Initialize _map_explo_zones with zeros (black)
-        self._map_explo_zones = np.zeros(self._map_playground.shape, np.uint8)
+        self._map_explo_zones = np.zeros(self._map_shape, np.uint8)
 
     def update_drones(self, drones: [List[DroneAbstract]]):
         """
@@ -149,8 +170,8 @@ class ExploredMap:
         """
         Returns a map with the explored lines highlighted
         """
-        pretty_map = np.zeros(self._map_playground.shape, np.uint8)
-        pretty_map[self._map_playground == 255] = 255
+        pretty_map = np.zeros(self._map_shape, np.uint8)
+        pretty_map[self._map_playground == 0] = 255
         pretty_map[self._map_explo_lines == 0] = 128
         return pretty_map
 
@@ -159,8 +180,8 @@ class ExploredMap:
         Return a nice map of the zones explored.
         Warning, the function score() should have been called before.
         """
-        pretty_map = np.zeros(self._map_playground.shape, np.uint8)
-        pretty_map[self._map_playground == 255] = 255
+        pretty_map = np.zeros(self._map_shape, np.uint8)
+        pretty_map[self._map_playground == 0] = 255
         pretty_map[self._map_explo_zones == 255] = 128
         return pretty_map
 
@@ -202,8 +223,8 @@ class ExploredMap:
             # Using cv2.erode() method
             eroded_image = cv2.erode(eroded_image, kernel, cv2.BORDER_REFLECT)
 
-            # The pixels of the eroded_image where there are walls (map_playground == 255) should stay white (255)
-            eroded_image[self._map_playground == 255] = 255
+            # The pixels of the eroded_image where there are walls (map_playground == 0) should stay white (255)
+            eroded_image[self._map_playground == 0] = 255
 
             # cv2.imshow("eroded_image", eroded_image)
             # cv2.imshow("_map_explo_lines", self._map_explo_lines)
@@ -214,9 +235,10 @@ class ExploredMap:
     def _process_positions_bresenham(self):
         """
         Processes the positions of the drones using Bresenham ray casting algorithm to draw the map of explored zones
+        Not used...
         """
-        width = self._map_playground.shape[1]
-        height = self._map_playground.shape[0]
+        width = self._map_shape[1]
+        height = self._map_shape[0]
 
         radius_explo = 200
         nb_rays = 32
@@ -253,8 +275,8 @@ class ExploredMap:
                     if idx % 4 != 0:
                         continue
 
-                    if self._map_playground[pix[1]][pix[0]] == 0:
-                        self._map_explo_zones[pix[1]][pix[0]] = 255
+                    if self._map_playground[pix[1]][pix[0]] == 255:
+                        self._map_explo_zones[pix[1]][pix[0]] = 0
                     else:
                         break
 
@@ -271,14 +293,29 @@ class ExploredMap:
         # Remove noise and connect point of exploration into a zone
         kernel = circular_kernel(4)
         self._map_explo_zones = cv2.morphologyEx(self._map_explo_zones, cv2.MORPH_CLOSE, kernel)
-        self._map_explo_zones[self._map_playground == 255] = 0
+        self._map_explo_zones[self._map_playground == 0] = 0
         cv2.imshow("_map_explo_zones 2 ", self._map_explo_zones)
         cv2.waitKey(0)
         # Remove the last points of exploration not connected with a zone.
         # kernel = circular_kernel(1)
         # self._map_explo_zones = cv2.morphologyEx(self._map_explo_zones, cv2.MORPH_OPEN, kernel)
         # Remove exploration points inside walls
-        self._map_explo_zones[self._map_playground == 255] = 0
+        self._map_explo_zones[self._map_playground == 0] = 0
+
+    def _compute_reachable_pixels(self):
+        # In self._map_playground, wall are black and free zone are white.
+
+        # Find connected components and count pixels
+        _, labels, stats, _ = cv2.connectedComponentsWithStats(self._map_playground)
+        # Find the index of the biggest component. Label 0 is the wall so we start at 1
+        biggest_area_index = np.argmax(stats[1:, cv2.CC_STAT_AREA]) + 1
+        # Extract area of the biggest component
+        biggest_area = stats[biggest_area_index, cv2.CC_STAT_AREA]
+        count_reachable = biggest_area
+        print("count_reachable v3 =", count_reachable)
+        # for i, area in enumerate(stats[0:, cv2.CC_STAT_AREA]):
+        #     print(f"Component {i} = {area} pixels")
+        return count_reachable
 
     def score(self):
         """
@@ -290,26 +327,13 @@ class ExploredMap:
         # Computing map
         self._process_positions()
 
-        # Computation of the score by counting pixels in the resulting map
-        d = self._map_playground.shape
-        self._count_pixel_total = d[0] * d[1]
-
-        # Compute count_pixel_walls
-        self._count_pixel_walls = cv2.countNonZero(self._map_playground)
-        self._count_pixel_walls += 1592  # cross on rescue center
-        # print("self._count_pixel_walls=", self._count_pixel_walls)
-
-        # Compute count_pixel_explored
-        self._count_pixel_explored = cv2.countNonZero(self._map_explo_zones)
+        # Compute _count_explored_pixels
+        self._count_explored_pixels = cv2.countNonZero(self._map_explo_zones)
         # print("self._count_pixel_explored=", self._count_pixel_explored)
 
-        # Compute percentage_walls
-        # percentage_walls = self._count_pixel_walls / self._count_pixel_total * 100.0
-        # print("total pix=", self._count_pixel_total, " percentage walls=", percentage_walls)
-
-        # Compute percentage_explored
-        count_explorable = self._count_pixel_total - self._count_pixel_walls
-        score = self._count_pixel_explored / count_explorable
+        # Compute percentage of explored pixels
+        count_reachable_pixels = self._compute_reachable_pixels()
+        score = self._count_explored_pixels / count_reachable_pixels
         if score > 1.0:
             score = 1.0
         # print("score exploration as % =", score * 100)
