@@ -4,7 +4,7 @@ from typing import List, Type
 
 from spg.playground import Playground
 
-from spg_overlay.entities.drone_abstract import DroneAbstract, drone_collision_wall, drone_collision_drone
+from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.map_abstract import MapAbstract
@@ -16,8 +16,8 @@ class MyMapRandom(MapAbstract):
     def __init__(self, zones_config: ZonesConfig = ()):
         super().__init__(zones_config)
         self._number_drones = 10
-        self._time_step_limit = 480
-        self._real_time_limit = 22  # In seconds
+        self._max_timestep_limit = 480
+        self._max_walltime_limit = 22  # In seconds
         self._size_area = (1500, 700)
         self._wounded_persons: List[WoundedPerson] = []
 
@@ -32,12 +32,5 @@ class MyMapRandom(MapAbstract):
             y = random.uniform(-self._size_area[1]/2, self._size_area[1]/2)
             angle = random.uniform(-math.pi, math.pi)
             playground.add(self._drones[i], ((x, y), angle))
-
-        playground.add_interaction(CollisionTypes.PART,
-                                   CollisionTypes.ELEMENT,
-                                   drone_collision_wall)
-        playground.add_interaction(CollisionTypes.PART,
-                                   CollisionTypes.PART,
-                                   drone_collision_drone)
 
         return playground

@@ -1,4 +1,3 @@
-from spg_overlay.entities.sensor_disablers import ZoneType
 from spg_overlay.gui_map.gui_sr import GuiSR
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.reporting.evaluation import EvalPlan, ZonesConfig, EvalConfig
@@ -26,7 +25,8 @@ if __name__ == "__main__":
 
     for eval_config in eval_plan.list_eval_config:
         print("")
-        print(f"*** Map {eval_config.map_name}, zones \'{eval_config.zones_name_for_filename}\'")
+        print(f"*** Map {eval_config.map_name}, "
+              f"zones \'{eval_config.zones_name_for_filename}\'")
         my_map = eval_config.map_type(eval_config.zones_config)
         playground = my_map.construct_playground(drone_type=MyDrone)
 

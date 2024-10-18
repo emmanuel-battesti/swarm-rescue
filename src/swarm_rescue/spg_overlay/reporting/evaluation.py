@@ -13,7 +13,8 @@ class EvalConfig:
         - nb de round
     """
 
-    def __init__(self, map_type, zones_config: ZonesConfig = (), nb_rounds=1, config_weight=1):
+    def __init__(self, map_type, zones_config: ZonesConfig = (), nb_rounds=1,
+                 config_weight=1):
         self.zones_config = zones_config
         if self.zones_config is None:
             self.zones_config = ()
@@ -33,7 +34,8 @@ class EvalConfig:
 
 class EvalPlan:
     """
-    Liste de toutes les évaluations à faire, chaque évaluation est un EvalConfig
+    Liste de toutes les évaluations à faire, chaque évaluation est un
+    EvalConfig
     """
 
     def __init__(self):
@@ -48,8 +50,10 @@ class EvalPlan:
         self.sum_weight += eval_config.config_weight
         id_config = len(self.list_eval_config)
         self.list_eval_config[-1].id_config = id_config
-        self.config_description[id_config] = (f"config {id_config} = "
-                                              f"map {eval_config.map_name} + zones \'{eval_config.zones_name_casual}\'")
+        self.config_description[id_config] = \
+            (f"config {id_config} = "
+             f"map {eval_config.map_name} +"
+             f" zones \'{eval_config.zones_name_casual}\'")
 
     def reset(self):
         self.list_eval_config.clear()

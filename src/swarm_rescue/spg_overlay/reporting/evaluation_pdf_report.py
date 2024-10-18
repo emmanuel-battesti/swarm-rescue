@@ -20,11 +20,14 @@ class MyFPDF(FPDF):
         # Arial italic 8
         self.set_font('Arial', 'I', 8)
         # Page number
-        txt = f"Team n°{self.team_number_str} - {self.date_str}  -  Page {self.page_no()}/{{nb}}"
+        txt = (f"Team n°{self.team_number_str} - {self.date_str}  - "
+               f" Page {self.page_no()}/{{nb}}")
         self.cell(w=0, h=10, txt=txt, border=0, ln=0, align='C')
 
-    def cell(self, w=0, h=0, txt='', border=0, ln=0, align='', fill=0, link=''):
-        return super().cell(w=w, h=h, txt=txt, border=border, ln=ln, align=align, fill=fill, link=link)
+    def cell(self, w=0, h=0, txt='', border=0, ln=0,
+             align='', fill=0, link=''):
+        return super().cell(w=w, h=h, txt=txt, border=border, ln=ln,
+                            align=align, fill=fill, link=link)
 
 
 class EvaluationPdfReport:
@@ -37,7 +40,8 @@ class EvaluationPdfReport:
         date = datetime.now()
         self.date_str = date.strftime("%d/%m/%Y - %H:%M")
 
-        self.pdf = MyFPDF(date_str=self.date_str, team_number_str=self.team_number_str,
+        self.pdf = MyFPDF(date_str=self.date_str,
+                          team_number_str=self.team_number_str,
                           orientation='P', unit='mm', format='A4')
         self.pdf.alias_nb_pages()
         self.pdf.add_page()
@@ -76,6 +80,7 @@ class EvaluationPdfReport:
         except FileNotFoundError as error:
             print(f"File {img_filename} was not found for the PDF.")
             self.pdf.cell(txt=f"Error: File {img_filename} was not found...")
+
     def _header(self):
         # Title
         self._title_font()
@@ -93,7 +98,8 @@ class EvaluationPdfReport:
         # Header Team
         self._empty_line(height=1.5)
         self._header_1_font()
-        self.pdf.cell(txt=f'Team n°{self.team_number_str}: {self.team_info.team_name}', align='L')
+        self.pdf.cell(txt=f'Team n°{self.team_number_str}: '
+                          f'{self.team_info.team_name}', align='L')
 
         # Text Members
         self._body_text_font(style='')
@@ -103,7 +109,8 @@ class EvaluationPdfReport:
         # Score
         self._score_text_font()
         self._empty_line(height=1)
-        self.pdf.cell(txt="Final score: %.1f / 100" % self.stats_computation.final_score)
+        self.pdf.cell(txt="Final score: %.1f / 100" %
+                          self.stats_computation.final_score)
 
     def _add_explanation(self):
 
@@ -116,15 +123,23 @@ class EvaluationPdfReport:
         # Text
         text_list = [
             "For each round, different scores are calculated:",
-            "  - Srescue, the score of rescues. This is the injured return proportion to the rescue station,",
-            "  - Sexpl, the exploration score. It depends on the size of the space explored by the drones,",
-            "  - Stime is the ratio of remaining time to the time limit, reflecting exploration efficiency and injured discovery.",
+            "  - Srescue, the score of rescues. This is the injured return "
+            "proportion to the rescue station,",
+            "  - Sexpl, the exploration score. It depends on the size of the "
+            "space explored by the drones,",
+            "  - Shealth, the health return score. It depends on the drone and "
+            "their health return in the return area",
+            "  - Stime is the ratio of remaining time to the time limit, "
+            "reflecting exploration efficiency and injured discovery.",
             "",
-            "A \"round score\" Sr is calculated for each round with this formula:",
-            "Sr = (0.6 * Srescue + 0.2 * Sexpl + 0.2 * Stime)*100",
-            "Then, each configuration (map + zones) averages multiple rounds to generate a 'config score.'",
+            "A \"round score\" Sr is calculated for each round with this "
+            "formula:",
+            "Sr = (0.5 * Srescue + 0.2 * Sexpl + 0.2 * Shealth + 0.1 * Stime)*100",
+            "Then, each configuration (map + zones) averages multiple rounds "
+            "to generate a 'config score.'",
             "",
-            "Finally, a final score is calculated as the weighted average of the config scores.",
+            "Finally, a final score is calculated as the weighted average of "
+            "the config scores.",
         ]
 
         self._body_text_font()
@@ -168,7 +183,8 @@ class EvaluationPdfReport:
         self._empty_line(height=1)
 
         text_list = [
-            "In this table below, you will find the score for each configuration and round.",
+            "In this table below, you will find the score for each "
+            "configuration and round.",
         ]
 
         self._body_text_font()
@@ -178,7 +194,7 @@ class EvaluationPdfReport:
         self._empty_line(height=0.5)
 
         # column width for a 5-columns table (double column for the first one)
-        col_width = self.epw / 5.5
+        col_width = self.epw / 6.75
 
         df_detailed = self.stats_computation.df_detailed
 
@@ -188,10 +204,12 @@ class EvaluationPdfReport:
         for index, col_name in enumerate(df_detailed.columns):
             self.pdf.set_xy(x, y)
             if index == 0:
-                self.pdf.multi_cell(w=0.5 * col_width, h=0.8 * self.th, txt=col_name, border=1, align='C')
-                x += 0.5 * col_width
+                self.pdf.multi_cell(w=0.75 * col_width, h=0.8 * self.th,
+                                    txt=col_name, border=1, align='C')
+                x += 0.75 * col_width
             else:
-                self.pdf.multi_cell(w=col_width, h=0.8 * self.th, txt=col_name, border=1, align='C')
+                self.pdf.multi_cell(w=col_width, h=0.8 * self.th,
+                                    txt=col_name, border=1, align='C')
                 x += col_width
 
         for row in df_detailed.itertuples():
@@ -203,18 +221,22 @@ class EvaluationPdfReport:
                     continue
 
                 if index_col == 1:
-                    self.pdf.multi_cell(w=0.5 * col_width, h=0.7 * self.th, txt=str(value), border=1, align='C')
-                    x += 0.5 * col_width
+                    self.pdf.multi_cell(w=0.75 * col_width, h=0.7 * self.th,
+                                        txt=str(value), border=1, align='C')
+                    x += 0.75 * col_width
                 else:
-                    self.pdf.multi_cell(w=col_width, h=0.7 * self.th, txt=str(value), border=1, align='C')
+                    self.pdf.multi_cell(w=col_width, h=0.7 * self.th,
+                                        txt=str(value), border=1, align='C')
                     x += col_width
 
     def _add_perf_freq_health(self):
         text_list = [
-            f"Average computation frequency over all rounds: {self.stats_computation.mean_computation_freq:.1f} steps/s.",
+            f"Average computation frequency over all rounds: "
+            f"{self.stats_computation.mean_computation_freq:.1f} steps/s.",
             f"Percentage of drones destroyed in collisions over of all rounds: "
             f"{self.stats_computation.percent_drones_destroyed:.1f} %.",
-            f"Average percentage of drone health over all rounds: {self.stats_computation.mean_drones_health_percent:.0f} %.",
+            f"Average percentage of drone health over all rounds: "
+            f"{self.stats_computation.mean_drones_health_percent:.0f} %.",
         ]
 
         self._body_text_font()
@@ -230,7 +252,8 @@ class EvaluationPdfReport:
         self._empty_line(height=1)
 
         text_list = [
-            "In this table below, you will find the average score, across all rounds, for each configuration.",
+            "In this table below, you will find the average score, across all "
+            "rounds, for each configuration.",
         ]
 
         self._body_text_font()
@@ -251,10 +274,12 @@ class EvaluationPdfReport:
         for index, col_name in enumerate(df_summary.columns):
             self.pdf.set_xy(x, y)
             if index == 0:
-                self.pdf.multi_cell(w=0.5 * col_width, h=0.8 * self.th, txt=col_name, border=1, align='C')
+                self.pdf.multi_cell(w=0.5 * col_width, h=0.8 * self.th,
+                                    txt=col_name, border=1, align='C')
                 x += 0.5 * col_width
             else:
-                self.pdf.multi_cell(w=col_width, h=0.8 * self.th, txt=col_name, border=1, align='C')
+                self.pdf.multi_cell(w=col_width, h=0.8 * self.th,
+                                    txt=col_name, border=1, align='C')
                 x += col_width
 
         for row in df_summary.itertuples():
@@ -266,14 +291,17 @@ class EvaluationPdfReport:
                     continue
 
                 if index_col == 1:
-                    self.pdf.multi_cell(w=0.5 * col_width, h=0.7 * self.th, txt=str(value), border=1, align='C')
+                    self.pdf.multi_cell(w=0.5 * col_width, h=0.7 * self.th,
+                                        txt=str(value), border=1, align='C')
                     x += 0.5 * col_width
                 else:
-                    self.pdf.multi_cell(w=col_width, h=0.7 * self.th, txt=str(value), border=1, align='C')
+                    self.pdf.multi_cell(w=col_width, h=0.7 * self.th,
+                                        txt=str(value), border=1, align='C')
                     x += col_width
 
         text_list = [
-            f"We can now calculate the final weighted score: {self.stats_computation.final_score:.1f} / 100",
+            f"We can now calculate the final weighted score: "
+            f"{self.stats_computation.final_score:.1f} / 100",
         ]
 
         self._body_text_font()
@@ -287,34 +315,38 @@ class EvaluationPdfReport:
 
         df_graph_scores = self.stats_computation.df_graph_scores
 
-        y_sauv, y_explo, y_temps, y_score = [], [], [], []
-        legend = ['Rescues', 'Exploration', 'Remaining time', 'Config Score']
+        y_sauv, y_explo, y_health, y_temps, y_score = [], [], [], [], []
+        legend = ['Rescues', 'Exploration', 'Health return', 'Remaining time',
+                  'Final Config Score']
         # We use a min value not null for display purpose
-        config_list = []
         min_val_display = 1.0
         for index, row in df_graph_scores.iterrows():
             y_sauv.append(max(row["Rescued Percent"], min_val_display))
             y_explo.append(max(row["Exploration Score"], min_val_display))
+            y_health.append(max(row["Health Return Score"], min_val_display))
             y_temps.append(max(row["Time Score"], min_val_display))
             y_score.append(max(row["Round Score"], min_val_display))
-            config_list.append(index)
 
         width = 0.10  # thickness of each bar
         dist = 0.12  # distance between the centers of the bars
         pos = np.arange(df_graph_scores.shape[0])
         y_scale = np.arange(0, 110, 10)
         # Creation of the bar chart
-        plt.bar(pos - 1.5 * dist, y_sauv, width, color='firebrick')
-        plt.bar(pos - 0.5 * dist, y_explo, width, color='steelblue')
-        plt.bar(pos + 0.5 * dist, y_temps, width, color='darkolivegreen')
-        plt.bar(pos + 1.5 * dist + 0.06, y_score, width + 0.12, color='goldenrod')
-        plt.xticks(pos, config_list)
+        plt.bar(pos - 2 * dist, y_sauv, width, color='firebrick')
+        plt.bar(pos - 1 * dist, y_explo, width, color='steelblue')
+        plt.bar(pos     * dist, y_health, width, color='darkviolet')
+        plt.bar(pos + 1 * dist, y_temps, width, color='darkolivegreen')
+        plt.bar(pos + 3 * dist + 0.06, y_score, width + 0.12,
+                color='goldenrod')
+        plt.xticks([], [])
         plt.yticks(y_scale)
-        plt.ylabel('Success rate')
-        plt.xlabel('Config')
+        plt.ylabel('Score')
+        plt.xlabel('Criteria')
         plt.legend(legend, loc=1)
-        filename_graph = self.path + f'/graph_performance_team{self.team_number_str}.png'
-        plt.savefig(filename_graph, format='png', bbox_inches='tight', dpi=200)
+        filename_graph = (self.path +
+                          f'/graph_performance_team{self.team_number_str}.png')
+        plt.savefig(filename_graph, format='png',
+                    bbox_inches='tight', dpi=200)
 
         # Header 1
         self._header_1_font()
@@ -322,11 +354,13 @@ class EvaluationPdfReport:
         self._empty_line(height=1.0)
 
         offset = 20
-        self._center_image(img_filename=filename_graph, offset_from_left_margin=offset)
+        self._center_image(img_filename=filename_graph,
+                           offset_from_left_margin=offset)
 
     def _add_screenshots(self):
         """
-        We want to show the end images of the best rounds of each configuration.
+        We want to show the end images of the best rounds of each
+        configuration.
         """
         df_screenshots = self.stats_computation.df_screenshots
         offset = 20
@@ -342,7 +376,8 @@ class EvaluationPdfReport:
                 self.pdf.add_page()
                 self._header_1_font()
                 self.pdf.multi_cell(w=0, h=7,
-                                    txt=f"Simulation details with the configuration n°{id_conf}")
+                                    txt=f"Simulation details with the "
+                                        f"configuration n°{id_conf}")
                 self._empty_line(height=0.25)
 
                 text_list = [
@@ -359,46 +394,60 @@ class EvaluationPdfReport:
 
                 best_rd_str = str(row["Round"])
                 round_score = str(row["Round Score"])
-                mean_computation_freq = row["Elapsed Time Step"] / row["Real Time Elapsed"]
+                mean_computation_freq = (row["Elapsed Time Step"] /
+                                         row["Real Time Elapsed"])
                 mean_drones_health_percent = row["Mean Health Percent"]
                 percent_drones_destroyed = row["Percent Drones Destroyed"]
 
                 self._body_text_font(style='B')
-                self.pdf.cell(txt=f"Best round: n°{best_rd_str}, score = {round_score} %")
+                self.pdf.cell(txt=f"Best round: n°{best_rd_str}, "
+                                  f"score = {round_score} %")
                 self._empty_line(height=0.7)
                 self._body_text_font()
-                self.pdf.cell(txt=f"Mean computation frequency = {mean_computation_freq:.1f} steps/s")
+                self.pdf.cell(txt=f"Mean computation frequency = "
+                                  f"{mean_computation_freq:.1f} steps/s")
                 self._empty_line(height=0.7)
-                self.pdf.cell(txt=f"Percentage of drones destroyed = {percent_drones_destroyed:.1f} %")
+                self.pdf.cell(txt=f"Percentage of drones destroyed = "
+                                  f"{percent_drones_destroyed:.1f} %")
                 self._empty_line(height=0.7)
-                self.pdf.cell(txt=f"Percentage of drones health = {mean_drones_health_percent:.0f} %")
+                self.pdf.cell(txt=f"Percentage of drones health = "
+                                  f"{mean_drones_health_percent:.0f} %")
                 self._empty_line(height=1)
                 self._body_text_font()
                 self.pdf.cell(txt="Last image of the simulation:")
 
                 self._empty_line(height=0.5)
                 filename_last_img = (f"{self.path}/"
-                                     f"screen_{map_name}_{zones_name}_rd{best_rd_str}_team{self.team_number_str}.png")
+                                     f"screen_{map_name}_{zones_name}"
+                                     f"_rd{best_rd_str}"
+                                     f"_team{self.team_number_str}.png")
 
-                self._center_image(img_filename=filename_last_img, offset_from_left_margin=offset)
+                self._center_image(img_filename=filename_last_img,
+                                   offset_from_left_margin=offset)
                 self._empty_line(height=1)
 
                 self.pdf.cell(txt="Exploration map: ")
 
                 self._empty_line(height=0.5)
                 filename_explo = (f"{self.path}/"
-                                  f"screen_explo_{map_name}_{zones_name}_rd{best_rd_str}_team{self.team_number_str}.png")
+                                  f"screen_explo_{map_name}_{zones_name}"
+                                  f"_rd{best_rd_str}"
+                                  f"_team{self.team_number_str}.png")
 
-                self._center_image(img_filename=filename_explo, offset_from_left_margin=offset)
+                self._center_image(img_filename=filename_explo,
+                                   offset_from_left_margin=offset)
                 self._empty_line(height=1)
 
                 self.pdf.cell(txt="Map of drone routes: ")
 
                 self._empty_line(height=0.5)
                 filename_routes = (f"{self.path}/"
-                                   f"screen_path_{map_name}_{zones_name}_rd{best_rd_str}_team{self.team_number_str}.png")
+                                   f"screen_path_{map_name}_{zones_name}"
+                                   f"_rd{best_rd_str}"
+                                   f"_team{self.team_number_str}.png")
 
-                self._center_image(img_filename=filename_routes, offset_from_left_margin=offset)
+                self._center_image(img_filename=filename_routes,
+                                   offset_from_left_margin=offset)
                 self._empty_line(height=1)
 
     def _print_data_website(self):
@@ -410,12 +459,19 @@ class EvaluationPdfReport:
                 configuration = row["Configuration"]
                 rescued_percent = row["Rescued Percent"]
                 exploration_score = row["Exploration Score"]
+                health_return_score = row["Health Return Score"]
                 time_score = row["Time Score"]
                 drone_health_percent = row["Mean Health Percent"]
                 config_score = row["Config Score"]
 
-                print(f"{self.team_info.team_number},{configuration},{rescued_percent},"
-                      f"{exploration_score},{time_score},{drone_health_percent},{config_score}")
+                print(f"{self.team_info.team_number},"
+                      f"{configuration},"
+                      f"{rescued_percent},"
+                      f"{exploration_score},"
+                      f"{health_return_score},"
+                      f"{time_score},"
+                      f"{drone_health_percent},"
+                      f"{config_score}")
 
     def generate_pdf(self, stats_computation: StatsComputation):
         self.stats_computation = stats_computation
@@ -436,4 +492,4 @@ class EvaluationPdfReport:
 
             self._print_data_website()
         else:
-            print(f"self.stats_computation is None !!")
+            print("self.stats_computation is None !!")

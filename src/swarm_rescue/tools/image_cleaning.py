@@ -21,7 +21,8 @@ def wall_width_correction(image_source: cv2.Mat) -> cv2.Mat:
         # print("")
         for j in range(cols):
             print_progress_bar(index=i * cols + j, total=cols * rows - 1,
-                               label="wall_width_correction : line by line processing")
+                               label="wall_width_correction : line by line "
+                                     "processing")
             value = img[i, j]
             if value == 0 and prev_value == 255:
                 j_start = j
@@ -62,7 +63,8 @@ def wall_width_correction(image_source: cv2.Mat) -> cv2.Mat:
         # print("")
         for i in range(rows):
             print_progress_bar(index=i + j * rows, total=cols * rows - 1,
-                               label="wall_width_correction : col by col processing")
+                               label="wall_width_correction : "
+                                     "col by col processing")
             value = img[i, j]
             if value == 0 and prev_value == 255:
                 i_start = i
@@ -114,7 +116,8 @@ def remove_white_patch(image_source: cv2.Mat) -> cv2.Mat:
         white_size = 0
         for j in range(cols):
             print_progress_bar(index=i * cols + j, total=cols * rows - 1,
-                               label="remove_white_patch : line by line processing")
+                               label="remove_white_patch : "
+                                     "line by line processing")
             value = img[i, j]
             if value == 255 and prev_value == 0:
                 j_start = j
@@ -145,7 +148,8 @@ def remove_white_patch(image_source: cv2.Mat) -> cv2.Mat:
         # print("")
         for i in range(rows):
             print_progress_bar(index=i + j * rows, total=cols * rows - 1,
-                               label="remove_white_patch : col by col processing")
+                               label="remove_white_patch : "
+                                     "col by col processing")
             value = img[i, j]
             if value == 255 and prev_value == 0:
                 i_start = i
@@ -186,7 +190,8 @@ def remove_black_patch(image_source: cv2.Mat) -> cv2.Mat:
         black_size = 0
         for j in range(cols):
             print_progress_bar(index=i * cols + j, total=cols * rows - 1,
-                               label="remove_black_patch : line by line processing")
+                               label="remove_black_patch : "
+                                     "line by line processing")
             value = img[i, j]
             if value == 0 and prev_value == 255:
                 j_start = j
@@ -217,7 +222,8 @@ def remove_black_patch(image_source: cv2.Mat) -> cv2.Mat:
         # print("")
         for i in range(rows):
             print_progress_bar(index=i + j * rows, total=cols * rows - 1,
-                               label="remove_black_patch : col by col processing")
+                               label="remove_black_patch : "
+                                     "col by col processing")
             value = img[i, j]
             if value == 0 and prev_value == 255:
                 i_start = i
@@ -254,11 +260,17 @@ def remove_noise(image_source: cv2.Mat) -> cv2.Mat:
     size_kernel_1 = 21
     size_kernel_2 = 5
     kernel = np.ones((size_kernel_2, size_kernel_1), np.uint8)
-    img_closing_horiz = cv2.morphologyEx(img_opening, cv2.MORPH_CLOSE, kernel, iterations=1)
+    img_closing_horiz = cv2.morphologyEx(img_opening,
+                                         cv2.MORPH_CLOSE,
+                                         kernel,
+                                         iterations=1)
     # cv2.imshow("img_closing_horiz", img_closing_horiz)
 
     kernel = np.ones((size_kernel_1, size_kernel_2), np.uint8)
-    img_closing_verti = cv2.morphologyEx(img_opening, cv2.MORPH_CLOSE, kernel, iterations=1)
+    img_closing_verti = cv2.morphologyEx(img_opening,
+                                         cv2.MORPH_CLOSE,
+                                         kernel,
+                                         iterations=1)
     # cv2.imshow("img_closing_verti", img_closing_verti)
 
     img_closing = cv2.min(img_closing_horiz, img_closing_verti)
@@ -271,8 +283,10 @@ def image_cleaning(image_source: cv2.Mat) -> cv2.Mat:
     return img_clean
 
 
-img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/map_data/map_medium_01_color.png"
-# img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/map_data/map_complete_map_2.png"
+img_path = ("/home/battesti/projetCompetDronesDGA/private-swarm-rescue/"
+            "map_data/map_medium_01_color.png")
+# img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/
+#            "map_data/map_complete_map_2.png"
 print("image path : {}".format(img_path))
 img_source = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
 cv2.imshow("img_source", img_source)
@@ -289,6 +303,7 @@ cv2.imshow("img_clean3", img_clean3)
 img_clean4 = remove_white_patch(img_clean3)
 cv2.imshow("img_clean4", img_clean4)
 
-cv2.imwrite('/home/battesti/projetCompetDronesDGA/private-swarm-rescue/map_data/map_clean.png', img_clean4)
+cv2.imwrite('/home/battesti/projetCompetDronesDGA/private-swarm-rescue/'
+            'map_data/map_clean.png', img_clean4)
 
 cv2.waitKey(0)

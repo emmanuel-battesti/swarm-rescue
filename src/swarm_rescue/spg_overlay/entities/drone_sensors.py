@@ -10,8 +10,9 @@ from spg_overlay.utils.utils_noise import AutoregressiveModelNoise, GaussianNois
 
 class DroneGPS(InternalSensor, ABC):
     """
-      The DroneGPS class is a subclass of InternalSensor that represents a GPS sensor for a drone. It returns the
-      position of the drone as a numpy array, with a noise that follows an autoregressive model of order 1
+      The DroneGPS class is a subclass of InternalSensor that represents a GPS
+      sensor for a drone. It returns the position of the drone as a numpy
+      array, with a noise that follows an autoregressive model of order 1
     """
 
     def __init__(self, **kwargs):
@@ -38,7 +39,8 @@ class DroneGPS(InternalSensor, ABC):
                 all(isinstance(num, (int, float)) and num > 0 for num in size)):
             self._pg_size = size
         else:
-            raise ValueError("Invalid playground size. Size should be a tuple of two positive numbers.")
+            raise ValueError("Invalid playground size. Size should be a tuple "
+                             "of two positive numbers.")
 
     def _apply_normalization(self):
         if self._pg_size:
@@ -63,8 +65,10 @@ class DroneGPS(InternalSensor, ABC):
 
     def _apply_noise(self):
         """
-        Overload of an internal function of _apply_noise of the class InternalSensor
-        We use a noise that follow an autoregressive model of order 1 : https://en.wikipedia.org/wiki/Autoregressive_model#AR(1)
+        Overload of an internal function of _apply_noise of the class
+        InternalSensor.
+        We use a noise that follow an autoregressive model of order 1 :
+         https://en.wikipedia.org/wiki/Autoregressive_model#AR(1)
         """
         self._values = self._noise_model.add_noise(self._values)
 
@@ -83,8 +87,9 @@ class DroneCompass(InternalSensor):
         self._noise = True
         model_param = 0.98
         self.std_dev_noise_angle = deg2rad(4.0)
-        self._noise_model = AutoregressiveModelNoise(model_param=model_param,
-                                                     std_dev_noise=self.std_dev_noise_angle)
+        self._noise_model = (
+            AutoregressiveModelNoise(model_param=model_param,
+                                     std_dev_noise=self.std_dev_noise_angle))
 
         self._null_sensor = np.nan
 
@@ -115,8 +120,10 @@ class DroneCompass(InternalSensor):
 
     def _apply_noise(self):
         """
-        Overload of an internal function of _apply_noise of the class InternalSensor
-        We use a noise that follow an autoregressive model of order 1 : https://en.wikipedia.org/wiki/Autoregressive_model#AR(1)
+        Overload of an internal function of _apply_noise of the class
+        InternalSensor
+        We use a noise that follow an autoregressive model of order 1 :
+        https://en.wikipedia.org/wiki/Autoregressive_model#AR(1)
         """
         angle = self._noise_model.add_noise(self._values)
         self._values = normalize_angle(angle)
@@ -129,8 +136,10 @@ class DroneOdometer(InternalSensor):
     """
       DroneOdometer sensor returns a numpy array containing:
       - dist_travel, the distance of the travel of the drone during one step
-      - alpha, the relative angle of the current position seen from the previous reference frame of the drone
-      - theta, the variation of orientation (or rotation) of the drone during the last step in the reference frame
+      - alpha, the relative angle of the current position seen from the
+      previous reference frame of the drone
+      - theta, the variation of orientation (or rotation) of the drone during
+      the last step in the reference frame
     """
 
     def __init__(self, **kwargs):
@@ -167,7 +176,8 @@ class DroneOdometer(InternalSensor):
         if self.prev_angle is None:
             self.prev_angle = self._anchor.angle
 
-        alpha = math.atan2(travel_vector[1], travel_vector[0]) - self.prev_angle
+        alpha = (math.atan2(travel_vector[1], travel_vector[0]) -
+                 self.prev_angle)
         self._values[1] = normalize_angle(alpha)
 
         # THETA
@@ -200,9 +210,11 @@ class DroneOdometer(InternalSensor):
 
     def _apply_noise(self):
         """
-        Overload of an internal function of _apply_noise of the class InternalSensor
+        Overload of an internal function of _apply_noise of the class
+        InternalSensor
         """
-        noisy_dist_travel = self._noise_dist_travel_model.add_noise(self._values[0])
+        noisy_dist_travel = (
+            self._noise_dist_travel_model.add_noise(self._values[0]))
         # print("travel: {:2f}, noisy_dist_travel: {:2f}".format(dist_travel, noisy_dist_travel))
 
         noisy_alpha = self._noise_alpha_model.add_noise(self._values[1])

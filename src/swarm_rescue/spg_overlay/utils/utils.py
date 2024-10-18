@@ -13,7 +13,8 @@ def normalize_angle(angle, zero_2_2pi=False):
       ----------
       angle : float or array_like
           A angle or an array of angles. This array is flattened for
-          the calculation. When an angle is provided, a float angle is returned.
+          the calculation. When an angle is provided, a float angle is
+          returned.
       zero_2_2pi : bool, optional
           Change angle modulo range to [0, 2pi)
           Default is False.
@@ -56,8 +57,9 @@ def sign(x):
 
 def rad2deg(angle: Union[int, float]) -> Union[int, float]:
     """
-    The rad2deg function takes a value in radians and converts it to degrees using the math.degrees function from the
-    math module. If the input value is None, the function returns None.
+    The rad2deg function takes a value in radians and converts it to degrees
+    using the math.degrees function from the math module. If the input value is
+    None, the function returns None.
 
     Example Usage
         # Convert 1.5708 radians to degrees
@@ -89,8 +91,9 @@ def rad2deg(angle: Union[int, float]) -> Union[int, float]:
 
 def deg2rad(angle: Union[int, float]) -> Union[int, float]:
     """
-    The deg2rad function is used to convert an angle from degrees to radians. It takes an angle as input and returns
-    the corresponding angle in radians. If the input angle is None, the function returns None.
+    The deg2rad function is used to convert an angle from degrees to radians.
+    It takes an angle as input and returns the corresponding angle in radians.
+    If the input angle is None, the function returns None.
 
     Example Usage
         angle_in_degrees = 45
@@ -122,8 +125,8 @@ def circular_mean(angles: np.ndarray):
 def bresenham(start, end):
     """
     Implementation of Bresenham's line drawing algorithm.
-    It takes two points, start and end, as inputs and returns an array of points that form a line between
-     the two points.
+    It takes two points, start and end, as inputs and returns an array of
+    points that form a line between the two points.
     See en.wikipedia.org/wiki/Bresenham's_line_algorithm
 
     Produces a np.array from start and end (original from roguebasin.com)
@@ -172,13 +175,13 @@ def bresenham(start, end):
 
 def circular_kernel(radius):
     """
-    The function cv2.getStructuringElement(cv2.MORPH_ELLIPSE, ...) of OpenCV is not satisfying because
-    the result is not symmetrical...
+    The function cv2.getStructuringElement(cv2.MORPH_ELLIPSE, ...) of OpenCV is
+    not satisfying because the result is not symmetrical...
     So here we use this code to do it. This was find here :
     https://stackoverflow.com/questions/8647024/how-to-apply-a-disc-shaped-mask-to-a-numpy-array
     :param radius:
-    :return: circle structuring element, that is, a filled circle inscribed into the
-    rectangle Rect(0, 0, 2*radius + 1, 2*radius + 1)
+    :return: circle structuring element, that is, a filled circle inscribed
+    into the rectangle Rect(0, 0, 2*radius + 1, 2*radius + 1)
     """
 
     if not isinstance(radius, int) or radius <= 0:
@@ -191,7 +194,8 @@ def circular_kernel(radius):
     return kernel
 
 
-def clamp(val: Union[float, int], min_val: Union[float, int], max_val: Union[float, int]):
+def clamp(val: Union[float, int], min_val: Union[float, int],
+          max_val: Union[float, int]):
     if val < min_val:
         return min_val
     elif val > max_val:

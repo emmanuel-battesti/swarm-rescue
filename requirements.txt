@@ -1,24 +1,10 @@
-PyYAML
-pymunk>=6.4.0
-numpy
-scikit-image
-Pillow
-pytest
-opencv-contrib-python==4.8.0.74
-matplotlib
-setuptools
--e git+https://github.com/emmanuel-battesti/simple-playgrounds.git@swarm-rescue-v2#egg=spg
+-e git+https://github.com/emmanuel-battesti/simple-playgrounds.git@swarm-rescue-v3#egg=spg
 #-e /home/battesti/projetCompetDronesDGA/simple-playgrounds
-#simple-playgrounds
-#spg
-fpdf
-pandas==2.0.3
-pathlib2
-gym
-arcade==2.6.17
-tripy
-python-statemachine
-
-numba
 coverage
+fpdf>=1.7.2
 gprof2dot
+numba>=0.58.1
+opencv-contrib-python>=4.10.0.84
+pandas>=2.0.3
+pathlib2>=2.3.7.post1
+python-statemachine>=2.3.6

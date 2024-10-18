@@ -7,7 +7,8 @@ class Path:
         self._poses = np.zeros((0, 3))
 
     def append(self, pose: Pose):
-        my_array_pose = [[pose.position[0], pose.position[1], pose.orientation]]
+        my_array_pose = \
+            [[pose.position[0], pose.position[1], pose.orientation]]
         self._poses = np.append(self._poses, my_array_pose, axis=0)
 
     def length(self) -> int:

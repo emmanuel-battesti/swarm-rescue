@@ -13,7 +13,8 @@ def test_start_timer():
 
 
 def test_pause_and_resume_timer():
-    """Tests that the timer can be paused and resumed and the elapsed time is correct"""
+    """Tests that the timer can be paused and resumed and the elapsed time
+    is correct"""
     timer = Timer()
     timer.start()
     time.sleep(0.1)  # Simulate some processing time
@@ -26,7 +27,8 @@ def test_pause_and_resume_timer():
 
 
 def test_stop_timer():
-    """Tests that the timer can be stopped and the elapsed time is correct"""
+    """Tests that the timer can be stopped and the elapsed time is
+     correct"""
     timer = Timer()
     timer.start()
     time.sleep(0.1)  # Simulate some processing time
@@ -37,7 +39,8 @@ def test_stop_timer():
 
 
 def test_restart_timer():
-    """Tests that the timer can be restarted and the elapsed time is reset"""
+    """Tests that the timer can be restarted and the elapsed time is
+     reset"""
     timer = Timer()
     timer.start()
     time.sleep(0.1)  # Simulate some processing time
@@ -70,7 +73,8 @@ def test_get_timer_state_as_string():
 
 
 def test_start_timer_multiple_times():
-    """Tests that the timer can be started multiple times and the elapsed time is correct"""
+    """Tests that the timer can be started multiple times and the
+    elapsed time is correct"""
     timer = Timer()
     timer.start()
     time.sleep(0.1)  # Simulate some processing time
@@ -94,7 +98,8 @@ def test_start_timer_multiple_times():
 
 
 def test_pause_timer_multiple_times():
-    """Tests that the timer can be paused multiple times and the elapsed time is correct"""
+    """Tests that the timer can be paused multiple times and the
+    elapsed time is correct"""
     timer = Timer()
     timer.start()
     time.sleep(0.1)  # Simulate some processing time

@@ -5,10 +5,11 @@ from typing import List, Type
 from spg.playground import Playground
 from spg.utils.definitions import CollisionTypes
 
-from spg_overlay.entities.drone_abstract import DroneAbstract, drone_collision_wall, drone_collision_drone
-from spg_overlay.entities.rescue_center import RescueCenter, wounded_rescue_center_collision
-from spg_overlay.entities.sensor_disablers import ZoneType, NoComZone, NoGpsZone, KillZone, \
-    srdisabler_disables_device
+from spg_overlay.entities.drone_abstract import DroneAbstract
+from spg_overlay.entities.rescue_center import RescueCenter
+from spg_overlay.entities.return_area import ReturnArea
+from spg_overlay.entities.sensor_disablers import (ZoneType, NoComZone,
+                                                   NoGpsZone, KillZone)
 from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.map_abstract import MapAbstract
@@ -22,11 +23,14 @@ class MyMapMedium02(MapAbstract):
 
     def __init__(self, zones_config: ZonesConfig = ()):
         super().__init__(zones_config)
-        self._time_step_limit = 7200
-        self._real_time_limit = 720  # In seconds
+        self._max_timestep_limit = 7200
+        self._max_walltime_limit = 720  # In seconds
 
         # PARAMETERS MAP
         self._size_area = (1113, 750)
+
+        self._return_area = ReturnArea(size=(202, 180))
+        self._return_area_pos = ((442, 160), 0)
 
         self._rescue_center = RescueCenter(size=(202, 101))
         self._rescue_center_pos = ((442, 306), 0)
@@ -71,11 +75,7 @@ class MyMapMedium02(MapAbstract):
     def construct_playground(self, drone_type: Type[DroneAbstract]) -> Playground:
         playground = ClosedPlayground(size=self._size_area)
 
-        # RESCUE CENTER
-        playground.add_interaction(CollisionTypes.GEM,
-                                   CollisionTypes.ACTIVABLE_BY_GEM,
-                                   wounded_rescue_center_collision)
-
+        playground.add(self._return_area, self._return_area_pos)
         playground.add(self._rescue_center, self._rescue_center_pos)
 
         add_walls(playground)
@@ -84,10 +84,6 @@ class MyMapMedium02(MapAbstract):
         self._explored_map.initialize_walls(playground)
 
         # DISABLER ZONES
-        playground.add_interaction(CollisionTypes.DISABLER,
-                                   CollisionTypes.DEVICE,
-                                   srdisabler_disables_device)
-
         if ZoneType.NO_COM_ZONE in self._zones_config:
             playground.add(self._no_com_zone, self._no_com_zone_pos)
 
@@ -106,17 +102,12 @@ class MyMapMedium02(MapAbstract):
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
-                             number_drones=self._number_drones)
+                             number_drones=self._number_drones,
+                             max_timestep_limit=self._max_timestep_limit,
+                             max_walltime_limit=self._max_walltime_limit)
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
             playground.add(drone, self._drones_pos[i])
-
-        playground.add_interaction(CollisionTypes.PART,
-                                   CollisionTypes.ELEMENT,
-                                   drone_collision_wall)
-        playground.add_interaction(CollisionTypes.PART,
-                                   CollisionTypes.PART,
-                                   drone_collision_drone)
 
         return playground

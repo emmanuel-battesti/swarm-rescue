@@ -1,6 +1,5 @@
 """
 This program can be launched directly.
-Example of how to control one drone
 """
 
 import math
@@ -12,7 +11,8 @@ import arcade
 import numpy as np
 
 # This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0,
+                os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from spg_overlay.utils.path import Path
 from spg_overlay.utils.pose import Pose
@@ -29,12 +29,12 @@ class MyDronePid(DroneAbstract):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.counter = 0
-        self.angle_consigne = 0
+        self.angle_setpoint = 0.0
         self.counter_change_direction = 40
 
         self.iter_path = 0
         self.path_done = Path()
-        self.prev_diff_angle = 0
+        self.prev_diff_angle = 0.0
 
     def define_message_for_all(self):
         """
@@ -48,36 +48,31 @@ class MyDronePid(DroneAbstract):
         """
         self.iter_path += 1
         if self.iter_path % 3 == 0:
-            position = np.array([self.true_position()[0], self.true_position()[1]])
+            position = np.array([self.true_position()[0],
+                                 self.true_position()[1]])
             angle = self.true_angle()
             pose = Pose(position=position, orientation=angle)
             self.path_done.append(pose)
 
         self.counter += 1
         if self.counter % self.counter_change_direction == 0:
-            self.angle_consigne = normalize_angle(self.angle_consigne + np.pi / 2)
+            self.angle_setpoint = normalize_angle(self.angle_setpoint +
+                                                  np.pi / 2)
             print("*******************************")
 
-        diff_angle = normalize_angle(self.angle_consigne - self.true_angle())
+        diff_angle = normalize_angle(self.angle_setpoint - self.true_angle())
 
         deriv_diff_angle = normalize_angle(diff_angle - self.prev_diff_angle)
-        # PD filter, cf. https://fr.wikipedia.org/wiki/M%C3%A9thode_de_Ziegler-Nichols
-        Ku = 11.16  # Gain debut oscillation maintenue en P pure
-        Tu = 2.0  # Période d'oscillation
-        Kp = 0.8 * Ku
-        Kd = Ku * Tu / 40.0
+        Kp = 9.0
+        Kd = 0.6
         rotation = Kp * diff_angle + Kd * deriv_diff_angle
-        # P filter
-        # Ku = 11.6
-        # Kp = 0.5* Ku
-        # rotation = Kp * diff_angle
 
         rotation = clamp(rotation, -1.0, 1.0)
         print("counter", self.counter, "angle", self.true_angle(),
               "diff_angle", diff_angle, "deriv_diff_angle", deriv_diff_angle,
               "sign(diff_angle)", math.copysign(1.0, diff_angle))
 
-        forward = 1.0
+        forward = 0.5
         command = {"forward": forward,
                    "rotation": rotation}
 
@@ -98,29 +93,38 @@ class MyDronePid(DroneAbstract):
             pt1 = pose.position + self._half_size_array
             # print(ind_pt, pt1, pt2)
             if ind_pt > 0:
-                arcade.draw_line(pt2[0], pt2[1], pt1[0], pt1[1], color)
+                arcade.draw_line(float(pt2[0]),
+                                 float(pt2[1]),
+                                 float(pt1[0]),
+                                 float(pt1[1]),
+                                 color)
             pt2 = pt1
 
     def draw_direction(self):
         pt1 = np.array([self.true_position()[0], self.true_position()[1]])
         pt1 = pt1 + self._half_size_array
-        pt2 = pt1 + 250 * np.array([math.cos(self.true_angle()), math.sin(self.true_angle())])
+        pt2 = pt1 + 250 * np.array([math.cos(self.true_angle()),
+                                    math.sin(self.true_angle())])
         color = (255, 64, 0)
-        arcade.draw_line(pt2[0], pt2[1], pt1[0], pt1[1], color)
+        arcade.draw_line(float(pt2[0]),
+                         float(pt2[1]),
+                         float(pt1[0]),
+                         float(pt1[1]),
+                         color)
 
 
-class MyMapRandom(MapAbstract):
+class MyMap(MapAbstract):
     def __init__(self):
         super().__init__()
 
         # PARAMETERS MAP
-        self._size_area = (900, 900)
+        self._size_area = (400, 400)
 
         # POSITIONS OF THE DRONES
         self._number_drones = 1
         self._drones_pos = []
         for i in range(self._number_drones):
-            pos = ((0, 0), 0)
+            pos = ((-100, -100), 0)
             self._drones_pos.append(pos)
 
         self._drones: List[DroneAbstract] = []
@@ -130,7 +134,9 @@ class MyMapRandom(MapAbstract):
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
-                             number_drones=self._number_drones)
+                             number_drones=self._number_drones,
+                             max_timestep_limit=self._max_timestep_limit,
+                             max_walltime_limit=self._max_walltime_limit)
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
@@ -140,8 +146,7 @@ class MyMapRandom(MapAbstract):
 
 
 def main():
-    my_map = MyMapRandom()
-
+    my_map = MyMap()
     playground = my_map.construct_playground(drone_type=MyDronePid)
 
     gui = GuiSR(playground=playground,

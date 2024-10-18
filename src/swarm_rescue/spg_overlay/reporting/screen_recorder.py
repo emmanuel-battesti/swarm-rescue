@@ -4,12 +4,15 @@ from spg.view import TopDownView
 
 class ScreenRecorder:
     """
-        The ScreenRecorder class is used to record a view and save it to a video file. It initializes the recorder
-        with the parameters of the view, captures frames from the view, and stops the recording when needed.
+        The ScreenRecorder class is used to record a view and save it to a
+        video file. It initializes the recorder with the parameters of the
+        view, captures frames from the view, and stops the recording when
+        needed.
 
         Example Usage
             # Create a ScreenRecorder object with the desired parameters
-            recorder = ScreenRecorder(width=640, height=480, fps=30, out_file='output.avi')
+            recorder = ScreenRecorder(width=640, height=480, fps=30,
+                                      out_file='output.avi')
 
             # Call the capture_frame method for each frame to record
             recorder.capture_frame(gui)
@@ -33,11 +36,13 @@ class ScreenRecorder:
 
         self._out_file = out_file
 
-        print("Initializing ScreenRecorder with parameters : width:{}, height:{}, fps:{}.".format(width, height, fps))
+        print("Initializing ScreenRecorder with parameters : width:{}, "
+              "height:{}, fps:{}.".format(width, height, fps))
 
         # define the codec and create a video writer object
         four_cc = cv2.VideoWriter_fourcc(*'XVID')
-        self.video = cv2.VideoWriter(out_file, four_cc, float(fps), (width, height))
+        self.video = cv2.VideoWriter(out_file, four_cc, float(fps),
+                                     (width, height))
 
     def capture_frame(self, gui: TopDownView):
         """
@@ -69,7 +74,8 @@ class ScreenRecorder:
         # stop recording
         self.video.release()
         print("\n")
-        print("Output of the screen recording saved to {}.".format(self._out_file))
+        print("Output of the screen recording saved to {}."
+              .format(self._out_file))
 
 # References
 #   For more tutorials on cv2.VideoWriter, go to:

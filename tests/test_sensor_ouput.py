@@ -1,14 +1,11 @@
 import math
 
 import numpy as np
-import pymunk
-import pytest
 
-from typing import Optional, List, Type
+from typing import List, Type
 
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
-from spg_overlay.gui_map.gui_sr import GuiSR
 from spg_overlay.gui_map.map_abstract import MapAbstract
 from spg_overlay.utils.misc_data import MiscData
 
@@ -45,7 +42,9 @@ class MyMap(MapAbstract):
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
-                             number_drones=self._number_drones)
+                             number_drones=self._number_drones,
+                             max_timestep_limit=self._max_timestep_limit,
+                             max_walltime_limit=self._max_walltime_limit)
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
@@ -160,7 +159,7 @@ def test_positions_nan():
     Check values of the positions sensor
     """
     my_map = MyMap()
-    playground = my_map.construct_playground(drone_type=MyDrone)
+    # playground = my_map.construct_playground(drone_type=MyDrone)
 
     # -- GPS -- #
     gps_pos = my_map.drones[0].measured_gps_position()

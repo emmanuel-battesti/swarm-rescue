@@ -35,14 +35,17 @@ def srdisabler_disables_device(arbiter, _, data):
 
 class SRDisabler(ZoneElement):
     """
-    The SRDisabler class is a subclass of ZoneElement and represents a zone in a playground that disables certain
-    devices when they collide with it. It is used to create different types of disabling zones, such as zones that
+    The SRDisabler class is a subclass of ZoneElement and represents a zone in
+    a playground that disables certain devices when they collide with it. It is
+    used to create different types of disabling zones, such as zones that
     disable GPS, communication, or all devices.
     """
+
     def __init__(self,
                  disable_cls: [List[Type[Device]]],
                  size: Optional[Tuple[int, int]] = None,
-                 color: Union[str, int, Tuple[int, int, int], Tuple[int, int, int, int]] = (0, 0, 0),
+                 color: Union[str, int, Tuple[int, int, int],
+                 Tuple[int, int, int, int]] = (0, 0, 0),
                  text_to_draw: str = None):
         if size is None:
             size = (0, 0)
@@ -61,7 +64,7 @@ class SRDisabler(ZoneElement):
         texture = Texture(
             name=f"Disabler_{width}_{height}_{color}",
             image=img,
-            hit_box_algorithm="Detailed",
+            hit_box_algorithm="Simple",
             hit_box_detail=1,
         )
         super().__init__(texture=texture)
@@ -80,9 +83,11 @@ class SRDisabler(ZoneElement):
 
 class NoGpsZone(SRDisabler):
     """
-    The NoGpsZone class is a subclass of SRDisabler that represents a zone in a playground where the GPS and compass
-    sensors of a drone are disabled when they collide with it.
+    The NoGpsZone class is a subclass of SRDisabler that represents a zone in a
+    playground where the GPS and compass sensors of a drone are disabled when
+    they collide with it.
     """
+
     def __init__(self, size: Optional[Tuple[int, int]]):
         super().__init__(disable_cls=[DroneGPS, DroneCompass],
                          size=size,
@@ -92,9 +97,11 @@ class NoGpsZone(SRDisabler):
 
 class NoComZone(SRDisabler):
     """
-    The NoComZone class is a subclass of the SRDisabler class. It represents a zone in a playground that disables the
-    Communicator device when it collides with it. This class is used to create a zone that disables communication.
+    The NoComZone class is a subclass of the SRDisabler class. It represents a
+    zone in a playground that disables the Communicator device when it collides
+    with it. This class is used to create a zone that disables communication.
     """
+
     def __init__(self, size: Optional[Tuple[int, int]]):
         super().__init__(disable_cls=[Communicator],
                          size=size,
@@ -104,10 +111,12 @@ class NoComZone(SRDisabler):
 
 class KillZone(SRDisabler):
     """
-    The KillZone class is a subclass of the SRDisabler class, which represents a zone in a playground that disables
-    devices when they collide with it. It is specifically used to create a "kill zone" that disables all devices when
+    The KillZone class is a subclass of the SRDisabler class, which represents
+    a zone in a playground that disables devices when they collide with it. It
+    is specifically used to create a "kill zone" that disables all devices when
     they collide with it.
     """
+
     def __init__(self, size: Optional[Tuple[int, int]]):
         super().__init__(disable_cls=[Device],
                          size=size,

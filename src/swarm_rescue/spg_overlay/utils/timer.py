@@ -17,9 +17,11 @@ class StateTimer(Enum):
 class Timer:
     """
     This class provides precise timer functionalities and a pause function.
-    The Timer class provides precise timer functionalities and a pause function. It allows users to start, stop,
-    restart, and pause the timer, and also provides methods to get the elapsed time in different units. The class
-    uses the time module to measure the time and the enum module to define the timer states.
+    The Timer class provides precise timer functionalities and a pause function.
+    It allows users to start, stop,restart, and pause the timer, and also
+    provides methods to get the elapsed time in different units. The class
+    uses the time module to measure the time and the enum module to define
+    the timer states.
 
     Example Usage
         # Create a timer object
@@ -99,7 +101,8 @@ class Timer:
         """Stops the timer and calculates the elapsed time."""
         if self._state is StateTimer.stopped:
             return
-            # raise TimerError(f"Timer is not running. Use .start() to start it")
+            # raise TimerError(f"Timer is not running. Use .start()
+            # to start it")
 
         self.pause_off()
         self._state = StateTimer.stopped
@@ -129,7 +132,8 @@ class Timer:
         self._durationAllPauses += duration_pause
 
     def get_elapsed_time(self):
-        """Returns the elapsed time in seconds, taking into account any pauses."""
+        """Returns the elapsed time in seconds, taking into account
+        any pauses."""
         if self._state is StateTimer.pause:
             return self._durationBeforePause
 
@@ -147,11 +151,13 @@ class Timer:
         return self.get_elapsed_time() * 1000.0
 
     def print(self, txt):
-        """Prints the processed text and the elapsed time in milliseconds, seconds, and minutes."""
-        print(" * Processed {} in {} ms, {} s or {} min".format(txt,
-                                                                self.get_elapsed_time_in_milliseconds(),
-                                                                self.get_elapsed_time(),
-                                                                self.get_elapsed_time() / 60))
+        """Prints the processed text and the elapsed time in milliseconds,
+        seconds, and minutes."""
+        print(" * Processed {} in {} ms, {} s or {} min"
+              .format(txt,
+                      self.get_elapsed_time_in_milliseconds(),
+                      self.get_elapsed_time(),
+                      self.get_elapsed_time() / 60))
 
     def get_state_str(self, ):
         """Returns a string representation of the timer state, for debug."""

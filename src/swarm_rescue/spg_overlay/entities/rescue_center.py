@@ -24,9 +24,10 @@ def wounded_rescue_center_collision(arbiter, _, data):
 
 class RescueCenter(PhysicalElement):
     """
-    The RescueCenter class represents a rescue center in the simulation. When a WoundedPerson comes into contact with
-    the rescue center, it provides a reward of 1 to the drone bringing the wounded person. Then the wounded person
-    disappears.
+    The RescueCenter class represents a rescue center in the simulation. When a
+    WoundedPerson comes into contact with the rescue center, it provides a
+    reward of 1 to the drone bringing the wounded person. Then the wounded
+    person disappears.
     """
 
     def __init__(self, size: Tuple[int, int], **kwargs):
@@ -42,6 +43,15 @@ class RescueCenter(PhysicalElement):
                                         height=height)
         super().__init__(texture=texture, **kwargs)
 
+        # Friction normally goes between 0 (no friction) and 1.0 (high friction)
+        # Friction is between two objects in contact. It is important to remember
+        # in top-down games that friction moving along the 'floor' is controlled
+        # by damping.
+        # See: https://api.arcade.academy/en/latest/examples/pymunk_demo_top_down.html
+        for pm_shape in self._pm_shapes:
+            pm_shape.elasticity = 0.1
+            pm_shape.friction = 0.0 # default value in arcade is 0.2
+
         self._quantity_rewards = None
         self._count_rewards = 0
 
@@ -51,7 +61,8 @@ class RescueCenter(PhysicalElement):
 
     def activate(self, entity: WoundedPerson):
         if self._playground is None:
-            raise ValueError("RescueCenter is not associated with a playground.")
+            raise ValueError("RescueCenter is not "
+                             "associated with a playground.")
 
         grasped_by_list = entity.grasped_by.copy()
         grasped_by_size = len(entity.grasped_by)

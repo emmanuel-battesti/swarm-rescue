@@ -5,8 +5,10 @@ from typing import Tuple
 
 class MouseMeasure:
     """
-    The MouseMeasure class is a tool for measuring and visualizing mouse movements and clicks on a playground.
-    By selecting a zone with the mouse, it draws the  zone rectangle, and the middle circle.
+    The MouseMeasure class is a tool for measuring and visualizing mouse
+    movements and clicks on a playground.
+    By selecting a zone with the mouse, it draws the  zone rectangle, and the
+    middle circle.
     It calculates the distance and delta values between mouse clicks.
     Used in GuiSR class.
 
@@ -70,7 +72,8 @@ class MouseMeasure:
             print("---------------------------------------------")
             print("Pixel position: ({}, {})".format(x_pix, y_pix))
 
-    def on_mouse_release(self, x: int, y: int, button: int, enable: bool = True):
+    def on_mouse_release(self, x: int, y: int,
+                         button: int, enable: bool = True):
         if enable and button == arcade.MOUSE_BUTTON_LEFT:
             dx = self.x_mouse - self.x_mouse_prev
             dy = self.y_mouse - self.y_mouse_prev
@@ -78,7 +81,8 @@ class MouseMeasure:
             if distance > 5:
                 print("---------------------------------------------")
                 print("distance = {} pixels".format(distance))
-                print("delta_x = {}, delta_y = {}".format(abs(dx), abs(dy)))
+                print("delta_x = {}, delta_y = {}"
+                      .format(abs(dx), abs(dy)))
                 c_x = 0.5 * (self.x_mouse + self.x_mouse_prev)
                 c_y = 0.5 * (self.y_mouse + self.y_mouse_prev)
                 center_x = round(c_x - self._playground_size[0] / 2)
@@ -91,9 +95,12 @@ class MouseMeasure:
                 br_y = min(self.y_mouse, self.y_mouse_prev)
                 bottom_right_x = round(br_x - self._playground_size[0] / 2)
                 bottom_right_y = round(br_y - self._playground_size[1] / 2)
-                print("center_x = {}, center_y = {}".format(center_x, center_y))
-                print("top_left_x = {}, top_left_y = {}".format(top_left_x, top_left_y))
-                print("bottom_right_x = {}, bottom_right_y = {}".format(bottom_right_x, bottom_right_y))
+                print("center_x = {}, center_y = {}"
+                      .format(center_x, center_y))
+                print("top_left_x = {}, top_left_y = {}"
+                      .format(top_left_x, top_left_y))
+                print("bottom_right_x = {}, bottom_right_y = {}"
+                      .format(bottom_right_x, bottom_right_y))
 
             self.x_mouse_prev = self.x_mouse
             self.y_mouse_prev = self.y_mouse

@@ -9,16 +9,15 @@ import random
 import math
 from typing import Optional, List, Type
 from enum import Enum
-
 import numpy as np
-from spg.utils.definitions import CollisionTypes
 
 # This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0,
+                os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.entities.drone_distance_sensors import DroneSemanticSensor
-from spg_overlay.entities.rescue_center import RescueCenter, wounded_rescue_center_collision
+from spg_overlay.entities.rescue_center import RescueCenter
 from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.gui_sr import GuiSR
@@ -62,7 +61,8 @@ class MyDroneSemantic(DroneAbstract):
                    "rotation": 0.0,
                    "grasper": 0}
 
-        found_wounded, found_rescue_center, command_semantic = self.process_semantic_sensor()
+        found_wounded, found_rescue_center, command_semantic = (
+            self.process_semantic_sensor())
 
         #############
         # TRANSITIONS OF THE STATE MACHINE
@@ -71,28 +71,35 @@ class MyDroneSemantic(DroneAbstract):
         if self.state is self.Activity.SEARCHING_WOUNDED and found_wounded:
             self.state = self.Activity.GRASPING_WOUNDED
 
-        elif self.state is self.Activity.GRASPING_WOUNDED and self.base.grasper.grasped_entities:
+        elif (self.state is self.Activity.GRASPING_WOUNDED and
+              self.base.grasper.grasped_entities):
             self.state = self.Activity.SEARCHING_RESCUE_CENTER
 
-        elif self.state is self.Activity.GRASPING_WOUNDED and not found_wounded:
+        elif (self.state is self.Activity.GRASPING_WOUNDED and
+              not found_wounded):
             self.state = self.Activity.SEARCHING_WOUNDED
 
-        elif self.state is self.Activity.SEARCHING_RESCUE_CENTER and found_rescue_center:
+        elif (self.state is self.Activity.SEARCHING_RESCUE_CENTER and
+              found_rescue_center):
             self.state = self.Activity.DROPPING_AT_RESCUE_CENTER
 
-        elif self.state is self.Activity.DROPPING_AT_RESCUE_CENTER and not self.base.grasper.grasped_entities:
+        elif (self.state is self.Activity.DROPPING_AT_RESCUE_CENTER and
+              not self.base.grasper.grasped_entities):
             self.state = self.Activity.SEARCHING_WOUNDED
 
-        elif self.state is self.Activity.DROPPING_AT_RESCUE_CENTER and not found_rescue_center:
+        elif (self.state is self.Activity.DROPPING_AT_RESCUE_CENTER and
+              not found_rescue_center):
             self.state = self.Activity.SEARCHING_RESCUE_CENTER
 
-        print("state: {}, can_grasp: {}, grasped entities: {}".format(self.state.name,
-                                                                      self.base.grasper.can_grasp,
-                                                                      self.base.grasper.grasped_entities))
+        print("state: {}, can_grasp: {}, grasped entities: {}"
+              .format(self.state.name,
+                      self.base.grasper.can_grasp,
+                      self.base.grasper.grasped_entities))
 
         ##########
         # COMMANDS FOR EACH STATE
-        # Searching randomly, but when a rescue center or wounded person is detected, we use a special command
+        # Searching randomly, but when a rescue center or wounded person is
+        # detected, we use a special command
         ##########
         if self.state is self.Activity.SEARCHING_WOUNDED:
             command = self.control_random()
@@ -129,7 +136,8 @@ class MyDroneSemantic(DroneAbstract):
 
     def control_random(self):
         """
-        The Drone will move forward and turn for a random angle when an obstacle is hit
+        The Drone will move forward and turn for a random angle when an
+        obstacle is hit
         """
         command_straight = {"forward": 0.5,
                             "rotation": 0.0}
@@ -141,7 +149,7 @@ class MyDroneSemantic(DroneAbstract):
 
         self.counterStraight += 1
 
-        if collided and not self.isTurning and self.counterStraight > 20:
+        if collided and not self.isTurning and self.counterStraight > 100:
             self.isTurning = True
             self.angleStopTurning = random.uniform(-math.pi, math.pi)
 
@@ -158,7 +166,8 @@ class MyDroneSemantic(DroneAbstract):
 
     def process_semantic_sensor(self):
         """
-        According to his state in the state machine, the Drone will move towards a wound person or the rescue center
+        According to his state in the state machine, the Drone will move
+        towards a wound person or the rescue center
         """
         command = {"forward": 0.5,
                    "lateral": 0.0,
@@ -175,7 +184,9 @@ class MyDroneSemantic(DroneAbstract):
             scores = []
             for data in detection_semantic:
                 # If the wounded person detected is held by nobody
-                if data.entity_type == DroneSemanticSensor.TypeEntity.WOUNDED_PERSON and not data.grasped:
+                if (data.entity_type ==
+                        DroneSemanticSensor.TypeEntity.WOUNDED_PERSON and
+                        not data.grasped):
                     found_wounded = True
                     v = (data.angle * data.angle) + \
                         (data.distance * data.distance / 10 ** 5)
@@ -195,10 +206,11 @@ class MyDroneSemantic(DroneAbstract):
             or self.state is self.Activity.DROPPING_AT_RESCUE_CENTER) \
                 and detection_semantic:
             for data in detection_semantic:
-                if data.entity_type == DroneSemanticSensor.TypeEntity.RESCUE_CENTER:
+                if (data.entity_type ==
+                        DroneSemanticSensor.TypeEntity.RESCUE_CENTER):
                     found_rescue_center = True
                     angles_list.append(data.angle)
-                    is_near = (data.distance < 50)
+                    is_near = (data.distance < 30)
 
             if found_rescue_center:
                 best_angle = circular_mean(np.array(angles_list))
@@ -217,8 +229,8 @@ class MyDroneSemantic(DroneAbstract):
                 command["forward"] = 0.2
 
         if found_rescue_center and is_near:
-            command["forward"] = 0
-            command["rotation"] = random.uniform(0.5, 1)
+            command["forward"] = 0.0
+            command["rotation"] = -1.0
 
         return found_wounded, found_rescue_center, command
 
@@ -238,11 +250,11 @@ class MyMapSemantic(MapAbstract):
         self._wounded_persons_pos = []
         self._wounded_persons: List[WoundedPerson] = []
 
-        start_area = (0.0, -30.0)
+        wounded_area = (0.0, -30.0)
         nb_per_side = math.ceil(math.sqrt(float(self._number_wounded_persons)))
         dist_inter_wounded = 60.0
-        sx = start_area[0] - (nb_per_side - 1) * 0.5 * dist_inter_wounded
-        sy = start_area[1] - (nb_per_side - 1) * 0.5 * dist_inter_wounded
+        sx = wounded_area[0] - (nb_per_side - 1) * 0.5 * dist_inter_wounded
+        sy = wounded_area[1] - (nb_per_side - 1) * 0.5 * dist_inter_wounded
 
         for i in range(self._number_wounded_persons):
             x = sx + (float(i) % nb_per_side) * dist_inter_wounded
@@ -252,16 +264,11 @@ class MyMapSemantic(MapAbstract):
 
         # POSITIONS OF THE DRONES
         self._number_drones = 1
-        self._drones_pos = [((40, 40), random.uniform(-math.pi, math.pi))]
+        self._drones_pos = [((-100, 100), random.uniform(-math.pi, math.pi))]
         self._drones = []
 
     def construct_playground(self, drone_type: Type[DroneAbstract]):
         playground = ClosedPlayground(size=self._size_area)
-
-        # RESCUE CENTER
-        playground.add_interaction(CollisionTypes.GEM,
-                                   CollisionTypes.ACTIVABLE_BY_GEM,
-                                   wounded_rescue_center_collision)
 
         playground.add(self._rescue_center, self._rescue_center_pos)
 
@@ -274,7 +281,9 @@ class MyMapSemantic(MapAbstract):
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
-                             number_drones=self._number_drones)
+                             number_drones=self._number_drones,
+                             max_timestep_limit=self._max_timestep_limit,
+                             max_walltime_limit=self._max_walltime_limit)
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)

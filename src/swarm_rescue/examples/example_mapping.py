@@ -1,6 +1,7 @@
 """
 This program can be launched directly.
-To move the drone, you have to click on the map, then use the arrows on the keyboard
+To move the drone, you have to click on the map, then use the arrows on the
+keyboard
 """
 
 import os
@@ -11,10 +12,10 @@ import cv2
 import numpy as np
 
 from spg.playground import Playground
-from spg.utils.definitions import CollisionTypes
 
 # This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0,
+                os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from maps.walls_medium_02 import add_walls, add_boxes
 from spg_overlay.utils.constants import MAX_RANGE_LIDAR_SENSOR
@@ -22,7 +23,7 @@ from spg_overlay.utils.grid import Grid
 from spg_overlay.utils.misc_data import MiscData
 from spg_overlay.utils.pose import Pose
 from spg_overlay.entities.drone_abstract import DroneAbstract
-from spg_overlay.entities.rescue_center import RescueCenter, wounded_rescue_center_collision
+from spg_overlay.entities.rescue_center import RescueCenter
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.gui_sr import GuiSR
 from spg_overlay.gui_map.map_abstract import MapAbstract
@@ -35,15 +36,18 @@ class OccupancyGrid(Grid):
                  size_area_world,
                  resolution: float,
                  lidar):
-        super().__init__(size_area_world=size_area_world, resolution=resolution)
+        super().__init__(size_area_world=size_area_world,
+                         resolution=resolution)
 
         self.size_area_world = size_area_world
         self.resolution = resolution
 
         self.lidar = lidar
 
-        self.x_max_grid: int = int(self.size_area_world[0] / self.resolution + 0.5)
-        self.y_max_grid: int = int(self.size_area_world[1] / self.resolution + 0.5)
+        self.x_max_grid: int = int(self.size_area_world[0] / self.resolution
+                                   + 0.5)
+        self.y_max_grid: int = int(self.size_area_world[1] / self.resolution
+                                   + 0.5)
 
         self.grid = np.zeros((self.x_max_grid, self.y_max_grid))
         self.zoomed_grid = np.empty((self.x_max_grid, self.y_max_grid))
@@ -73,15 +77,20 @@ class OccupancyGrid(Grid):
 
         # For empty zones
         # points_x and point_y contains the border of detected empty zone
-        # We use a value a little bit less than LIDAR_DIST_CLIP because of the noise in lidar
+        # We use a value a little bit less than LIDAR_DIST_CLIP because of the
+        # noise in lidar
         lidar_dist_empty = np.maximum(lidar_dist - LIDAR_DIST_CLIP, 0.0)
         # All values of lidar_dist_empty_clip are now <= max_range
         lidar_dist_empty_clip = np.minimum(lidar_dist_empty, max_range)
-        points_x = pose.position[0] + np.multiply(lidar_dist_empty_clip, cos_rays)
-        points_y = pose.position[1] + np.multiply(lidar_dist_empty_clip, sin_rays)
+        points_x = pose.position[0] + np.multiply(lidar_dist_empty_clip,
+                                                  cos_rays)
+        points_y = pose.position[1] + np.multiply(lidar_dist_empty_clip,
+                                                  sin_rays)
 
         for pt_x, pt_y in zip(points_x, points_y):
-            self.add_value_along_line(pose.position[0], pose.position[1], pt_x, pt_y, EMPTY_ZONE_VALUE)
+            self.add_value_along_line(pose.position[0], pose.position[1],
+                                      pt_x, pt_y,
+                                      EMPTY_ZONE_VALUE)
 
         # For obstacle zones, all values of lidar_dist are < max_range
         select_collision = lidar_dist < max_range
@@ -102,8 +111,10 @@ class OccupancyGrid(Grid):
 
         # compute zoomed grid for displaying
         self.zoomed_grid = self.grid.copy()
-        new_zoomed_size = (int(self.size_area_world[1] * 0.5), int(self.size_area_world[0] * 0.5))
-        self.zoomed_grid = cv2.resize(self.zoomed_grid, new_zoomed_size, interpolation=cv2.INTER_NEAREST)
+        new_zoomed_size = (int(self.size_area_world[1] * 0.5),
+                           int(self.size_area_world[0] * 0.5))
+        self.zoomed_grid = cv2.resize(self.zoomed_grid, new_zoomed_size,
+                                      interpolation=cv2.INTER_NEAREST)
 
 
 class MyDroneMapping(DroneAbstract):
@@ -137,13 +148,19 @@ class MyDroneMapping(DroneAbstract):
         # increment the iteration counter
         self.iteration += 1
 
-        self.estimated_pose = Pose(np.asarray(self.measured_gps_position()), self.measured_compass_angle())
-        # self.estimated_pose = Pose(np.asarray(self.true_position()), self.true_angle())
+        self.estimated_pose = Pose(np.asarray(self.measured_gps_position()),
+                                   self.measured_compass_angle())
+        # self.estimated_pose = Pose(np.asarray(self.true_position()),
+        #                            self.true_angle())
 
         self.grid.update_grid(pose=self.estimated_pose)
         if self.iteration % 5 == 0:
-            self.grid.display(self.grid.grid, self.estimated_pose, title="occupancy grid")
-            self.grid.display(self.grid.zoomed_grid, self.estimated_pose, title="zoomed occupancy grid")
+            self.grid.display(self.grid.grid,
+                              self.estimated_pose,
+                              title="occupancy grid")
+            self.grid.display(self.grid.zoomed_grid,
+                              self.estimated_pose,
+                              title="zoomed occupancy grid")
             # pass
 
         return command
@@ -164,13 +181,9 @@ class MyMapMapping(MapAbstract):
         self._drones_pos = [((-50, 0), 0)]
         self._drones = []
 
-    def construct_playground(self, drone_type: Type[DroneAbstract]) -> Playground:
+    def construct_playground(self, drone_type: Type[DroneAbstract]) \
+            -> Playground:
         playground = ClosedPlayground(size=self._size_area)
-
-        # RESCUE CENTER
-        playground.add_interaction(CollisionTypes.GEM,
-                                   CollisionTypes.ACTIVABLE_BY_GEM,
-                                   wounded_rescue_center_collision)
 
         playground.add(self._rescue_center, self._rescue_center_pos)
 
@@ -179,7 +192,9 @@ class MyMapMapping(MapAbstract):
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
-                             number_drones=self._number_drones)
+                             number_drones=self._number_drones,
+                             max_timestep_limit=self._max_timestep_limit,
+                             max_walltime_limit=self._max_walltime_limit)
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)

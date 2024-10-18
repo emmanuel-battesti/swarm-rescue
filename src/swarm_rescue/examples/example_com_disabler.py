@@ -1,21 +1,21 @@
 """
 This program can be launched directly.
-To move the drone, you have to click on the map, then use the arrows on the keyboard
+To move the drone, you have to click on the map, then use the arrows on the
+ keyboard
 """
 
 import os
 import sys
 from typing import Type
 
-from spg.utils.definitions import CollisionTypes
-
 # This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0,
+                os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from spg_overlay.reporting.data_saver import DataSaver
 from spg_overlay.reporting.team_info import TeamInfo
 from spg_overlay.entities.drone_abstract import DroneAbstract
-from spg_overlay.entities.sensor_disablers import NoComZone, KillZone, srdisabler_disables_device
+from spg_overlay.entities.sensor_disablers import NoComZone, KillZone
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.gui_sr import GuiSR
 from spg_overlay.gui_map.map_abstract import MapAbstract
@@ -31,7 +31,8 @@ class MyDroneComDisabler(DroneAbstract):
         Here, we don't need communication...
         """
         msg_data = (self.identifier,
-                    (self.measured_gps_position(), self.measured_compass_angle()))
+                    (self.measured_gps_position(),
+                     self.measured_compass_angle()))
         return msg_data
 
     def control(self):
@@ -60,7 +61,8 @@ class MyMapComDisabler(MapAbstract):
         self._kill_zone_pos = ((-200, -200), 0)
 
         self._number_drones = 5
-        self._drones_pos = [((450, 0), 3.1416), ((-350, 0), 0), ((-200, -200), 1.57), ((0, -200), 1.57),
+        self._drones_pos = [((450, 0), 3.1416), ((-350, 0), 0),
+                            ((-200, -200), 1.57), ((0, -200), 1.57),
                             ((-200, 200), -1.57)]
         self._drones = []
 
@@ -68,16 +70,14 @@ class MyMapComDisabler(MapAbstract):
         playground = ClosedPlayground(size=self._size_area)
 
         # DISABLER ZONES
-        playground.add_interaction(CollisionTypes.DISABLER,
-                                   CollisionTypes.DEVICE,
-                                   srdisabler_disables_device)
-
         playground.add(self._no_com_zone, self._no_com_zone_pos)
         playground.add(self._kill_zone, self._kill_zone_pos)
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
-                             number_drones=self._number_drones)
+                             number_drones=self._number_drones,
+                             max_timestep_limit=self._max_timestep_limit,
+                             max_walltime_limit=self._max_walltime_limit)
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
@@ -99,9 +99,10 @@ def main():
     else:
         filename_video_capture = None
 
-    # enable_visu_noises : to enable the visualization. It will show also a demonstration of the integration
-    # of odometer values, by drawing the estimated path in red. The green circle shows the position of drone according
-    # to the gps sensor and the compass.
+    # enable_visu_noises : to enable the visualization. It will show also a
+    # demonstration of the integration of odometer values, by drawing the
+    # estimated path in red. The green circle shows the position of drone
+    # according to the gps sensor and the compass.
     gui = GuiSR(playground=playground,
                 the_map=my_map,
                 print_messages=True,

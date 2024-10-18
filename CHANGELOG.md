@@ -3,6 +3,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.0] - 2024-10-18
+
+### Added
+- "Return area" where the drone should return to at the end of the mission.
+- Some wounded people can move along a predefined path.
+- Drones have access to their health level.
+- Drones have access to max timestep limit and elapsed_timestep.
+- Drones have access to max walltime limit and elapsed_walltime.
+- Drones can detect if they are in the "return area".
+
+### Changed
+- Changed drone behavior with elasticity and friction parameters : more friction and elasticity with the walls and other drones.
+- Added the health level of the returned drones in the final score calculation and in the pdf report.
+- Updated requirements and documentation.
+- Indentation and code details.
+- Swarm-Rescue is now linked to the *swarm-rescue-v3* version of *simple-playground*.
+- The key to activate grasping, on the keyboard, change from G to W.
+
 ## [3.2.0] - 2024-04-15
 
 ### Changed
@@ -103,8 +121,8 @@ All notable changes to this project will be documented in this file.
 - change default GPS noise
 - function name:
     - rename *measured_position()* to *measured_gps_position()* in the class *DroneAbstract*
-    - rename *measured_angle()* to *measured_compass_angle()*  in the class *DroneAbstract*
- - the "no gps zone"  still disables the gps sensor and now, it disables also the compass sensor.
+    - rename *measured_angle()* to *measured_compass_angle()* in the class *DroneAbstract*
+ - the "no gps zone" still disables the gps sensor and now, it disables also the compass sensor.
 
 ### Added
 - add odometer sensor (see README.md for more information)
@@ -231,7 +249,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.2.0...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.0...HEAD
+[4.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.2.0...v4.0.0
 [3.2.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.0.0...v3.0.1

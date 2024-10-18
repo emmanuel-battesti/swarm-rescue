@@ -9,15 +9,19 @@ def _draw_pseudo_drone(position_screen: Tuple[int, int, float],
                        color: Tuple[int, int, int],
                        radius=15):
     """
-    This function is responsible for drawing a pseudo drone on the screen. It takes the screen position of the drone,
-    the color of the drone, and the radius as inputs, and uses the arcade library to draw the drone on the screen : a
-    colored circle with a black outline and a line inside the circle that shows the orientation of the drone.
+    This function is responsible for drawing a pseudo drone on the screen. It
+    takes the screen position of the drone, the color of the drone, and the
+    radius as inputs, and uses the arcade library to draw the drone on the
+    screen : a colored circle with a black outline and a line inside the circle
+    that shows the orientation of the drone.
     This function is used to display the noisy position of the drone.
 
     Inputs
-        position_screen: A tuple representing the screen position of the drone. It contains the x-coordinate,
+        position_screen: A tuple representing the screen position of the drone.
+        It contains the x-coordinate,
         y-coordinate, and angle of the drone.
-        color: A tuple representing the color of the drone. It contains the RGB values.
+        color: A tuple representing the color of the drone. It contains the RGB
+        values.
         radius: An integer representing the radius of the drone.
     """
 
@@ -48,7 +52,8 @@ def _draw_pseudo_drone(position_screen: Tuple[int, int, float],
 
 
 class VisuNoises:
-    def __init__(self, playground_size: Tuple[int, int], drones: [List[DroneAbstract]]):
+    def __init__(self, playground_size: Tuple[int, int],
+                 drones: [List[DroneAbstract]]):
         self._playground_size = playground_size
         self._drones = drones
         self._half_playground_size: Tuple[float, float] = (playground_size[0] / 2,
@@ -63,8 +68,9 @@ class VisuNoises:
 
     def reset(self):
         """
-        The reset method is responsible for resetting the state of the VisuNoises object by clearing all the
-        dictionaries that store the screen positions and other data related to the drones.
+        The reset method is responsible for resetting the state of the
+        VisuNoises object by clearing all the dictionaries that store the
+        screen positions and other data related to the drones.
         """
         self._scr_pos_gps.clear()
         self._gps_enabled.clear()
@@ -89,20 +95,21 @@ class VisuNoises:
 
     def _draw_gps_compass_position(self, drone: DroneAbstract):
         """
-        The _draw_gps_compass_position method is responsible for drawing the position of a drone on screen based on its
-        gps and compass data.
+        The _draw_gps_compass_position method is responsible for drawing the
+        position of a drone on screen based on its gps and compass data.
         """
         if drone not in self._scr_pos_gps:
             return
         pos_screen = self._scr_pos_gps[drone]
         enabled = self._gps_enabled[drone]
         if enabled:
-            _draw_pseudo_drone(position_screen=pos_screen, color=arcade.color.GREEN)
+            _draw_pseudo_drone(position_screen=pos_screen,
+                               color=arcade.color.GREEN)
 
     def _draw_odom_position(self, drone: DroneAbstract, enable: bool = True):
         """
-        The _draw_odom_position method is responsible for drawing the position of a drone on screen based on its
-        odometry data.
+        The _draw_odom_position method is responsible for drawing the position
+        of a drone on screen based on its odometry data.
         """
         if not enable:
             return
@@ -112,12 +119,14 @@ class VisuNoises:
             return
 
         last_pos_screen = self._scr_pos_odom[drone][-1]
-        _draw_pseudo_drone(position_screen=last_pos_screen, color=arcade.color.RED)
+        _draw_pseudo_drone(position_screen=last_pos_screen,
+                           color=arcade.color.RED)
 
     def _draw_odom_path(self, drone: DroneAbstract, enable: bool = True):
         """
-        The _draw_odom_path method is responsible for drawing a drone's trajectory on screen, based on its odometry
-        data. This trajectory may drift and not correspond at all to reality.
+        The _draw_odom_path method is responsible for drawing a drone's
+        trajectory on screen, based on its odometry data. This trajectory may
+        drift and not correspond at all to reality.
         """
         if not enable:
             return
@@ -134,7 +143,8 @@ class VisuNoises:
 
     def _draw_true_path(self, drone: DroneAbstract):
         """
-        The _draw_true_path method is responsible for drawing the true path of a drone on the screen.
+        The _draw_true_path method is responsible for drawing the true path of
+        a drone on the screen.
         """
         if not self._scr_pos_true:
             return
@@ -152,14 +162,17 @@ class VisuNoises:
             return
 
         if not self._scr_pos_true:
-            self._scr_pos_true = {None: deque(maxlen=self._max_size_circular_buffer)}
+            self._scr_pos_true = \
+                {None: deque(maxlen=self._max_size_circular_buffer)}
 
         for drone in self._drones:
             # GPS
             self._gps_enabled[drone] = False
-            if not drone.gps_is_disabled() and not drone.compass_is_disabled():
-                pos = self.conv_world2screen(pos_world=drone.measured_gps_position(),
-                                             angle=drone.measured_compass_angle())
+            if (not drone.gps_is_disabled()
+                    and not drone.compass_is_disabled()):
+                pos = self.conv_world2screen(
+                    pos_world=drone.measured_gps_position(),
+                    angle=drone.measured_compass_angle())
                 self._scr_pos_gps[drone] = pos
                 self._gps_enabled[drone] = True
 
@@ -167,11 +180,13 @@ class VisuNoises:
             true_position = drone.true_position()
             true_angle = drone.true_angle()
             if true_position is not None:
-                pos = self.conv_world2screen(pos_world=true_position, angle=true_angle)
+                pos = self.conv_world2screen(
+                    pos_world=true_position, angle=true_angle)
                 if drone in self._scr_pos_true:
                     self._scr_pos_true[drone].append(pos)
                 else:
-                    self._scr_pos_true[drone] = deque([pos], maxlen=self._max_size_circular_buffer)
+                    self._scr_pos_true[drone] = (
+                        deque([pos], maxlen=self._max_size_circular_buffer))
 
             # ODOMETER
             dist, alpha, theta = (0.0, 0.0, 0.0)
@@ -184,19 +199,24 @@ class VisuNoises:
                 new_orient = orient + theta
 
                 self._last_world_pos_odom[drone] = (new_x, new_y, new_orient)
-                new_pos_odom_screen = self.conv_world2screen(pos_world=(new_x, new_y),
-                                                             angle=new_orient)
+                new_pos_odom_screen = (
+                    self.conv_world2screen(pos_world=(new_x, new_y),
+                                           angle=new_orient))
                 self._scr_pos_odom[drone].append(new_pos_odom_screen)
             else:
                 x, y = tuple(drone.true_position())
                 orient = drone.true_angle()
                 self._last_world_pos_odom[drone] = (x, y, orient)
-                new_pos_odom_screen = self.conv_world2screen(pos_world=(x, y), angle=orient)
-                self._scr_pos_odom[drone] = deque([new_pos_odom_screen],
-                                                  maxlen=self._max_size_circular_buffer)
+                new_pos_odom_screen = (
+                    self.conv_world2screen(pos_world=(x, y), angle=orient))
+                self._scr_pos_odom[drone] = (
+                    deque([new_pos_odom_screen],
+                          maxlen=self._max_size_circular_buffer))
 
     def conv_world2screen(self, pos_world: Tuple[float, float], angle: float):
-        if math.isnan(pos_world[0]) or math.isnan(pos_world[1]) or math.isnan(angle):
+        if (math.isnan(pos_world[0])
+                or math.isnan(pos_world[1])
+                or math.isnan(angle)):
             return float('NaN'), float('NaN'), float('NaN')
         x = int(pos_world[0] + self._half_playground_size[0])
         y = int(pos_world[1] + self._half_playground_size[1])

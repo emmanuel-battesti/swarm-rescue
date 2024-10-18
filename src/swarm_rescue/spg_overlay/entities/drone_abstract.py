@@ -30,16 +30,16 @@ def drone_collision_wall(arbiter, _, data):
     (part, _), (element, _) = get_colliding_entities(playground, arbiter)
 
     assert isinstance(part, DroneBase)
-    assert isinstance(element, PhysicalElement) or isinstance(element, DroneBase)
+    assert (isinstance(element, PhysicalElement)
+            or isinstance(element, DroneBase))
 
     # CollisionTypes.PART
     drone = part.agent
 
-    if isinstance(element, NormalWall) or isinstance(element, ColorWall) or isinstance(element, NormalBox):
+    if (isinstance(element, NormalWall) or
+            isinstance(element, ColorWall) or
+            isinstance(element, NormalBox)):
         drone.collide_wall()
-
-    if isinstance(element, Agent) or isinstance(element, DroneBase):
-        drone.collide_drone()
 
     return True
 
@@ -62,22 +62,25 @@ def drone_collision_drone(arbiter, _, data):
 
 class DroneAbstract(Agent):
     """
-    The DroneAbstract class is a parent class that should be used to create custom Drone classes. It inherits from the
-    Agent class and provides functionality for controlling a drone in a simulated environment.
-    It is a BaseAgent class with 3 sensors, 1 sensor of position and 2 mandatory functions define_message() and
-    control()
+    The DroneAbstract class is a parent class that should be used to create
+    custom Drone classes. It inherits from the Agent class and provides
+    functionality for controlling a drone in a simulated environment.
+    It is a BaseAgent class with 3 sensors, 1 sensor of position and 2
+    mandatory functions define_message() and control()
 
     Example Usage
         # Create a custom Drone class that inherits from DroneAbstract
         class MyDrone(DroneAbstract):
             def define_message_for_all(self):
                 # Define the message to be sent to other drones
-                msg_data = (self.identifier, (self.measured_gps_position(), self.measured_compass_angle()))
+                msg_data = (self.identifier, (self.measured_gps_position(),
+                self.measured_compass_angle()))
                 return msg_data
 
             def control(self):
                 # Define the control command for the drone
-                command = {"forward": 1.0, "lateral": 0.0, "rotation": -1.0, "grasper": 0}
+                command = {"forward": 1.0, "lateral": 0.0, "rotation": -1.0,
+                "grasper": 0}
                 return command
 
         # Create an instance of the custom drone class
@@ -92,16 +95,18 @@ class DroneAbstract(Agent):
         command = drone.control()
 
     Fields
-        RANGE_COMMUNICATION: The radius, in pixels, of the area around the drone in which it can communicate with
-        other drones.
+        RANGE_COMMUNICATION: The radius, in pixels, of the area around the
+        drone in which it can communicate with other drones.
         SensorType: An enumeration of different sensor types.
         identifier: The identifier of the drone.
-        _display_lidar_graph: A flag indicating whether the lidar sensor data should be displayed on matplotlib graph.
-         It is slow.
+        _display_lidar_graph: A flag indicating whether the lidar sensor data
+        should be displayed on matplotlib graph. It is slow.
         size_area: The size of the area in which the drone operates.
-        communicator: The communicator object used for communication with other drones.
+        communicator: The communicator object used for communication with other
+         drones.
         timer_collision_wall_or_drone: A timer used to track collision events.
-        drone_health: The health of the drone, which is reduced upon collision events.
+        _drone_health: The health of the drone, which is reduced upon collision
+        events.
     """
 
     class SensorType(IntEnum):
@@ -130,10 +135,12 @@ class DroneAbstract(Agent):
 
         self._half_size_array = None
         self._size_area = None
+        self._misc_data = misc_data
         if misc_data:
             self.size_area = misc_data.size_area
 
-        self.base.add(DroneSemanticSensor(playground=self.playground, invisible_elements=self._parts))
+        self.base.add(DroneSemanticSensor(playground=self.playground,
+                                          invisible_elements=self._parts))
         self.base.add(DroneLidar(invisible_elements=self._parts))
 
         self.base.add(DroneGPS())
@@ -148,11 +155,20 @@ class DroneAbstract(Agent):
             plt.axis((-300, 300, 0, 300))
             plt.ion()
 
-        self.communicator = Communicator(transmission_range=RANGE_COMMUNICATION)
+        self.communicator = (
+            Communicator(transmission_range=RANGE_COMMUNICATION))
         self.base.add(self.communicator)
 
         self.timer_collision_wall_or_drone = Timer(start_now=True)
-        self.drone_health = DRONE_INITIAL_HEALTH
+        self._drone_health = DRONE_INITIAL_HEALTH
+
+        self.is_inside_return_area = False
+
+        # 'elapsed_timestep' is the number of timesteps since the beginning
+        self.elapsed_timestep = 0
+        # 'elapsed_walltime' is the elapsed time( in seconds) since the
+        # beginning
+        self.elapsed_walltime = 0
 
     @property
     def size_area(self):
@@ -166,14 +182,20 @@ class DroneAbstract(Agent):
         else:
             self._half_size_array = None
 
+    @property
+    def drone_health(self):
+        return self._drone_health
+
     @abstractmethod
     def define_message_for_all(self):
         """
-        This function is mandatory in the class you have to create that will inherit from this class.
+        This function is mandatory in the class you have to create that will
+        inherit from this class.
         You should return want you want to send to all nearest drones.
         For example:
             def define_message_for_all(self):
-                msg_data = (self.identifier, (self.measured_gps_position(), self.measured_compass_angle()))
+                msg_data = (self.identifier, (self.measured_gps_position(),
+                self.measured_compass_angle()))
                 return msg_data
         """
         pass
@@ -181,8 +203,10 @@ class DroneAbstract(Agent):
     @abstractmethod
     def control(self):
         """
-        This function is mandatory in the class you have to create that will inherit from this class.
-        This function should return a command which is a dict with values for the actuators.
+        This function is mandatory in the class you have to create that will
+        inherit from this class.
+        This function should return a command which is a dict with values for
+        the actuators.
         For example:
         command = {"forward": 1.0,
                    "lateral": 0.0,
@@ -264,9 +288,11 @@ class DroneAbstract(Agent):
 
     def measured_gps_position(self) -> Union[np.ndarray, None]:
         """
-        Give the measured position of the drone, in pixels. The measurement comes from the GPS sensor.
-        You can use this value for your calculation in the control() function. These values can be altered
-        by special areas in the map where the position information can be scrambled.
+        Give the measured position of the drone, in pixels. The measurement
+        comes from the GPS sensor.
+        You can use this value for your calculation in the control() function.
+        These values can be altered by special areas in the map where the
+        position information can be scrambled.
         """
         if self.gps_is_disabled():
             return None
@@ -279,9 +305,11 @@ class DroneAbstract(Agent):
 
     def measured_compass_angle(self) -> Union[float, None]:
         """
-        Give the measured orientation of the drone, in radians between -Pi and Pi. The measurement comes from the compass
-        sensor. You can use this value for your calculation in the control() function. These values can be altered
-        by special areas in the map where the position information can be scrambled.
+        Give the measured orientation of the drone, in radians between -Pi and
+        Pi. The measurement comes from the compass sensor. You can use this
+        value for your calculation in the control() function. These values can
+        be altered by special areas in the map where the position information
+        can be scrambled.
         """
         if self.compass_is_disabled():
             return None
@@ -293,7 +321,8 @@ class DroneAbstract(Agent):
 
     def measured_velocity(self) -> Union[np.ndarray, None]:
         """
-        Give the measured velocity of the drone in the two dimensions, in pixels per second
+        Give the measured velocity of the drone in the two dimensions, in
+        pixels per second
         You must use this value for your calculation in the control() function.
         """
         odom = self.odometer_values()
@@ -337,32 +366,36 @@ class DroneAbstract(Agent):
     def true_position(self) -> np.ndarray:
         """
         Give the true position of the drone, in pixels
-        You must NOT use this value for your calculation in the control() function, you should use
-        measured_gps_position() instead. But you can use it for debugging or logging.
+        You must NOT use this value for your calculation in the control()
+        function, you should use measured_gps_position() instead. But you can
+        use it for debugging or logging.
         """
         return np.array(self.base._pm_body.position)
 
     def true_angle(self) -> float:
         """
         Give the true orientation of the drone, in radians between -Pi and Pi.
-        You must NOT use this value for your calculation in the control() function, you should use
-        measured_compass_angle() instead. But you can use it for debugging or logging.
+        You must NOT use this value for your calculation in the control()
+        function, you should use measured_compass_angle() instead. But you can
+        use it for debugging or logging.
         """
         return normalize_angle(self.base._pm_body.angle)
 
     def true_velocity(self) -> np.ndarray:
         """
-        Give the true velocity of the drone in the two dimensions, in pixels per second
-        You must NOT use this value for your calculation in the control() function, you should use GPS, Compass or
-        odometry data instead. But you can use it for debugging or logging.
+        Give the true velocity of the drone in the two dimensions, in pixels
+        per second. You must NOT use this value for your calculation in the
+        control() function, you should use GPS, Compass or odometry data
+        instead. But you can use it for debugging or logging.
         """
         return np.array(self.base._pm_body.velocity)
 
     def true_angular_velocity(self) -> float:
         """
         Give the true angular velocity of the drone, in radians per second
-        You must NOT use this value for your calculation in the control() function, you should use GPS, Compass or
-        odometry data instead. But you can use it for debugging or logging.
+        You must NOT use this value for your calculation in the control()
+        function, you should use GPS, Compass or odometry data instead. But you
+        can use it for debugging or logging.
         """
         return self.base._pm_body.angular_velocity
 
@@ -387,33 +420,43 @@ class DroneAbstract(Agent):
         gps_pt = self.measured_gps_position()
 
         if gps_pt is not None:
-            txt_gps = "GPS: ({0:.1f}, {1:.1f})".format(gps_pt[0], gps_pt[1])
+            txt_gps = ("GPS: ({0:.1f}, {1:.1f})"
+                       .format(gps_pt[0], gps_pt[1]))
         else:
             txt_gps = "GPS: None"
-        txt_truth = "Truth: ({0:.1f}, {1:.1f})".format(true_pt[0], true_pt[1])
+        txt_truth = ("Truth: ({0:.1f}, {1:.1f})"
+                     .format(true_pt[0], true_pt[1]))
 
         pt = true_pt + self._half_size_array
 
-        arcade.draw_text(txt_gps, pt[0] + 10, pt[1] + 10, [128, 128, 128], 10)
-        arcade.draw_text(txt_truth, pt[0] + 10, pt[1] + 25, [128, 128, 128], 10)
+        arcade.draw_text(txt_gps, pt[0] + 10, pt[1] + 10,
+                         [128, 128, 128], 10)
+        arcade.draw_text(txt_truth, pt[0] + 10, pt[1] + 25,
+                         [128, 128, 128], 10)
 
     def draw_com(self):
         """Draws the communication range of the drone on the playground."""
         pt = self.true_position() + self._half_size_array
 
-        # arcade.draw_circle_outline(pt[0], pt[1], RANGE_COMMUNICATION, [128, 128, 128], 5, -1)
+        # arcade.draw_circle_outline(pt[0], pt[1], RANGE_COMMUNICATION,
+        # [128, 128, 128], 5, -1)
         # for r in range(RANGE_COMMUNICATION - 60, RANGE_COMMUNICATION, 20):
         color = [128, 128, 128]
         if self.communicator_is_disabled():
             color = [200, 200, 200]
-        arcade.draw_circle_outline(pt[0], pt[1], RANGE_COMMUNICATION, color, 1, -1)
+        arcade.draw_circle_outline(pt[0], pt[1],
+                                   RANGE_COMMUNICATION, color,
+                                   1, -1)
 
         # in_transmission_range
         if not self.communicator_is_disabled():
             for com in self.communicator.comms_in_range:
                 if not com.agent.communicator_is_disabled():
                     pt2 = com.agent.true_position() + self._half_size_array
-                    arcade.draw_line(pt[0], pt[1], pt2[0], pt2[1], [128, 128, 128], 2)
+                    arcade.draw_line(pt[0], pt[1],
+                                     pt2[0], pt2[1],
+                                     [128, 128, 128],
+                                     2)
 
     def draw_bottom_layer(self):
         pass
@@ -424,7 +467,8 @@ class DroneAbstract(Agent):
     def draw_identifier(self):
         color = (64, 64, 64)
         offset = 10
-        pt1 = self.true_position() + self._half_size_array + np.array([offset, offset])
+        pt1 = (self.true_position() + self._half_size_array +
+               np.array([offset, offset]))
         str_id = str(self.identifier)
         font_size = 10
         arcade.draw_text(str_id,
@@ -436,12 +480,12 @@ class DroneAbstract(Agent):
     def collide_wall(self):
         """Handles collision with walls and reduces drone health."""
         if self.timer_collision_wall_or_drone.get_elapsed_time() > 1.0:
-            self.drone_health -= 1
+            self._drone_health -= 1
             self.timer_collision_wall_or_drone.restart()
-            # print("Drone {} collides a wall, drone_health = {}".format(self.identifier,
-            #                                                            self.drone_health))
+            # print("Drone {} collides a wall, drone_health = {}"
+            # .format(self.identifier, self._drone_health))
 
-        if self.drone_health <= 0:
+        if self._drone_health <= 0:
             print(f"Drone {self.identifier} destroyed, too much collision !")
             if not self.removed:
                 self.base.grasper._release_grasping()
@@ -450,13 +494,17 @@ class DroneAbstract(Agent):
     def collide_drone(self):
         """Handles collision with other drones and reduces drone health."""
         if self.timer_collision_wall_or_drone.get_elapsed_time() > 1.0:
-            self.drone_health -= 1
+            self._drone_health -= 1
             self.timer_collision_wall_or_drone.restart()
-            # print("Drone {} collides a drone, drone_health = {}".format(self.identifier,
-            #                                                             self.drone_health))
+            # print("Drone {} collides a drone, drone_health = {}"
+            # .format(self.identifier,self._drone_health))
 
-        if self.drone_health <= 0:
+        if self._drone_health <= 0:
             print(f"Drone {self.identifier} destroyed, too much collision !")
             if not self.removed:
                 self.base.grasper._release_grasping()
                 self._playground.remove(self)
+
+    def pre_step(self):
+        self.is_inside_return_area = False
+        super().pre_step()

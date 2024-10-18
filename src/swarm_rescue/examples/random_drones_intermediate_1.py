@@ -8,7 +8,8 @@ import random
 import sys
 
 # This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0,
+                os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from maps.map_intermediate_01 import MyMapIntermediate01
 from spg_overlay.entities.drone_abstract import DroneAbstract
@@ -33,8 +34,22 @@ class MyDroneRandom(DroneAbstract):
 
     def control(self):
         """
-        The Drone will move forward and turn for a random angle when an obstacle is hit
+        The Drone will move forward and turn for a random angle when an
+        obstacle is hit
         """
+        if self._misc_data.max_timestep_limit is not None:
+            perc_timestep = self.elapsed_timestep / self._misc_data.max_timestep_limit * 100
+        else:
+            perc_timestep = None
+
+        if self._misc_data.max_walltime_limit is not None:
+            perc_walltime = self.elapsed_walltime / self._misc_data.max_walltime_limit * 100
+        else:
+            perc_walltime = None
+
+        if perc_timestep is not None and perc_walltime is not None:
+            print(f"% walltime = {perc_walltime:.1f}% and % timestep = {perc_timestep:.1f}%")
+
         command_straight = {"forward": 1.0,
                             "rotation": 0.0}
         command_turn_left = {"forward": 0.0,
@@ -44,23 +59,24 @@ class MyDroneRandom(DroneAbstract):
 
         self.counterStraight += 1
 
-        if not self._is_turning() and self.counterStraight > self.counterStopStraight:
+        if (not self._is_turning() and
+                self.counterStraight > self.counterStopStraight):
             self.angleStopTurning = random.uniform(-math.pi, math.pi)
-            diff_angle = normalize_angle(self.angleStopTurning - self.measured_compass_angle())
+            diff_angle = normalize_angle(self.angleStopTurning -
+                                         self.measured_compass_angle())
             if diff_angle > 0:
                 self.isTurningLeft = True
             else:
                 self.isTurningRight = True
 
-        diff_angle = normalize_angle(self.angleStopTurning - self.measured_compass_angle())
+        diff_angle = normalize_angle(self.angleStopTurning -
+                                     self.measured_compass_angle())
         if self._is_turning() and abs(diff_angle) < 0.2:
             self.isTurningLeft = False
             self.isTurningRight = False
             self.counterStraight = 0
             self.counterStopStraight = random.uniform(10, 30)
 
-        # print("\nself.isTurning : {}, abs(diff_angle) = {}".format(self.isTurning, abs(diff_angle)))
-        # print("self.angleStopTurning = {}, self.measured_compass_angle() = {}, diff_angle = {}".format(self.angleStopTurning, self.measured_compass_angle(), diff_angle))
         if self.isTurningLeft:
             return command_turn_left
         elif self.isTurningRight:
@@ -74,7 +90,6 @@ class MyDroneRandom(DroneAbstract):
 
 def main():
     my_map = MyMapIntermediate01()
-
     playground = my_map.construct_playground(drone_type=MyDroneRandom)
 
     gui = GuiSR(playground=playground,

@@ -2,7 +2,6 @@ import arcade
 import time
 from typing import Optional, Tuple, List, Dict, Union, Type
 import cv2
-import pyglet
 
 from spg.agent.controller.controller import Command, Controller
 from spg.playground import Playground
@@ -21,8 +20,9 @@ from spg_overlay.utils.visu_noises import VisuNoises
 
 class GuiSR(TopDownView):
     """
-    The GuiSR class is a subclass of TopDownView and provides a graphical user interface for the simulation. It handles
-    the rendering of the playground, drones, and other visual elements, as well as user input and interaction.
+    The GuiSR class is a subclass of TopDownView and provides a graphical user
+    interface for the simulation. It handles the rendering of the playground,
+    drones, and other visual elements, as well as user input and interaction.
     """
 
     def __init__(
@@ -63,19 +63,20 @@ class GuiSR(TopDownView):
 
         # image_icon = pyglet.resource.image("resources/drone_v2.png")
         # self._playground.window.set_icon(image_icon)
-        # Ok for the first round, crash for the second round ! I dont know why...
+        # Ok for the first round, crash for the second round ! I dont know
+        # why...
 
         self._the_map = the_map
         self._drones = self._the_map.drones
         self._number_drones = self._the_map.number_drones
 
-        self._real_time_limit = self._the_map.real_time_limit
-        if self._real_time_limit is None:
-            self._real_time_limit = 100000000
+        self._max_walltime_limit = self._the_map.max_walltime_limit
+        if self._max_walltime_limit is None:
+            self._max_walltime_limit = 100000000
 
-        self._time_step_limit = self._the_map.time_step_limit
-        if self._time_step_limit is None:
-            self._time_step_limit = 100000000
+        self._max_timestep_limit = self._the_map.max_timestep_limit
+        if self._max_timestep_limit is None:
+            self._max_timestep_limit = 100000000
 
         self._drones_commands: Union[Dict[DroneAbstract, Dict[Union[str, Controller], Command]], Type[None]] = None
         if self._drones:
@@ -104,17 +105,19 @@ class GuiSR(TopDownView):
         self._use_mouse_measure = use_mouse_measure
         self._enable_visu_noises = enable_visu_noises
 
-        # 'number_wounded_persons' is the number of wounded persons that should be retrieved by the drones.
+        # 'number_wounded_persons' is the number of wounded persons that should
+        # be retrieved by the drones.
         self._percent_drones_destroyed = 0.0
         self._mean_drones_health = 0.0
 
-        self._total_number_wounded_persons = self._the_map.number_wounded_persons
+        self._total_number_wounded_persons = (
+            self._the_map.number_wounded_persons)
         self._rescued_number = 0
-        self._rescued_all_time_step = 0
-        self._elapsed_time = 0
-        self._start_real_time = time.time()
-        self._real_time_limit_reached = False
-        self._real_time_elapsed = 0.001
+        self._full_rescue_timestep = 0
+        self._elapsed_timestep = 0
+        self._start_timestamp = time.time()
+        self._is_max_walltime_limit_reached = False
+        self._elapsed_walltime = 0.001
 
         self._last_image = None
         self._terminate = False
@@ -122,9 +125,11 @@ class GuiSR(TopDownView):
         self.fps_display = FpsDisplay(period_display=2)
         self._keyboardController = KeyboardController()
         self._mouse_measure = MouseMeasure(playground_size=playground.size)
-        self._visu_noises = VisuNoises(playground_size=playground.size, drones=self._drones)
+        self._visu_noises = VisuNoises(playground_size=playground.size,
+                                       drones=self._drones)
 
-        self.recorder = ScreenRecorder(self._size[0], self._size[1], fps=30, out_file=filename_video_capture)
+        self.recorder = ScreenRecorder(self._size[0], self._size[1], fps=30,
+                                       out_file=filename_video_capture)
 
     def close(self):
         self._playground.window.close()
@@ -141,10 +146,11 @@ class GuiSR(TopDownView):
         self.draw()
 
     def on_update(self, delta_time):
-        self._elapsed_time += 1
+        self._elapsed_timestep += 1
 
-        if self._elapsed_time < 2:
-            self._playground.step(commands=self._drones_commands, messages=self._messages)
+        if self._elapsed_timestep < 2:
+            self._playground.step(commands=self._drones_commands,
+                                  messages=self._messages)
             # self._the_map.explored_map.update(self._drones)
             # self._the_map.explored_map._process_positions()
             # self._the_map.explored_map.display()
@@ -159,6 +165,8 @@ class GuiSR(TopDownView):
 
         # COMPUTE COMMANDS
         for i in range(self._number_drones):
+            self._drones[i].elapsed_walltime = self._elapsed_walltime
+            self._drones[i].elapsed_timestep = self._elapsed_timestep
             command = self._drones[i].control()
             if self._use_keyboard and i == 0:
                 command = self._keyboardController.control()
@@ -168,7 +176,10 @@ class GuiSR(TopDownView):
         if self._drones:
             self._drones[0].display()
 
-        self._playground.step(commands=self._drones_commands, messages=self._messages)
+        self._playground.step(commands=self._drones_commands,
+                              messages=self._messages)
+
+        #self._playground.debug_draw()
 
         self._visu_noises.update(enable=self._enable_visu_noises)
         # self._the_map.explored_map.display()
@@ -181,26 +192,28 @@ class GuiSR(TopDownView):
         if new_reward != 0:
             self._rescued_number += new_reward
 
-        if self._rescued_number == self._total_number_wounded_persons and self._rescued_all_time_step == 0:
-            self._rescued_all_time_step = self._elapsed_time
+        if (self._rescued_number == self._total_number_wounded_persons
+                and self._full_rescue_timestep == 0):
+            self._full_rescue_timestep = self._elapsed_timestep
 
-        end_real_time = time.time()
-        last_real_time_elapsed = self._real_time_elapsed
-        self._real_time_elapsed = (end_real_time - self._start_real_time)
-        delta = self._real_time_elapsed - last_real_time_elapsed
+        last_timestamp = time.time()
+        # last_elapsed_walltime = self._elapsed_walltime
+        self._elapsed_walltime = (last_timestamp - self._start_timestamp)
+        # delta = self._elapsed_walltime - last_elapsed_walltime
         # if delta > 0.5:
-        #     print("self._real_time_elapsed = {:.1f}, delta={:.1f}, freq={:.1f}, freq moy={:.1f}".format(
-        #         self._real_time_elapsed,
+        #     print("self._elapsed_walltime = {:.1f}, delta={:.1f},
+        #     freq={:.1f}, freq moy={:.1f}".format(
+        #         self._elapsed_walltime,
         #         delta,
         #         1 / (delta + 0.0001),
-        #         self._elapsed_time / (self._real_time_elapsed + 0.00001)))
-        if self._real_time_elapsed > self._real_time_limit:
-            self._real_time_elapsed = self._real_time_limit
-            self._real_time_limit_reached = True
+        #         self._elapsed_timestep / (self._elapsed_walltime + 0.00001)))
+        if self._elapsed_walltime > self._max_walltime_limit:
+            self._elapsed_walltime = self._max_walltime_limit
+            self._is_max_walltime_limit_reached = True
             self._terminate = True
 
-        if self._elapsed_time > self._time_step_limit:
-            self._elapsed_time = self._time_step_limit
+        if self._elapsed_timestep > self._max_timestep_limit:
+            self._elapsed_timestep = self._max_timestep_limit
             self._terminate = True
 
         if self._print_rewards:
@@ -339,10 +352,12 @@ class GuiSR(TopDownView):
 
     # Creating function to check the mouse clicks
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int):
-        self._mouse_measure.on_mouse_press(x, y, button, enable=self._use_mouse_measure)
+        self._mouse_measure.on_mouse_press(x, y, button,
+                                           enable=self._use_mouse_measure)
 
     def on_mouse_release(self, x: int, y: int, button: int, modifiers: int):
-        self._mouse_measure.on_mouse_release(x, y, button, enable=self._use_mouse_measure)
+        self._mouse_measure.on_mouse_release(x, y, button,
+                                             enable=self._use_mouse_measure)
 
     def collect_all_messages(self, drones: List[DroneAbstract]):
         messages: SentMessagesDict = {}
@@ -378,21 +393,24 @@ class GuiSR(TopDownView):
         return self._mean_drones_health
 
     @property
-    def elapsed_time(self):
-        return self._elapsed_time
+    def elapsed_timestep(self):
+        """
+
+        """
+        return self._elapsed_timestep
 
     @property
-    def real_time_elapsed(self):
-        return self._real_time_elapsed
+    def elapsed_walltime(self):
+        return self._elapsed_walltime
 
     @property
     def rescued_number(self):
         return self._rescued_number
 
     @property
-    def rescued_all_time_step(self):
-        return self._rescued_all_time_step
+    def full_rescue_timestep(self):
+        return self._full_rescue_timestep
 
     @property
-    def real_time_limit_reached(self):
-        return self._real_time_limit_reached
+    def is_max_walltime_limit_reached(self):
+        return self._is_max_walltime_limit_reached

@@ -1,19 +1,20 @@
 """
 This program can be launched directly.
-To move the drone, you have to click on the map, then use the arrows on the keyboard
+To move the drone, you have to click on the map, then use the arrows on the
+keyboard
 """
 
 import os
 import sys
 from typing import List, Type
 
-from spg.utils.definitions import CollisionTypes
-
 # This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0,
+                os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from spg_overlay.entities.drone_abstract import DroneAbstract
-from spg_overlay.entities.rescue_center import RescueCenter, wounded_rescue_center_collision
+from spg_overlay.entities.rescue_center import RescueCenter
+from spg_overlay.entities.return_area import ReturnArea
 from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.gui_sr import GuiSR
@@ -24,6 +25,8 @@ from spg_overlay.utils.misc_data import MiscData
 class MyDroneKeyboard(DroneAbstract):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        self.last_inside = False
 
     def define_message_for_all(self):
         """
@@ -36,6 +39,11 @@ class MyDroneKeyboard(DroneAbstract):
                    "lateral": 0.0,
                    "rotation": 0.0,
                    "grasper": 0}
+
+        if self.is_inside_return_area != self.last_inside:
+            print("is_inside_return_area : ", self.is_inside_return_area)
+            self.last_inside = self.is_inside_return_area
+
         return command
 
 
@@ -50,7 +58,12 @@ class MyMapKeyboard(MapAbstract):
         self._rescue_center = RescueCenter(size=(100, 100))
         self._rescue_center_pos = ((0, 100), 0)
 
-        self._wounded_persons_pos = [(200, 0), (-200, 0), (200, -200), (-200, -200)]
+        self._return_area = ReturnArea(size=(150, 100))
+        self._return_area_pos = ((0, -20), 0)
+        
+        self._wounded_persons_pos = [(200, 0), (-200, 0),
+                                     (200, -200), (-200, -200)]
+
         self._number_wounded_persons = len(self._wounded_persons_pos)
         self._wounded_persons: List[WoundedPerson] = []
 
@@ -61,12 +74,9 @@ class MyMapKeyboard(MapAbstract):
     def construct_playground(self, drone_type: Type[DroneAbstract]):
         playground = ClosedPlayground(size=self._size_area)
 
-        # RESCUE CENTER
-        playground.add_interaction(CollisionTypes.GEM,
-                                   CollisionTypes.ACTIVABLE_BY_GEM,
-                                   wounded_rescue_center_collision)
-
         playground.add(self._rescue_center, self._rescue_center_pos)
+
+        playground.add(self._return_area, self._return_area_pos)
 
         # POSITIONS OF THE WOUNDED PERSONS
         for i in range(self._number_wounded_persons):
@@ -77,7 +87,9 @@ class MyMapKeyboard(MapAbstract):
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
-                             number_drones=self._number_drones)
+                             number_drones=self._number_drones,
+                             max_timestep_limit=self._max_timestep_limit,
+                             max_walltime_limit=self._max_walltime_limit)
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
@@ -91,7 +103,7 @@ def print_keyboard_man():
     print("\t- up / down key : forward and backward")
     print("\t- left / right key : turn left / right")
     print("\t- shift + left/right key : left/right lateral movement")
-    print("\t- G key : grasp objects")
+    print("\t- W key : grasp wounded person")
     print("\t- L key : display (or not) the lidar sensor")
     print("\t- S key : display (or not) the semantic sensor")
     print("\t- P key : draw position from GPS sensor")
@@ -104,7 +116,6 @@ def print_keyboard_man():
 def main():
     print_keyboard_man()
     my_map = MyMapKeyboard()
-
     playground = my_map.construct_playground(drone_type=MyDroneKeyboard)
 
     # draw_lidar_rays : enable the visualization of the lidar rays
@@ -116,6 +127,9 @@ def main():
                 use_keyboard=True,
                 )
     gui.run()
+
+    score_health_returned = my_map.compute_score_health_returned()
+    print("score_health_returned = ", score_health_returned)
 
 
 if __name__ == '__main__':

@@ -2,23 +2,30 @@ import platform
 from typing import Tuple
 
 from spg.playground import Playground
+from spg.utils.definitions import CollisionTypes
 
+from spg_overlay.entities.drone_abstract import drone_collision_wall, drone_collision_drone
 from spg_overlay.entities.normal_wall import NormalWall
+from spg_overlay.entities.rescue_center import wounded_rescue_center_collision
+from spg_overlay.entities.sensor_disablers import srdisabler_disables_device
+from spg_overlay.entities.return_area import return_area_collision
 
 
 class ClosedPlayground(Playground):
     """
-    The ClosedPlayground class is a subclass of the Playground class. It represents a closed playground with walls
-    surrounding it. The class initializes the playground with a specified size and sets the background color. It also
-    determines whether to use shaders based on the platform. The class defines the shape of the walls and adds them
-    to the playground.
+    The ClosedPlayground class is a subclass of the Playground class. It
+    represents a closed playground with walls surrounding it. The class
+    initializes the playground with a specified size and sets the background
+    color. It also determines whether to use shaders based on the platform.
+    The class defines the shape of the walls and adds them to the playground.
 
     Example Usage
         playground = ClosedPlayground((800, 600))
 
-        In this example, a ClosedPlayground object is created with a size of 800x600 pixels. The playground will have
-        walls surrounding it and a default background color. The playground can then be used for various purposes, such
-        as simulating physics or rendering graphics.
+        In this example, a ClosedPlayground object is created with a size of
+        800x600 pixels. The playground will have walls surrounding it and a
+        default background color. The playground can then be used for various
+        purposes, such as simulating physics or rendering graphics.
 
     Fields
         _width: The width of the playground.
@@ -54,5 +61,29 @@ class ClosedPlayground(Playground):
             [(w, -h + o), (-w, -h + o), ],
         ]
         for begin_pt, end_pt in pts:
-            wall = NormalWall(pos_start=begin_pt, pos_end=end_pt, wall_thickness=border_thickness)
+            wall = NormalWall(pos_start=begin_pt, pos_end=end_pt,
+                              wall_thickness=border_thickness)
             self.add(wall, wall.wall_coordinates)
+
+    def _handle_interactions(self):
+        super()._handle_interactions()
+
+        self.add_interaction(CollisionTypes.DISABLER,
+                             CollisionTypes.DEVICE,
+                             srdisabler_disables_device)
+
+        self.add_interaction(CollisionTypes.GEM,
+                             CollisionTypes.ACTIVABLE_BY_GEM,
+                             wounded_rescue_center_collision)
+
+        self.add_interaction(CollisionTypes.PART,
+                             CollisionTypes.ELEMENT,
+                             drone_collision_wall)
+
+        self.add_interaction(CollisionTypes.PART,
+                             CollisionTypes.PART,
+                             drone_collision_drone)
+
+        self.add_interaction(CollisionTypes.ACTIVATOR,
+                                   CollisionTypes.PART,
+                                   return_area_collision)

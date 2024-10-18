@@ -61,7 +61,8 @@ class ImageToMap:
         # Change thresholds
         params.filterByArea = True
         params.maxArea = 2000
-        # Convexity = Area of the Blob / Area of its convex hull (max = 1 for convex shape)
+        # Convexity = Area of the Blob / Area of its convex hull
+        # (max = 1 for convex shape)
         params.filterByConvexity = True
         params.minConvexity = 0.75
         # Circularity = 4 pi * Area / (perimeter)²  (max = 1 for circle)
@@ -71,7 +72,9 @@ class ImageToMap:
         # Set up the detector with default parameters.
         detector = cv2.SimpleBlobDetector_create(params)
 
-        scaled_mask_people = 255 - (mask_people.astype(np.float32) * 255 / np.max(mask_people)).astype(np.uint8)
+        scaled_mask_people = (255 -
+                              (mask_people.astype(np.float32) * 255 /
+                               np.max(mask_people)).astype(np.uint8))
         # Detect blobs.
         keypoints = detector.detect(scaled_mask_people)
 
@@ -87,9 +90,11 @@ class ImageToMap:
         print(txt_people_position)
 
         # # Draw detected blobs as red circles.
-        # # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
+        # # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the
+        # circle corresponds to the size of blob
         # mask_people_rbg = cv2.cvtColor(mask_people, cv2.COLOR_GRAY2RGB)
-        # im_with_keypoints = cv2.drawKeypoints(mask_people_rbg, keypoints, np.array([]), (0, 0, 255),
+        # im_with_keypoints = cv2.drawKeypoints(mask_people_rbg, keypoints,
+        # np.array([]), (0, 0, 255),
         #                                       cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
         # Show keypoints
@@ -117,11 +122,17 @@ class ImageToMap:
         kernel = np.ones((7, 7), np.uint8)
 
         # Remove unnecessary noise from mask
-        mask_rescue_center = cv2.morphologyEx(mask_rescue_center, cv2.MORPH_CLOSE, kernel)
-        mask_rescue_center = cv2.morphologyEx(mask_rescue_center, cv2.MORPH_OPEN, kernel)
+        mask_rescue_center = cv2.morphologyEx(mask_rescue_center,
+                                              cv2.MORPH_CLOSE,
+                                              kernel)
+        mask_rescue_center = cv2.morphologyEx(mask_rescue_center,
+                                              cv2.MORPH_OPEN,
+                                              kernel)
 
         # find the contours
-        contours, _ = cv2.findContours(mask_rescue_center, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(mask_rescue_center,
+                                       cv2.RETR_TREE,
+                                       cv2.CHAIN_APPROX_SIMPLE)
 
         # take the first contour
         cnt = contours[0]
@@ -135,11 +146,18 @@ class ImageToMap:
         # print(x_rec, y_rec, w_rec, h_rec)
 
         # draw contour
-        mask_rescue_center_rbg = cv2.cvtColor(mask_rescue_center, cv2.COLOR_GRAY2RGB)
-        mask_rescue_center_rbg = cv2.drawContours(mask_rescue_center_rbg, [cnt], 0, (0, 255, 255), 2)
+        mask_rescue_center_rbg = cv2.cvtColor(mask_rescue_center,
+                                              cv2.COLOR_GRAY2RGB)
+        mask_rescue_center_rbg = cv2.drawContours(mask_rescue_center_rbg,
+                                                  [cnt],
+                                                  0,
+                                                  (0, 255, 255),
+                                                  2)
 
         # draw the bounding rectangle
-        mask_rescue_center_rbg = cv2.rectangle(mask_rescue_center_rbg, (x_rec, y_rec), (x_rec + w_rec, y_rec + h_rec),
+        mask_rescue_center_rbg = cv2.rectangle(mask_rescue_center_rbg,
+                                               (x_rec, y_rec),
+                                               (x_rec + w_rec, y_rec + h_rec),
                                                (0, 255, 0), 2)
 
         # display the image with bounding rectangle drawn on it
@@ -156,15 +174,19 @@ class ImageToMap:
         w_rec *= self.factor
         x = x_rec + w_rec * 0.5 - self.width_map * 0.5
         y = self.height_map * 0.5 - (y_rec + h_rec * 0.5)
-        txt_rescue1 = "\tself._rescue_center = RescueCenter(size=({0:.0f}, {1:.0f}))".format(w_rec, h_rec)
-        txt_rescue2 = "\tself._rescue_center_pos = (({0:.0f}, {1:.0f}), 0)".format(x, y)
+        txt_rescue1 = ("\tself._rescue_center = RescueCenter(size=({0:.0f}, "
+                       "{1:.0f}))").format(w_rec, h_rec)
+        txt_rescue2 = ("\tself._rescue_center_pos = (({0:.0f}, "
+                       "{1:.0f}), 0)").format(x, y)
         print(txt_rescue1)
         print(txt_rescue2)
 
     def compute_dim(self):
         self.height_map = 750
 
-        print("original dim map : ({}, {})".format(self._img_src_walls.shape[1], self._img_src_walls.shape[0]))
+        print("original dim map : ({}, {})"
+              .format(self._img_src_walls.shape[1],
+                      self._img_src_walls.shape[0]))
         print("auto_resized = {}".format(self._auto_resized))
 
         self.factor = self.height_map / self._img_src_walls.shape[0]
@@ -172,13 +194,16 @@ class ImageToMap:
             self.factor = 1.0
             self.height_map = self._img_src_walls.shape[0]
         self.width_map = int(round(self.factor * self._img_src_walls.shape[1]))
-        print("Used dim map : ({}, {}) with factor {}".format(self.width_map, self.height_map, self.factor))
+        print("Used dim map : ({}, {}) with factor {}"
+              .format(self.width_map, self.height_map, self.factor))
 
         print("Code to add in map_xxx.py:")
-        print("\tself._size_area = ({0:.0f},{1:.0f})".format(self.width_map, self.height_map))
+        print("\tself._size_area = ({0:.0f},{1:.0f})"
+              .format(self.width_map, self.height_map))
 
     def img_to_segments(self):
-        fld = cv2.ximgproc.createFastLineDetector(canny_aperture_size=7, do_merge=True)
+        fld = cv2.ximgproc.createFastLineDetector(canny_aperture_size=7,
+                                                  do_merge=True)
         # size_kernel = 9
         # kernel = np.ones((size_kernel, size_kernel), np.uint8)
         radius_kernel = 5
@@ -190,14 +215,17 @@ class ImageToMap:
         result_img = fld.drawSegments(self._img_src_walls, self.lines)
         cv2.imshow("result_img", result_img)
 
-        only_lines_image = np.zeros((self._img_src_walls.shape[0], self._img_src_walls.shape[1], 3), dtype=np.uint8)
+        only_lines_image = np.zeros((self._img_src_walls.shape[0],
+                                     self._img_src_walls.shape[1], 3),
+                                    dtype=np.uint8)
 
         for line in self.lines:
             x0 = int(round(line[0][0]))
             y0 = int(round(line[0][1]))
             x1 = int(round(line[0][2]))
             y1 = int(round(line[0][3]))
-            cv2.line(only_lines_image, (x0, y0), (x1, y1), (0, 0, 255), 1, cv2.LINE_4)
+            cv2.line(only_lines_image, (x0, y0), (x1, y1),
+                     (0, 0, 255), 1, cv2.LINE_4)
 
         # Compute min and max
         # for line in self.lines:
@@ -218,8 +246,11 @@ class ImageToMap:
         kernel = np.ones((size_kernel, size_kernel), np.uint8)
         img_box = cv2.morphologyEx(self._img_src_walls, cv2.MORPH_OPEN, kernel)
         cv2.imshow("img_box", img_box)
-        thresh_value, thresh_img = cv2.threshold(src=img_box, thresh=127, maxval=255, type=0)
-        contours, hierarchy = cv2.findContours(image=thresh_img, mode=cv2.RETR_LIST, method=cv2.CHAIN_APPROX_SIMPLE)
+        thresh_value, thresh_img = cv2.threshold(src=img_box, thresh=127,
+                                                 maxval=255, type=0)
+        contours, hierarchy = cv2.findContours(image=thresh_img,
+                                               mode=cv2.RETR_LIST,
+                                               method=cv2.CHAIN_APPROX_SIMPLE)
         cv2.imshow("thresh_img_box", thresh_img)
 
         contours_poly = []
@@ -227,14 +258,19 @@ class ImageToMap:
 
         for i, curve in enumerate(contours):
             perimeter = cv2.arcLength(curve=curve, closed=True)
-            approx_poly = cv2.approxPolyDP(curve=curve, epsilon=0.015 * perimeter, closed=True)
+            approx_poly = cv2.approxPolyDP(curve=curve,
+                                           epsilon=0.015 * perimeter,
+                                           closed=True)
             box = cv2.boundingRect(approx_poly)
             # print("approx_poly.shape[0]", approx_poly.shape[0])
-            # print("abs(cv2.contourArea(approx_poly))", abs(cv2.contourArea(approx_poly)))
-            # print("cv2.isContourConvex(approx_poly)", cv2.isContourConvex(approx_poly))
+            # print("abs(cv2.contourArea(approx_poly))",
+            # abs(cv2.contourArea(approx_poly)))
+            # print("cv2.isContourConvex(approx_poly)",
+            # cv2.isContourConvex(approx_poly))
 
             # remove huge boxes
-            # if box[2] > 0.7 * self._img_src.shape[1] and box[3] > 0.7 * self._img_src.shape[0]:
+            # if box[2] > 0.7 * self._img_src.shape[1] and
+            #    box[3] > 0.7 * self._img_src.shape[0]:
             # print("**********")
             # print("width box", box[2])
             # print("height box", box[3])
@@ -243,20 +279,27 @@ class ImageToMap:
             # print("")
             # continue
 
-            if approx_poly.shape[0] == 4 and abs(cv2.contourArea(approx_poly)) > 300 and cv2.isContourConvex(
-                    approx_poly):
+            if (approx_poly.shape[0] == 4 and
+                    abs(cv2.contourArea(approx_poly)) > 300 and
+                    cv2.isContourConvex(approx_poly)):
                 # print("approx_poly", approx_poly)
                 contours_poly.append(approx_poly)
                 self.boxes.append(box)
                 # print("box", box)
 
-        only_boxes_image = np.zeros((thresh_img.shape[0], thresh_img.shape[1], 3), dtype=np.uint8)
+        only_boxes_image = np.zeros((thresh_img.shape[0],
+                                     thresh_img.shape[1], 3),
+                                    dtype=np.uint8)
 
         for i in range(len(contours_poly)):
-            color = (random.randint(0, 256), random.randint(0, 256), random.randint(0, 256))
+            color = (random.randint(0, 256),
+                     random.randint(0, 256),
+                     random.randint(0, 256))
             cv2.drawContours(only_boxes_image, contours_poly, i, color)
             # x, y, w, h = self.boxes[i]
-            # cv2.rectangle(img=only_boxes_image, pt1=(x, y), pt2=(x + w, y + h), color=color, thickness=-1)
+            # cv2.rectangle(img=only_boxes_image, pt1=(x, y),
+            #               pt2=(x + w, y + h),
+            # color=color, thickness=-1)
 
         # Compute min and max
         # for box in self.boxes:
@@ -276,14 +319,19 @@ class ImageToMap:
         f = open("generated_code.py", "w")
 
         f.write("\"\"\"\n")
-        f.write("This file was generated by the tool 'image_to_map.py' in the directory tools.\n")
+        f.write("This file was generated by the tool 'image_to_map.py' in "
+                "the directory tools.\n")
         f.write(
-            "This tool permits to create this kind of file by providing it an image of the map we want to create.\n")
+            "This tool permits to create this kind of file by providing it "
+            "an image of the map we want to create.\n")
         f.write("\"\"\"\n\n")
 
-        f.write("from spg_overlay.entities.normal_wall import NormalWall, NormalBox\n\n\n")
+        f.write("from spg_overlay.entities.normal_wall import NormalWall, "
+                "NormalBox\n\n\n")
 
-        f.write("# Dimension of the map : ({}, {})\n".format(self.width_map, self.height_map))
+        f.write("# Dimension of the map : ({}, {})\n"
+                .format(self.width_map,
+                        self.height_map))
 
         f.write("# Dimension factor : {}\n".format(self.factor))
 
@@ -302,8 +350,10 @@ class ImageToMap:
                 height_w = int(round(height))
 
                 f.write("    # box {}\n".format(i))
-                f.write("    box = NormalBox(up_left_point=({}, {}),\n".format(xw, yw))
-                f.write("                    width={}, height={})\n".format(width_w, height_w))
+                f.write("    box = NormalBox(up_left_point=({}, {}),\n"
+                        .format(xw, yw))
+                f.write("                    width={}, height={})\n"
+                        .format(width_w, height_w))
                 f.write("    playground.add(box, box.wall_coordinates)\n\n")
         else:
             f.write("    pass\n\n")
@@ -380,8 +430,10 @@ class ImageToMap:
                 xw1 = int(round(x1 - self.width_map / 2))
                 yw1 = int(round(-y1 + self.height_map / 2))
 
-                f.write("    wall = NormalWall(pos_start=({}, {}),\n".format(xw0, yw0))
-                f.write("                      pos_end=({}, {}))\n".format(xw1, yw1))
+                f.write("    wall = NormalWall(pos_start=({}, {}),\n"
+                        .format(xw0, yw0))
+                f.write("                      pos_end=({}, {}))\n"
+                        .format(xw1, yw1))
                 f.write("    playground.add(wall, wall.wall_coordinates)\n\n")
         else:
             f.write("    pass\n\n")
@@ -392,8 +444,10 @@ class ImageToMap:
         print("nombre de lignes =", len(self.lines))
 
 
-# img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/map_data/map_complete_map_2.png"
-img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/map_data/map_medium_02_color.png"
+# img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/"
+#            "map_data/map_complete_map_2.png"
+img_path = ("/home/battesti/projetCompetDronesDGA/private-swarm-rescue/"
+            "map_data/map_medium_02_color.png")
 should_auto_resized = False
 # img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
 img = cv2.imread(img_path)

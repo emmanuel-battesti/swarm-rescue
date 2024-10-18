@@ -23,8 +23,8 @@ from spg_overlay.entities.wounded_person import WoundedPerson
 
 def compute_ray_angles(fov_rad: float, nb_rays: int) -> np.ndarray:
     """
-    The compute_ray_angles function calculates the angles of the laser rays of a sensor based on the field of view and
-    the number of rays.
+    The compute_ray_angles function calculates the angles of the laser rays of
+    a sensor based on the field of view and the number of rays.
 
     Example Usage
         fov_rad = math.pi / 2
@@ -48,16 +48,19 @@ def compute_ray_angles(fov_rad: float, nb_rays: int) -> np.ndarray:
     else:
         ray_angles = np.linspace(-fov_rad / 2, fov_rad / 2, nb_rays)
 
-    # 'ray_angles' is an array which contains the angles of the laser rays of the sensor
+    # 'ray_angles' is an array which contains the angles of the laser rays of
+    # the sensor
     return np.array(ray_angles)
 
 
 class DroneDistanceSensor(DistanceSensor):
     """
-    The DroneDistanceSensor class is a subclass of the DistanceSensor class and represents a distance sensor for a
-    drone. It emulates a lidar sensor, which measures distances using a laser in different directions. The class
-    provides methods to calculate the field of view in radians and degrees, get the sensor values, check if the sensor
-    is disabled, apply noise to the sensor values, and draw the lidar sensor.
+    The DroneDistanceSensor class is a subclass of the DistanceSensor class and
+    represents a distance sensor for a drone. It emulates a lidar sensor, which
+    measures distances using a laser in different directions. The classprovides
+    methods to calculate the field of view in radians and degrees, get the
+    sensor values, check if the sensor is disabled, apply noise to the sensor
+    values, and draw the lidar sensor.
     """
 
     def __init__(self, noise=True, **kwargs):
@@ -65,10 +68,13 @@ class DroneDistanceSensor(DistanceSensor):
 
         self._noise = noise
         self._std_dev_noise = 2.5
-        self._noise_model = GaussianNoise(mean_noise=0, std_dev_noise=self._std_dev_noise)
+        self._noise_model = (
+            GaussianNoise(mean_noise=0, std_dev_noise=self._std_dev_noise))
 
-        # 'ray_angles' is an array which contains the angles of the laser rays of the sensor
-        self.ray_angles = compute_ray_angles(fov_rad=self.fov_rad(), nb_rays=self.resolution)
+        # 'ray_angles' is an array which contains the angles of the laser rays
+        # of the sensor
+        self.ray_angles = (
+            compute_ray_angles(fov_rad=self.fov_rad(), nb_rays=self.resolution))
 
         self._null_sensor = np.empty(self.shape)
         self._null_sensor[:] = np.nan
@@ -115,13 +121,16 @@ class DroneDistanceSensor(DistanceSensor):
 class DroneLidar(DroneDistanceSensor):
     """
     It emulates a lidar.
-    The DroneLidar class is a subclass of the DroneDistanceSensor class and represents a lidar sensor for a drone.
-    It emulates a real lidar sensor ("light detection and ranging") that measures distances using a laser in different
-    directions. The class provides
-     methods to calculate the field of view in radians and degrees, get the sensor values, check if the sensor is
-     disabled, apply noise to the sensor values, and draw the lidar sensor.
+    The DroneLidar class is a subclass of the DroneDistanceSensor class and
+    represents a lidar sensor for a drone.
+    It emulates a real lidar sensor ("light detection and ranging") that
+    measures distances using a laser in different directions. The class provides
+     methods to calculate the field of view in radians and degrees, get the
+     sensor values, check if the sensor is disabled, apply noise to the sensor
+     values, and draw the lidar sensor.
 
-    It is a real sensor that measures distances with a laser in different directions.
+    It is a real sensor that measures distances with a laser in different
+    directions.
     - fov (field of view): 360 degrees
     - resolution (number of rays): 181
     - max range (maximum range of the sensor): 300 pix
@@ -139,8 +148,8 @@ class DroneLidar(DroneDistanceSensor):
 
 class DroneSemanticSensor(SemanticSensor):
     """
-    Semantic sensors allow to determine the nature of an object, without data processing,
-    around the drone.
+    Semantic sensors allow to determine the nature of an object, without data
+    processing, around the drone.
 
     - fov (field of view): 360 degrees
     - resolution (number of rays): 35
@@ -162,9 +171,11 @@ class DroneSemanticSensor(SemanticSensor):
         VENDING_MACHINE = auto()
         OTHER = auto()
 
-    Data = namedtuple("Data", "distance angle entity_type grasped")
+    Data = namedtuple("Data",
+                      "distance angle entity_type grasped")
 
-    def __init__(self, playground: Playground, noise=True, invisible_elements=None, **kwargs):
+    def __init__(self, playground: Playground, noise=True,
+                 invisible_elements=None, **kwargs):
         super().__init__(normalize=False,
                          resolution=RESOLUTION_SEMANTIC_SENSOR,
                          max_range=MAX_RANGE_SEMANTIC_SENSOR,
@@ -177,8 +188,10 @@ class DroneSemanticSensor(SemanticSensor):
         self._noise = noise
         self._std_dev_noise = 2.5
 
-        # 'ray_angles' is an array which contains the angles of the laser rays of the sensor
-        self.ray_angles = compute_ray_angles(fov_rad=self.fov_rad(), nb_rays=self.resolution)
+        # 'ray_angles' is an array which contains the angles of the laser rays
+        # of the sensor
+        self.ray_angles = compute_ray_angles(fov_rad=self.fov_rad(),
+                                             nb_rays=self.resolution)
 
         self.entity_colors = {
             WoundedPerson: [179, 143, 0],
@@ -234,7 +247,9 @@ class DroneSemanticSensor(SemanticSensor):
                 # print(__file__, type(entity))
 
             grasped = False
-            if hasattr(entity, 'graspable') and entity.graspable and entity.grasped_by:
+            if (hasattr(entity, 'graspable') and
+                    entity.graspable and
+                    entity.grasped_by):
                 grasped = True
 
             distance = distances[index]
@@ -280,7 +295,8 @@ class DroneSemanticSensor(SemanticSensor):
         """Applies noise to the lidar sensor values."""
         for index, data in enumerate(self._values):
             new_data = self.Data(
-                distance=max(0.0, data.distance + np.random.normal(self._std_dev_noise)),
+                distance=max(0.0, data.distance +
+                             np.random.normal(self._std_dev_noise)),
                 angle=data.angle,
                 entity_type=data.entity_type,
                 grasped=data.grasped)
@@ -294,16 +310,19 @@ class DroneSemanticSensor(SemanticSensor):
             self.draw_details()
 
     def draw_details(self):
-        """The draw_details method is responsible for drawing the lidar sensor rays and coloring them based on the type
-        of entity detected by the sensor."""
+        """The draw_details method is responsible for drawing the lidar sensor
+        rays and coloring them based on the type of entity detected by the
+        sensor."""
 
         if self._disabled:
             return
 
-        # view_xy corresponds to the first two columns (:2) of the self._hitpoints array.
+        # view_xy corresponds to the first two columns (:2) of the
+        # self._hitpoints array.
         view_xy = self._hitpoints[:, :2]
         center_xy = self._hitpoints[:, 6:8]
-        #  id_detection corresponds to the ninth column (8) of the self._hitpoints array.
+        #  id_detection corresponds to the ninth column (8) of the
+        #  self._hitpoints array.
         id_detection = self._hitpoints[:, 8].astype(int)
 
         point_list = []

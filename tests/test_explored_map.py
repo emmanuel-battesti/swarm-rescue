@@ -1,7 +1,5 @@
 from typing import List, Type
 
-from spg.playground import Playground
-
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.map_abstract import MapAbstract
@@ -43,7 +41,9 @@ class MyMap(MapAbstract):
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
-                             number_drones=self._number_drones)
+                             number_drones=self._number_drones,
+                             max_timestep_limit=self._max_timestep_limit,
+                             max_walltime_limit=self._max_walltime_limit)
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
@@ -56,7 +56,7 @@ def test_initialize_explored_map_with_default_values():
     my_map = MyMap()
     playground = my_map.construct_playground(drone_type=MyDrone)
     explored_map = ExploredMap()
-    assert explored_map.initialized == False
+    assert explored_map.initialized is False
     assert explored_map._img_playground.shape == (0, 0)
     assert explored_map._map_playground.shape == (0, 0)
     assert explored_map._map_explo_lines.shape == (0, 0)
@@ -69,7 +69,7 @@ def test_initialize_explored_map_with_default_values():
 
     drones = [playground.agents]
     explored_map.update_drones(drones)
-    assert explored_map.initialized == False
+    assert explored_map.initialized is False
 
 
 def test_reset_explored_map():

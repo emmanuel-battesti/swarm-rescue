@@ -15,14 +15,17 @@ class Grid:
         self.size_area_world = size_area_world
         self.resolution = resolution
 
-        self.x_max_grid: int = int(self.size_area_world[0] / self.resolution + 0.5)
-        self.y_max_grid: int = int(self.size_area_world[1] / self.resolution + 0.5)
+        self.x_max_grid: int = (
+            int(self.size_area_world[0] / self.resolution + 0.5))
+        self.y_max_grid: int = (
+            int(self.size_area_world[1] / self.resolution + 0.5))
 
         self.grid = np.zeros((self.x_max_grid, self.y_max_grid))
 
     def _conv_world_to_grid(self, x_world, y_world):
         """
-        Convert from world coordinates to map coordinates (i.e. cell index in the grid map)
+        Convert from world coordinates to map coordinates (i.e. cell index in
+        the grid map)
         x_world, y_world : list of x and y coordinates in m
         """
 
@@ -59,26 +62,37 @@ class Grid:
 
         return x_world, y_world
 
-    def add_value_along_line(self, x_0: float, y_0: float, x_1: float, y_1: float, val):
+    def add_value_along_line(self, x_0: float, y_0: float, x_1: float,
+                             y_1: float, val):
         """
-        Add a value to a line of points using Bresenham algorithm, input in world coordinates
+        Add a value to a line of points using Bresenham algorithm, input in
+        world coordinates
         x_0, y_0 : starting point coordinates in m
         x_1, y_1 : end point coordinates in m
         val : value to add to each cell of the line
         """
 
-        if math.isnan(x_0) or math.isnan(y_0) or math.isnan(x_1) or math.isnan(y_1):
+        if (math.isnan(x_0) or
+                math.isnan(y_0) or
+                math.isnan(x_1) or
+                math.isnan(y_1)):
             return
 
         # convert to pixels
         x_start, y_start = self._conv_world_to_grid(x_0, y_0)
         x_end, y_end = self._conv_world_to_grid(x_1, y_1)
 
-        if x_start < 0 or x_start >= self.x_max_grid or y_start < 0 or y_start >= self.y_max_grid:
+        if (x_start < 0
+                or x_start >= self.x_max_grid
+                or y_start < 0
+                or y_start >= self.y_max_grid):
             # print("add_value_along_line: warning ray exits 1")
             return
 
-        if x_end < 0 or x_end >= self.x_max_grid or y_end < 0 or y_end >= self.y_max_grid:
+        if (x_end < 0
+                or x_end >= self.x_max_grid
+                or y_end < 0
+                or y_end >= self.y_max_grid):
             # print("add_value_along_line: warning ray exits 2")
             return
 
@@ -125,13 +139,16 @@ class Grid:
             if 0 <= x_px < self.x_max_grid and 0 <= y_px < self.y_max_grid:
                 self.grid[x_px, y_px] += val
         elif isinstance(points_x, np.ndarray):
-            select = np.logical_and(np.logical_and(x_px >= 0, x_px < self.x_max_grid),
-                                    np.logical_and(y_px >= 0, y_px < self.y_max_grid))
+            select = np.logical_and(np.logical_and(x_px >= 0,
+                                                   x_px < self.x_max_grid),
+                                    np.logical_and(y_px >= 0,
+                                                   y_px < self.y_max_grid))
             x_px = x_px[select]
             y_px = y_px[select]
             self.grid[x_px, y_px] += val
 
-    def display(self, grid_to_display: np.ndarray, robot_pose: Pose, title="grid"):
+    def display(self, grid_to_display: np.ndarray,
+                robot_pose: Pose, title="grid"):
         """
         Screen display of grid and robot pose,
         using opencv (faster than the matplotlib version)
@@ -147,7 +164,9 @@ class Grid:
         pt2_y = robot_pose.position[1] + np.sin(robot_pose.orientation) * 20
         pt2_x, pt2_y = self._conv_world_to_grid(pt2_x, pt2_y)
 
-        pt1_x, pt1_y = self._conv_world_to_grid(robot_pose.position[0], robot_pose.position[1])
+        pt1_x, pt1_y = (
+            self._conv_world_to_grid(robot_pose.position[0],
+                                     robot_pose.position[1]))
 
         pt1 = (int(pt1_x), int(pt1_y))
         pt2 = (int(pt2_x), int(pt2_y))

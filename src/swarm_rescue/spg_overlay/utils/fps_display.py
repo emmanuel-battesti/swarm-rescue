@@ -3,9 +3,11 @@ from timeit import default_timer as timer
 
 class FpsDisplay:
     """
-    The FpsDisplay class is used to calculate and display frames per second (FPS) information. It keeps track
-    of the mean FPS, current FPS, and smooth FPS values. The class provides methods to update the FPS values and reset
-    the counter. It also has a method to display the FPS information at a specified interval.
+    The FpsDisplay class is used to calculate and display frames per second
+    (FPS) information. It keeps track of the mean FPS, current FPS, and smooth
+    FPS values. The class provides methods to update the FPS values and reset
+    the counter. It also has a method to display the FPS information at a
+    specified interval.
 
     Example Usage:
         # Create an instance of FpsDisplay with a display period of 1 second
@@ -58,8 +60,8 @@ class FpsDisplay:
 
     def update(self, display: bool = True):
         """
-        Updates the FPS values and displays the FPS information if specified. If not initialized, it initializes
-        the necessary variables.
+        Updates the FPS values and displays the FPS information if specified.
+        If not initialized, it initializes the necessary variables.
         """
         if not self._initialized:
             self._initialized = True
@@ -87,4 +89,5 @@ class FpsDisplay:
         step_display = int(self.smooth_fps * self._period_display)
 
         if display and step_display != 0 and self._counter % step_display == 0:
-            print("FPS: {:.2f}, mean FPS: {:.2f},  smooth FPS: {:.2f}".format(self.fps, self.mean_fps, self.smooth_fps))
+            print("FPS: {:.2f}, mean FPS: {:.2f},  smooth FPS: {:.2f}".
+                  format(self.fps, self.mean_fps, self.smooth_fps))

@@ -10,7 +10,8 @@ import sys
 from typing import List, Type
 
 # This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0,
+                os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from spg_overlay.entities.drone_distance_sensors import DroneSemanticSensor
 from spg_overlay.entities.wounded_person import WoundedPerson
@@ -41,13 +42,18 @@ class MyDrone(DroneAbstract):
                     continue
 
                 if data.entity_type == DroneSemanticSensor.TypeEntity.WALL:
-                    print("type: wall, angle: {:.2f}, d: {:.1f}".format(data.angle, data.distance))
+                    print("type: wall, angle: {:.2f}, d: {:.1f}"
+                          .format(data.angle, data.distance))
                 elif data.entity_type == DroneSemanticSensor.TypeEntity.OTHER:
-                    print("type: other, angle: {:.2f}, d: {:.1f}".format(data.angle, data.distance))
-                elif data.entity_type == DroneSemanticSensor.TypeEntity.WOUNDED_PERSON:
-                    print("type: wounded, angle: {:.2f}, d: {:.1f}".format(data.angle, data.distance))
+                    print("type: other, angle: {:.2f}, d: {:.1f}"
+                          .format(data.angle, data.distance))
+                elif (data.entity_type ==
+                      DroneSemanticSensor.TypeEntity.WOUNDED_PERSON):
+                    print("type: wounded, angle: {:.2f}, d: {:.1f}"
+                          .format(data.angle, data.distance))
                 elif data.entity_type == DroneSemanticSensor.TypeEntity.DRONE:
-                    print("type: drone, angle: {:.2f}, d: {:.1f}".format(data.angle, data.distance))
+                    print("type: drone, angle: {:.2f}, d: {:.1f}"
+                          .format(data.angle, data.distance))
 
     def control(self):
         if self.identifier == 0:
@@ -82,8 +88,10 @@ class MyMap(MapAbstract):
         self._number_drones = 20
         self._drones_pos = []
         for i in range(self._number_drones):
-            pos = ((random.uniform(-self._size_area[0] / 2, self._size_area[0] / 2),
-                    random.uniform(-self._size_area[1] / 2, self._size_area[1] / 2)),
+            pos = ((random.uniform(-self._size_area[0] / 2,
+                                   self._size_area[0] / 2),
+                    random.uniform(-self._size_area[1] / 2,
+                                   self._size_area[1] / 2)),
                    random.uniform(-math.pi, math.pi))
             self._drones_pos.append(pos)
 
@@ -101,7 +109,9 @@ class MyMap(MapAbstract):
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
-                             number_drones=self._number_drones)
+                             number_drones=self._number_drones,
+                             max_timestep_limit=self._max_timestep_limit,
+                             max_walltime_limit=self._max_walltime_limit)
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
@@ -113,6 +123,7 @@ class MyMap(MapAbstract):
 def main():
     my_map = MyMap()
     playground = my_map.construct_playground(drone_type=MyDrone)
+
     gui = GuiSR(playground=playground,
                 the_map=my_map,
                 draw_semantic_rays=True,

@@ -16,7 +16,7 @@ from spg_overlay.gui_map.gui_sr import GuiSR
 
 from maps.map_intermediate_01 import MyMapIntermediate01
 from maps.map_intermediate_02 import MyMapIntermediate02
-from maps.map_final_2023 import MyMapFinal
+from maps.map_final_2023 import MyMapFinal2023
 from maps.map_medium_01 import MyMapMedium01
 from maps.map_medium_02 import MyMapMedium02
 
@@ -39,8 +39,8 @@ class Launcher:
         nb_rounds: The number of rounds to run in the simulation.
         team_info: An instance of the TeamInfo class that stores team information.
         number_drones: The number of drones in the simulation.
-        time_step_limit: The maximum number of time steps in the simulation.
-        real_time_limit: The maximum elapsed real time in the simulation.
+        max_timestep_limit: The maximum number of time steps in the simulation.
+        max_walltime_limit: The maximum elapsed real time or walltime in the simulation.
         number_wounded_persons: The number of wounded persons in the simulation.
         size_area: The size of the simulation area.
         score_manager: An instance of the ScoreManager class that calculates the final score.
@@ -51,8 +51,10 @@ class Launcher:
     def __init__(self):
 
         """
-        Here you can fill in the evaluation plan ("evalplan") yourself, adding or removing configurations.
-        A configuration is defined by a map of the environment and whether or not there are zones of difficulty.
+        Here you can fill in the evaluation plan ("evalplan") yourself, adding
+        or removing configurations.
+        A configuration is defined by a map of the environment and whether or
+        not there are zones of difficulty.
         """
 
         self.team_info = TeamInfo()
@@ -77,14 +79,15 @@ class Launcher:
         self.eval_plan.add(eval_config=eval_config)
 
         self.number_drones = None
-        self.time_step_limit = None
-        self.real_time_limit = None
+        self.max_timestep_limit = None
+        self.max_walltime_limit = None
         self.number_wounded_persons = None
         self.size_area = None
 
         self.score_manager = None
 
-        self.data_saver = DataSaver(self.team_info, enabled=False)
+        enable_data_saving = False
+        self.data_saver = DataSaver(self.team_info, enabled=enable_data_saving)
         self.video_capture_enabled = False
 
     def one_round(self, eval_config: EvalConfig, num_round: int, hide_solution_output: bool = False):
@@ -99,14 +102,14 @@ class Launcher:
 
         my_map = eval_config.map_type(eval_config.zones_config)
         self.number_drones = my_map.number_drones
-        self.time_step_limit = my_map.time_step_limit
-        self.real_time_limit = my_map.real_time_limit
+        self.max_timestep_limit = my_map.max_timestep_limit
+        self.max_walltime_limit = my_map.max_walltime_limit
         self.number_wounded_persons = my_map.number_wounded_persons
         self.size_area = my_map.size_area
 
         self.score_manager = ScoreManager(number_drones=self.number_drones,
-                                          time_step_limit=self.time_step_limit,
-                                          real_time_limit=self.real_time_limit,
+                                          max_timestep_limit=self.max_timestep_limit,
+                                          max_walltime_limit=self.max_walltime_limit,
                                           total_number_wounded_persons=self.number_wounded_persons)
 
         playground = my_map.construct_playground(drone_type=MyDrone)
@@ -153,6 +156,7 @@ class Launcher:
             print(error_msg)
 
         score_exploration = my_map.explored_map.score() * 100.0
+        score_health_returned = my_map.compute_score_health_returned() * 100
 
         last_image_explo_lines = my_map.explored_map.get_pretty_map_explo_lines()
         last_image_explo_zones = my_map.explored_map.get_pretty_map_explo_zones()
@@ -165,11 +169,13 @@ class Launcher:
 
         return (my_gui.percent_drones_destroyed,
                 my_gui.mean_drones_health,
-                my_gui.elapsed_time,
-                my_gui.rescued_all_time_step,
-                score_exploration, my_gui.rescued_number,
-                my_gui.real_time_elapsed,
-                my_gui.real_time_limit_reached,
+                my_gui.elapsed_timestep,
+                my_gui.full_rescue_timestep,
+                score_exploration,
+                my_gui.rescued_number,
+                score_health_returned,
+                my_gui.elapsed_walltime,
+                my_gui.is_max_walltime_limit_reached,
                 has_crashed)
 
     def go(self, stop_at_first_crash: bool = False, hide_solution_output: bool = False):
@@ -192,13 +198,16 @@ class Launcher:
             for num_round in range(eval_config.nb_rounds):
                 gc.collect()
                 result = self.one_round(eval_config, num_round + 1, hide_solution_output)
-                (percent_drones_destroyed, mean_drones_health, elapsed_time_step, rescued_all_time_step,
-                 score_exploration, rescued_number, real_time_elapsed, real_time_limit_reached, has_crashed) = result
+                (percent_drones_destroyed, mean_drones_health, elapsed_timestep,
+                 full_rescue_timestep, score_exploration, rescued_number,
+                 score_health_returned, elapsed_walltime,
+                 is_max_walltime_limit_reached, has_crashed) = result
 
                 result_score = self.score_manager.compute_score(rescued_number,
                                                                 score_exploration,
-                                                                rescued_all_time_step)
-                (round_score, percent_rescued, score_time_step) = result_score
+                                                                score_health_returned,
+                                                                full_rescue_timestep)
+                (round_score, percent_rescued, score_timestep) = result_score
 
                 mean_drones_health_percent = mean_drones_health / DRONE_INITIAL_HEALTH * 100.
 
@@ -206,15 +215,16 @@ class Launcher:
                     f"\t* Round n°{num_round + 1}/{eval_config.nb_rounds}: "
                     f"\n\t\trescued nb: {int(rescued_number)}/{self.number_wounded_persons}, "
                     f"explor. score: {score_exploration:.1f}%, "
-                    f"real time elapsed: {real_time_elapsed:.0f}s/{self.real_time_limit}s, "
-                    f"elapse time: {elapsed_time_step}/{self.time_step_limit} steps, "
-                    f"time to rescue all: {rescued_all_time_step} steps."
+                    f"health return score: {score_health_returned:.1f}%, "
+                    f"walltime elapsed: {elapsed_walltime:.0f}s/{self.max_walltime_limit}s, "
+                    f"elapse timestep: {elapsed_timestep}/{self.max_timestep_limit} steps, "
+                    f"time to rescue all: {full_rescue_timestep} steps."
                     f"\n\t\tpercentage of drones destroyed: {percent_drones_destroyed:.1f} %, "
                     f"mean percentage of drones health : {mean_drones_health_percent:.1f} %."
                     f"\n\t\tround score: {round_score:.1f}%, "
-                    f"frequency: {elapsed_time_step / real_time_elapsed:.2f} steps/s.")
-                if real_time_limit_reached:
-                    print(f"\t\tThe real time limit of {self.real_time_limit}s is reached first.")
+                    f"frequency: {elapsed_timestep / elapsed_walltime:.2f} steps/s.")
+                if is_max_walltime_limit_reached:
+                    print(f"\t\tThe max walltime limit of {self.max_walltime_limit}s is reached first.")
 
                 self.data_saver.save_one_round(eval_config,
                                                num_round + 1,
@@ -222,10 +232,11 @@ class Launcher:
                                                mean_drones_health_percent,
                                                percent_rescued,
                                                score_exploration,
-                                               elapsed_time_step,
-                                               real_time_elapsed,
-                                               rescued_all_time_step,
-                                               score_time_step,
+                                               score_health_returned,
+                                               elapsed_timestep,
+                                               elapsed_walltime,
+                                               full_rescue_timestep,
+                                               score_timestep,
                                                round_score)
 
                 if has_crashed:

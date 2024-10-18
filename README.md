@@ -12,7 +12,7 @@
 
 With this project, you will try to save human lives, in simulation... Teach a swarm of drones how to behave to save a maximum of injured people in a minimum of time!
 
-Your job will be to propose your own version of the controller of the drone. In a competition, each participating team will perform on a new unknown map, the winner will be the one who gets the most points based on several criteria: speed, quality of exploration, number of injured people saved, number of drones returned, etc.
+Your job will be to propose your own version of the controller of the drone. In a competition, each participating team will perform on a new unknown map, the winner will be the one who gets the most points based on several criteria: speed, quality of exploration, number of injured people saved, health level of the drones returned, etc.
 
 *Swarm-Rescue* is the environment that simulates the drones and that describes the maps used, the drones and the different elements of the map.
 
@@ -22,7 +22,7 @@ The Challenge does not require any particular technical skills (beyond basic kno
 
 # The Competition
 
-The objective of the mission is to map an unknown, potentially hostile area, detect targets (injured or healthy people), and guide them out of the area. A typical use case is to investigate the basement of a collapsed building in the dark, in order to locate trapped people and rescue them.
+The objective of the mission is to map an unknown, potentially hostile area, detect wounded people, and guide them out of the area. A typical use case is to investigate the basement of a collapsed building in the dark, in order to locate trapped people and rescue them.
 
 Each team will have a fleet of 10 drones. Each drone will be equipped with communication functions and sensors.
 
@@ -38,24 +38,23 @@ The work on the challenge will be done **exclusively in this simulation environm
 Depending on the scenario evolution before the final evaluation, the score calculation may be slightly modified. The general calculation principle for one map configuration is explained below. 
 
 First, the execution of your algorithms will be stopped after a while. There are two time-limits:
-- time step limit: a number of loops in the simulation
-- real time limit: a limit in minutes, depending on the map and the computer speed: 2 to 5 minutes.
+- max timestep limit: a number of loops in the simulation
+- max walltime limit: a limit in minutes, depending on the map and the computer speed: 2 to 5 minutes.
 
-When the first limit is reached, the game is over. If your algorithm is fast, you will reach the "step time limit" first. If your algorithm is too slow, you will reach the "real time limit" before the "time step limit" .
+When the first limit is reached, the game is over. If your algorithm is fast, you will reach the "max timestep limit" first. If your algorithm is too slow, you will reach the "max walltime limit" before the "max timestep limit" .
 
 To calculate the score, the following elements will be taken into account:
-- the part of the territory explored: you have to explore a maximum of the map
-- the number of fixed targets detected, brought back to the base,
-- the number of mobile targets detected, brought back to the base.
-
-If all the targets are brought back to base and all the map is explored, the speed in "time step" will be taken into account.
+- The percentage of people brought back to the rescue zone,
+- The percentage of the map explored when all people are rescued or the time limit is reached,
+- The percentage of life points of the drones that come back to the return area at the end of the mission compared to the life points of drones at the beginning,
+- The percentage of time remaining relative to the time limit when all people are rescued and the map is explored. 
 
 # Simple-Playgrounds 
 
-This program *Swarm-Rescue* is an extension of the *Simple-Playgrounds* (SPG) software library: [https://github.com/mgarciaortiz/simple-playgrounds](https://github.com/mgarciaortiz/simple-playgrounds). However, in the current installation of *Swarm-Rescue*, it is the branch *swarm-rescue-v2* of a fork of *Simple-Playgrounds* that is used: [https://github.com/emmanuel-battesti/simple-playgrounds](https://github.com/emmanuel-battesti/simple-playgrounds).
+This program *Swarm-Rescue* is an extension of the *Simple-Playgrounds* (SPG) software library: [https://github.com/mgarciaortiz/simple-playgrounds](https://github.com/mgarciaortiz/simple-playgrounds). However, in the current installation of *Swarm-Rescue*, it is the branch *swarm-rescue-v2* of a fork of *Simple-Playgrounds* that is used: [https://github.com/emmanuel-battesti/simple-playgrounds/tree/swarm-rescue-v2](https://github.com/emmanuel-battesti/simple-playgrounds/tree/swarm-rescue-v2).
 
 
-It is recommended to read the [documentation of *Simple-Playgrounds*](https://github.com/emmanuel-battesti/simple-playgrounds#readme).
+It is recommended to read the [documentation of *Simple-Playgrounds*](https://github.com/emmanuel-battesti/simple-playgrounds/tree/swarm-rescue-v2).
 
 *Simple-Playgrounds* is an easy-to-use, fast and flexible simulation environment. It bridges the gap between simple and efficient grid environments, and complex and challenging 3D environments. It proposes a large diversity of environments for embodied drones learning through physical interactions. The playgrounds are 2D environments where drones can move around and interact with scene elements.
 
@@ -90,6 +89,9 @@ Drones have also a communication system.
 Drones are equipped with sensors that allow it to **estimate its position and orientation**. We have two kinds:
 - with absolute measurements: the *GPS* for the positions and the magnetic *compass* for the orientation.
 - with relative measurements: the odometer which provides us with positions and orientation relative to the previous position of the drone.
+
+It is also equipped with life points (or health) that decrease with each collision with the environment or other drones, leading to its destruction when it reaches zero. When the drone is destroyed, it disappears from the map.
+The drone has access to this value with his data attribute *drone_health*.
 
 ### Lidar sensor
 
@@ -222,13 +224,27 @@ The drones must approach them, *grasped* them and take them to the rescue center
 
 You can find an example of grasping a wounded person in the *examples/example_semantic_sensor.py* file.
 
+Most wounded person are static, they don't move, but some are dynamic.
+Dynamic wounded person move along a predetermined path, constantly moving back and forth. This kind of wounded person will always want to continue on their way, so if a drone carrying them drops them somewhere else on the map, they'll head off in a straight line with the aim of continuing on their predetermined path.
+
+You can find an example of some dynamic wounded person in the *examples/example_moving_wounded.py* file.
+
 ## Rescue Center
 
-*Rescue Center* is a red element in the map where the drones have to bring the *Wounded Person*.
+The *Rescue Center* is a red element on the map where the drones have to bring the *Wounded Person*.
 
 A reward is given to a drone each time it gives a *Wounded Person* to the *Rescue Center*.
 
 You can find an example of rescue center used in the *examples/example_semantic_sensor.py* file.
+
+## Return Area
+
+The *Return Area* is a blue area on the map where the drones should stay at the end of the mission.
+Part of the final score is calculated with this zone: the percentage of health points of the drones that return to this return area at the end of the mission compared to the health points of the drones at the beginning of the mission.
+If there is no *Return Area* in the map, then the score is calculated with the percentage of health points of all drones in the map.
+
+This return area is not visible to any sensor, but the boolean data attribute *is_inside_return_area* gives information about whether the drone is inside the return area or not.
+The *Return Area* is always near the *Rescue Center* and the drones always start the mission from this area.
 
 ## Special zones
 
@@ -303,10 +319,10 @@ Usable maps can be found in the *src/swarm_rescue/maps* folder.
 ### Directory *spg_overlay*
 
 As its name indicates, this folder is a software overlay of the spg (simple-playground) code.
- It contains three sub-directories:
+ It contains three subdirectories:
  - *entities*: contains description of different entities used in the program.
 - *gui_map*: contains description of default map and the gui interface.
-- *reporting*: contains tools to compute the score and create an pdf evaluation report.
+- *reporting*: contains tools to compute the score and create a pdf evaluation report.
 - *utils*: contains various functions and useful tools.
 
 The files it contains must *not* be modified. It contains the definition of the class *Drone*, of the class of the sensors, of the wounded persons, etc.
@@ -348,7 +364,7 @@ In the folder, you will find stand-alone programs to help you program with examp
 	- <kbd>up</kbd> / <kbd>down</kbd>: forward and backward
 	- <kbd>left</kbd> / <kbd>right</kbd>: turn left / right
 	- <kbd>shift</kbd> + <kbd>left</kbd> / <kbd>right</kbd>: left/right lateral movement
-	- <kbd>G</kbd>: grasp objects
+	- <kbd>W</kbd>: grasp objects
 	- <kbd>L</kbd>: display (or not) the lidar sensor
 	- <kbd>S</kbd>: display (or not) the semantic sensor
 	- <kbd>P</kbd>: draw position from GPS sensor
@@ -359,11 +375,11 @@ In the folder, you will find stand-alone programs to help you program with examp
 - *example_mapping.py* shows how to create a simple environment occupancy map.
 - *example_pid_rotation.py* shows how to control the drone orientation with a pid controller.
 - *example_pid_translation.py* shows how to control the drone translation with a pid controller.
+- *example_return_area.py* shows how to use the boolean data attribute *is_inside_return_area* gives information about whether the drone is inside the return area or not.
 - *example_semantic_sensor.py* shows the use of semantic sensor and actuators, and how to grasp a wounded person and bring it back to the rescue area.
 - *example_static_semantic_sensor.py* illustrate the semantic sensor rays with other drones and wounded persons.
-- *random_drones.py* a large number of drones flying at random in an empty space.
+- *random_drones.py* shows a large number of drones flying at random in an empty space.
 - *random_drones_intermediate_1.py* shows some drones flying at random in the *map_intermediate_01* map.
-
 
 ### Directory *tools*
 
@@ -399,7 +415,7 @@ The GuiSR class can be called when the gui is created with parameters that alrea
 - *print_rewards*: boolean, False by default.
 - *print_messages*: boolean, False by default.
 - *use_keyboard*: boolean, False by default.
-- *use_mouse_measure*: boolean, False by default. When activate, a click on the screen will print the position of the mouse.
+- *use_mouse_measure*: boolean, False by default. When activated, a click on the screen will print the position of the mouse.
 - *enable_visu_noises*: boolean, False by default.
 - *filename_video_capture*: if the name is not “None”, it becomes the filename of the video capture file.
 
@@ -415,7 +431,7 @@ In the *DroneAbstract* class, which serve as the parent class of your Drone clas
 - *draw_top_layer()*: it will draw what you want on top of all the other drawing layers.
 - *draw bottom_layer()*: it will draw what you want below all other drawing layers.
 
-For example, you can draw the identifier of a drone near it as follow:
+For example, you can draw the identifier of a drone near it as follows:
 
 ```python
     def draw_top_layer(self):

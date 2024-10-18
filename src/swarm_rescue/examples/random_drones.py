@@ -10,7 +10,8 @@ import sys
 from typing import List, Type
 
 # This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0,
+                os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
@@ -37,7 +38,8 @@ class MyDroneRandom(DroneAbstract):
 
     def control(self):
         """
-        The Drone will move forward and turn for a random angle when an obstacle is hit
+        The Drone will move forward and turn for a random angle when an
+        obstacle is hit
         """
         command_straight = {"forward": 1.0,
                             "rotation": 0.0}
@@ -48,23 +50,24 @@ class MyDroneRandom(DroneAbstract):
 
         self.counterStraight += 1
 
-        if not self._is_turning() and self.counterStraight > self.counterStopStraight:
+        if (not self._is_turning() and
+                self.counterStraight > self.counterStopStraight):
             self.angleStopTurning = random.uniform(-math.pi, math.pi)
-            diff_angle = normalize_angle(self.angleStopTurning - self.measured_compass_angle())
+            diff_angle = normalize_angle(self.angleStopTurning -
+                                         self.measured_compass_angle())
             if diff_angle > 0:
                 self.isTurningLeft = True
             else:
                 self.isTurningRight = True
 
-        diff_angle = normalize_angle(self.angleStopTurning - self.measured_compass_angle())
+        diff_angle = normalize_angle(self.angleStopTurning -
+                                     self.measured_compass_angle())
         if self._is_turning() and abs(diff_angle) < 0.2:
             self.isTurningLeft = False
             self.isTurningRight = False
             self.counterStraight = 0
             self.counterStopStraight = random.uniform(10, 100)
 
-        # print("\nself.isTurning : {}, abs(diff_angle) = {}".format(self.isTurning, abs(diff_angle)))
-        # print("self.angleStopTurning = {}, self.measured_compass_angle() = {}, diff_angle = {}".format(self.angleStopTurning, self.measured_compass_angle(), diff_angle))
         if self.isTurningLeft:
             return command_turn_left
         elif self.isTurningRight:
@@ -90,8 +93,10 @@ class MyMapRandom(MapAbstract):
         self._number_drones = 30
         self._drones_pos = []
         for i in range(self._number_drones):
-            pos = ((random.uniform(-self._size_area[0] / 2, self._size_area[0] / 2),
-                    random.uniform(-self._size_area[1] / 2, self._size_area[1] / 2)),
+            pos = ((random.uniform(-self._size_area[0] / 2,
+                                   self._size_area[0] / 2),
+                    random.uniform(-self._size_area[1] / 2,
+                                   self._size_area[1] / 2)),
                    random.uniform(-math.pi, math.pi))
             self._drones_pos.append(pos)
 
@@ -102,7 +107,9 @@ class MyMapRandom(MapAbstract):
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
-                             number_drones=self._number_drones)
+                             number_drones=self._number_drones,
+                             max_timestep_limit=self._max_timestep_limit,
+                             max_walltime_limit=self._max_walltime_limit)
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
@@ -113,7 +120,6 @@ class MyMapRandom(MapAbstract):
 
 def main():
     my_map = MyMapRandom()
-
     playground = my_map.construct_playground(drone_type=MyDroneRandom)
 
     gui = GuiSR(playground=playground,
@@ -124,6 +130,9 @@ def main():
                 )
 
     gui.run()
+
+    score_health_returned = my_map.compute_score_health_returned()
+    print("score_health_returned = ", score_health_returned)
 
 
 if __name__ == '__main__':
