@@ -320,20 +320,22 @@ Usable maps can be found in the *src/swarm_rescue/maps* folder.
 
 As its name indicates, this folder is a software overlay of the spg (simple-playground) code.
  It contains three subdirectories:
- - *entities*: contains description of different entities used in the program.
-- *gui_map*: contains description of default map and the gui interface.
+- *entities*: contains a description of the different entities used in the program.
+- *gui_map*: contains a description of the default map and the gui interface.
 - *reporting*: contains tools to compute the score and create a pdf evaluation report.
 - *utils*: contains various functions and useful tools.
 
 The files it contains must *not* be modified. It contains the definition of the class *Drone*, of the class of the sensors, of the wounded persons, etc.
 
 An important file is the *gui_map/gui_sr.py* which contains the class *GuiSR*. 
-If you want to use the keyboard to move the first drone, you need to set the *use_keyboard* parameter of the *GuiSR* class constructor to *True*.
+In order to utilize the keyboard to navigate the drone designated as "n°0", it is necessary to configure the *use_keyboard* parameter within the *GuiSR* class constructor to a value of *True*.
 If you want to enable the visualization of the noises, you need to set the *enable_visu_noises* parameter of the *GuiSR* class constructor to *True*. It will show also a demonstration of the integration of odometer values, by drawing the estimated path.
 
 ### Directory *maps*
 
-This directory contains the maps in which the drones can move. New maps may appear for new missions with the updates of this repository. You can also make your own maps based on existing ones.
+This directory contains the maps that will be utilized by the drones. New maps may be incorporated into the repository as new missions are developed. Additionally, users are given the option to create their own maps based on existing ones.
+
+Every map file contains a main function, which enables the file to be executed directly. In this instance, the map is initiated with stationary drones, solely for the purpose of map observation. Furthermore, the use_mouse_measure parameter is set to True, thereby ensuring that the measure tool is active upon clicking on the screen.
 
 Each map must inherit from the class *MapAbstract*.
 

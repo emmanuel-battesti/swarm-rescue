@@ -4,8 +4,8 @@ To move the drone, you have to click on the map, then use the arrows on the
 keyboard
 """
 
-import os
 import sys
+from pathlib import Path
 from typing import Type
 
 import cv2
@@ -13,9 +13,10 @@ import numpy as np
 
 from spg.playground import Playground
 
-# This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0,
-                os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Insert the parent directory of the current file's directory into sys.path.
+# This allows Python to locate modules that are one level above the current
+# script, in this case spg_overlay.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from maps.walls_medium_02 import add_walls, add_boxes
 from spg_overlay.utils.constants import MAX_RANGE_LIDAR_SENSOR
@@ -205,9 +206,9 @@ class MyMapMapping(MapAbstract):
 
 def main():
     my_map = MyMapMapping()
-    playground = my_map.construct_playground(drone_type=MyDroneMapping)
+    my_playground = my_map.construct_playground(drone_type=MyDroneMapping)
 
-    gui = GuiSR(playground=playground,
+    gui = GuiSR(playground=my_playground,
                 the_map=my_map,
                 use_keyboard=True,
                 )

@@ -1,9 +1,11 @@
+import os
+
 from fpdf import FPDF
 from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 
-from spg_overlay.utils.constants import DRONE_INITIAL_HEALTH
+from spg_overlay.reporting.team_info import TeamInfo
 from spg_overlay.reporting.stats_computation import StatsComputation
 
 
@@ -31,17 +33,24 @@ class MyFPDF(FPDF):
 
 
 class EvaluationPdfReport:
-    def __init__(self, team_info, path):
-        self.team_info = team_info
-        self.team_number_str = str(self.team_info.team_number).zfill(2)
-        self.path = path
+    def __init__(self, team_info: TeamInfo, result_path: str):
+        self._team_info = team_info
+        self._result_path = result_path
         self.stats_computation = None
+
+        self._images_path = None
+        if self._result_path is not None:
+            try:
+                self._images_path = self._result_path + "/images_pdf/"
+                os.makedirs(self._images_path, exist_ok=True)
+            except FileExistsError as error:
+                print(error)
 
         date = datetime.now()
         self.date_str = date.strftime("%d/%m/%Y - %H:%M")
 
         self.pdf = MyFPDF(date_str=self.date_str,
-                          team_number_str=self.team_number_str,
+                          team_number_str=self._team_info.team_number_str,
                           orientation='P', unit='mm', format='A4')
         self.pdf.alias_nb_pages()
         self.pdf.add_page()
@@ -98,13 +107,13 @@ class EvaluationPdfReport:
         # Header Team
         self._empty_line(height=1.5)
         self._header_1_font()
-        self.pdf.cell(txt=f'Team n°{self.team_number_str}: '
-                          f'{self.team_info.team_name}', align='L')
+        self.pdf.cell(txt=f'Team n°{self._team_info.team_number_str}: '
+                          f'{self._team_info.team_name}', align='L')
 
         # Text Members
         self._body_text_font(style='')
         self._empty_line(height=1)
-        self.pdf.cell(txt=f'Members: {self.team_info.team_members}', align='L')
+        self.pdf.cell(txt=f'Members: {self._team_info.team_members}', align='L')
 
         # Score
         self._score_text_font()
@@ -123,22 +132,23 @@ class EvaluationPdfReport:
         # Text
         text_list = [
             "For each round, different scores are calculated:",
-            "  - Srescue, the score of rescues. This is the injured return "
-            "proportion to the rescue station,",
+            "  - Srescue, the score of rescues. This is the proportion of "
+            "wounded that return to the rescue station,",
             "  - Sexpl, the exploration score. It depends on the size of the "
-            "space explored by the drones,",
-            "  - Shealth, the health return score. It depends on the drone and "
-            "their health return in the return area",
-            "  - Stime is the ratio of remaining time to the time limit, "
-            "reflecting exploration efficiency and injured discovery.",
+            "area explored by the drones,",
+            "  - Shealth, the health return score. It depends on the drones and "
+            "their health returning to the return area,",
+            "  - Stime, the ratio of the time remaining to the time limit, "
+            "after all the area has been explored and all the wounded have been "
+            "rescued. ",
             "",
-            "A \"round score\" Sr is calculated for each round with this "
+            "A \"round score\" Sr is calculated for each round using this "
             "formula:",
             "Sr = (0.5 * Srescue + 0.2 * Sexpl + 0.2 * Shealth + 0.1 * Stime)*100",
-            "Then, each configuration (map + zones) averages multiple rounds "
-            "to generate a 'config score.'",
+            "Then, each configuration (map + zones) is averaged over several "
+            "rounds to generate a 'config score.'",
             "",
-            "Finally, a final score is calculated as the weighted average of "
+            "Finally, a final score is calculated as a weighted average of "
             "the config scores.",
         ]
 
@@ -169,6 +179,7 @@ class EvaluationPdfReport:
                 f"   - special zones: {zones_name_casual}",
                 f"   - number of rounds: {nb_round}",
                 f"   - weight for final score: {weight:.1f}",
+                f""
             ]
 
             self._body_text_font()
@@ -334,7 +345,7 @@ class EvaluationPdfReport:
         # Creation of the bar chart
         plt.bar(pos - 2 * dist, y_sauv, width, color='firebrick')
         plt.bar(pos - 1 * dist, y_explo, width, color='steelblue')
-        plt.bar(pos     * dist, y_health, width, color='darkviolet')
+        plt.bar(pos, y_health, width, color='darkviolet')
         plt.bar(pos + 1 * dist, y_temps, width, color='darkolivegreen')
         plt.bar(pos + 3 * dist + 0.06, y_score, width + 0.12,
                 color='goldenrod')
@@ -343,8 +354,9 @@ class EvaluationPdfReport:
         plt.ylabel('Score')
         plt.xlabel('Criteria')
         plt.legend(legend, loc=1)
-        filename_graph = (self.path +
-                          f'/graph_performance_team{self.team_number_str}.png')
+        filename_graph = (self._images_path +
+                          f'/team{self._team_info.team_number_str}_'
+                          f'graph_performance.png')
         plt.savefig(filename_graph, format='png',
                     bbox_inches='tight', dpi=200)
 
@@ -408,19 +420,19 @@ class EvaluationPdfReport:
                                   f"{mean_computation_freq:.1f} steps/s")
                 self._empty_line(height=0.7)
                 self.pdf.cell(txt=f"Percentage of drones destroyed = "
-                                  f"{percent_drones_destroyed:.1f} %")
-                self._empty_line(height=0.7)
-                self.pdf.cell(txt=f"Percentage of drones health = "
+                                  f"{percent_drones_destroyed:.1f} %"
+                                  f" and percentage of drones health = "
                                   f"{mean_drones_health_percent:.0f} %")
+
                 self._empty_line(height=1)
                 self._body_text_font()
                 self.pdf.cell(txt="Last image of the simulation:")
 
                 self._empty_line(height=0.5)
-                filename_last_img = (f"{self.path}/"
-                                     f"screen_{map_name}_{zones_name}"
-                                     f"_rd{best_rd_str}"
-                                     f"_team{self.team_number_str}.png")
+                filename_last_img = (f"{self._images_path}/"
+                                     f"team{self._team_info.team_number_str}_"
+                                     f"{map_name}_{zones_name}_rd{best_rd_str}_"
+                                     f"screen.png")
 
                 self._center_image(img_filename=filename_last_img,
                                    offset_from_left_margin=offset)
@@ -429,10 +441,10 @@ class EvaluationPdfReport:
                 self.pdf.cell(txt="Exploration map: ")
 
                 self._empty_line(height=0.5)
-                filename_explo = (f"{self.path}/"
-                                  f"screen_explo_{map_name}_{zones_name}"
-                                  f"_rd{best_rd_str}"
-                                  f"_team{self.team_number_str}.png")
+                filename_explo = (f"{self._images_path}/"
+                                  f"team{self._team_info.team_number_str}_"
+                                  f"{map_name}_{zones_name}_rd{best_rd_str}_"
+                                  f"screen_explo.png")
 
                 self._center_image(img_filename=filename_explo,
                                    offset_from_left_margin=offset)
@@ -441,10 +453,10 @@ class EvaluationPdfReport:
                 self.pdf.cell(txt="Map of drone routes: ")
 
                 self._empty_line(height=0.5)
-                filename_routes = (f"{self.path}/"
-                                   f"screen_path_{map_name}_{zones_name}"
-                                   f"_rd{best_rd_str}"
-                                   f"_team{self.team_number_str}.png")
+                filename_routes = (f"{self._images_path}/"
+                                   f"team{self._team_info.team_number_str}_"
+                                   f"{map_name}_{zones_name}_rd{best_rd_str}_"
+                                   f"screen_path.png")
 
                 self._center_image(img_filename=filename_routes,
                                    offset_from_left_margin=offset)
@@ -464,7 +476,7 @@ class EvaluationPdfReport:
                 drone_health_percent = row["Mean Health Percent"]
                 config_score = row["Config Score"]
 
-                print(f"{self.team_info.team_number},"
+                print(f"{self._team_info.team_number},"
                       f"{configuration},"
                       f"{rescued_percent},"
                       f"{exploration_score},"
@@ -485,7 +497,9 @@ class EvaluationPdfReport:
             self._add_table_summary_stats()
             self._add_graph_score()
             self._add_screenshots()
-            filename_pdf = self.path + f'/report_team{self.team_number_str}.pdf'
+            filename_pdf = (self._result_path +
+                            f'/team{self._team_info.team_number_str}'
+                            f'_report.pdf')
             self.pdf.output(filename_pdf, 'F')
             print("")
             print(f"A new evaluation report is available here: {filename_pdf}")

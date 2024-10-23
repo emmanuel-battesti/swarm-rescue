@@ -15,7 +15,8 @@ from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.entities.drone_motionless import DroneMotionless
 from spg_overlay.entities.rescue_center import RescueCenter
 from spg_overlay.entities.return_area import ReturnArea
-from spg_overlay.entities.sensor_disablers import ZoneType, NoComZone, NoGpsZone, KillZone
+from spg_overlay.entities.sensor_disablers import (ZoneType, NoComZone,
+                                                   NoGpsZone, KillZone)
 from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.gui_sr import GuiSR
@@ -23,45 +24,47 @@ from spg_overlay.gui_map.map_abstract import MapAbstract
 from spg_overlay.reporting.evaluation import ZonesConfig
 from spg_overlay.utils.misc_data import MiscData
 
-from maps.walls_medium_01 import add_walls, add_boxes
+from maps.walls_final_2022_23 import add_walls, add_boxes
 
 
-class MyMapMedium01(MapAbstract):
+class MyMapFinal2022_23(MapAbstract):
 
     def __init__(self, zones_config: ZonesConfig = ()):
         super().__init__(zones_config)
         self._max_timestep_limit = 7200
-        self._max_walltime_limit = 720  # In seconds
+        self._max_walltime_limit = 1440  # In seconds
 
         # PARAMETERS MAP
-        self._size_area = (1660, 1122)
+        self._size_area = (1819, 1350)
 
-        self._return_area = ReturnArea(size=(200, 250))
-        self._return_area_pos = ((-560, -425), 0)
+        self._return_area = ReturnArea(size=(293, 160))
+        self._return_area_pos = ((-6, 217), 0)
 
-        self._rescue_center = RescueCenter(size=(155, 250))
-        self._rescue_center_pos = ((-741, -425), 0)
+        self._rescue_center = RescueCenter(size=(293, 140))
+        self._rescue_center_pos = ((-6, 63), 0)
 
-        self._no_com_zone = NoComZone(size=(402, 742))
-        self._no_com_zone_pos = ((-328, 72), 0)
+        self._no_com_zone = NoComZone(size=(377, 486))
+        self._no_com_zone_pos = ((-697, 54), 0)
 
-        self._no_gps_zone = NoGpsZone(size=(574, 393))
-        self._no_gps_zone_pos = ((-538, 42), 0)
+        self._no_gps_zone = NoGpsZone(size=(248, 544))
+        self._no_gps_zone_pos = ((-282, -377), 0)
 
-        self._kill_zone = KillZone(size=(89, 77))
-        self._kill_zone_pos = ((-576, 112), 0)
+        self._kill_zone = KillZone(size=(96, 242))
+        self._kill_zone_pos = ((-674, -68), 0)
 
-        self._wounded_persons_pos = [(-261, -257), (-145, -256), (-770, -254),
-                                     (766, 252), (-479, 406), (-487, 477),
-                                     (-775, 490), (766, -352)]
-
+        self._wounded_persons_pos = \
+            [(-200, -200), (-838, 599), (-356, 555), (-304, 555), (38, 575),
+             (316, 585), (852, 621), (-552, 453), (640, 215), (-860, 265),
+             (-538, 265), (-450, -55), (850, -41), (-550, -365), (-370, -365),
+             (840, -385), (840, -625), (320, -495), (-110, -615), (-202, -615),
+             (-850, -615), ]
         self._number_wounded_persons = len(self._wounded_persons_pos)
         self._wounded_persons: List[WoundedPerson] = []
 
         # POSITIONS OF THE DRONES
         self._number_drones = 10
         # They are positioned in a square whose side size depends on the total number of drones.
-        start_area_drones = (-580, -400)
+        start_area_drones = (0, 217)
         nb_per_side = math.ceil(math.sqrt(float(self._number_drones)))
         dist_inter_drone = 40.0
         # print("nb_per_side", nb_per_side)
@@ -91,6 +94,9 @@ class MyMapMedium01(MapAbstract):
         self._explored_map.initialize_walls(playground)
 
         # DISABLER ZONES
+        # self._kill_zone_pos = ((200, 217), 0)
+        # playground.add(self._kill_zone, self._kill_zone_pos)
+
         if ZoneType.NO_COM_ZONE in self._zones_config:
             playground.add(self._no_com_zone, self._no_com_zone_pos)
 
@@ -121,7 +127,7 @@ class MyMapMedium01(MapAbstract):
 
 
 if __name__ == '__main__':
-    my_map = MyMapMedium01()
+    my_map = MyMapFinal2022_23()
     my_playground = my_map.construct_playground(drone_type=DroneMotionless)
 
     gui = GuiSR(playground=my_playground,

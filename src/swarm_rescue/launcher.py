@@ -6,17 +6,17 @@ from typing import Tuple
 import traceback
 
 from spg_overlay.entities.sensor_disablers import ZoneType
+from spg_overlay.reporting.result_path_creator import ResultPathCreator
 from spg_overlay.utils.constants import DRONE_INITIAL_HEALTH
 from spg_overlay.reporting.evaluation import EvalConfig, EvalPlan, ZonesConfig
 from spg_overlay.reporting.score_manager import ScoreManager
 from spg_overlay.reporting.data_saver import DataSaver
-from spg_overlay.reporting.screen_recorder import ScreenRecorder
 from spg_overlay.reporting.team_info import TeamInfo
 from spg_overlay.gui_map.gui_sr import GuiSR
 
 from maps.map_intermediate_01 import MyMapIntermediate01
 from maps.map_intermediate_02 import MyMapIntermediate02
-from maps.map_final_2023 import MyMapFinal2023
+from maps.map_final_2022_23 import MyMapFinal2022_23
 from maps.map_medium_01 import MyMapMedium01
 from maps.map_medium_02 import MyMapMedium02
 
@@ -29,23 +29,30 @@ class MyDrone(MyDroneEval):
 
 class Launcher:
     """
-    The Launcher class is responsible for running a simulation of drone rescue sessions. It creates an instance of the
-    map with a specified zone type, constructs a playground using the construct_playground method of the map
-    class, and initializes a GUI with the playground and map. It then runs the GUI, allowing the user to interact
-    with it. After the GUI finishes, it calculates the score for the exploration of the map and saves the images and
-    data related to the round.
+    The Launcher class is responsible for running a simulation of drone rescue
+    sessions. It creates an instance of the map with a specified zone type,
+    constructs a playground using the construct_playground method of the map
+    class, and initializes a GUI with the playground and map. It then runs the
+    GUI, allowing the user to interact with it. After the GUI finishes, it
+    calculates the score for the exploration of the map and saves the images
+    and data related to the round.
 
     Fields
         nb_rounds: The number of rounds to run in the simulation.
-        team_info: An instance of the TeamInfo class that stores team information.
+        team_info: An instance of the TeamInfo class that stores team
+        information.
         number_drones: The number of drones in the simulation.
         max_timestep_limit: The maximum number of time steps in the simulation.
-        max_walltime_limit: The maximum elapsed real time or walltime in the simulation.
+        max_walltime_limit: The maximum elapsed real time or walltime in the
+        simulation.
         number_wounded_persons: The number of wounded persons in the simulation.
         size_area: The size of the simulation area.
-        score_manager: An instance of the ScoreManager class that calculates the final score.
-        data_saver: An instance of the DataSaver class that saves images and data related to the simulation.
-        video_capture_enabled: A boolean indicating whether video capture is enabled or not.
+        score_manager: An instance of the ScoreManager class that calculates
+        the final score.
+        data_saver: An instance of the DataSaver class that saves images and
+        data related to the simulation.
+        video_capture_enabled: A boolean indicating whether video capture is
+        enabled or not.
     """
 
     def __init__(self):
@@ -86,17 +93,28 @@ class Launcher:
 
         self.score_manager = None
 
-        enable_data_saving = False
-        self.data_saver = DataSaver(self.team_info, enabled=enable_data_saving)
+        # Set this value to True to generate stat data and pdf report
+        stat_saving_enabled = False
+        # Set this value to True to generate a video of the mission
         self.video_capture_enabled = False
+
+        self.result_path = None
+        if stat_saving_enabled or self.video_capture_enabled:
+            rpc = ResultPathCreator(self.team_info)
+            self.result_path = rpc.path
+        self.data_saver = DataSaver(team_info=self.team_info,
+                                    result_path=self.result_path,
+                                    enabled=stat_saving_enabled)
 
     def one_round(self, eval_config: EvalConfig, num_round: int, hide_solution_output: bool = False):
         """
-        The one_round method is responsible for running a single round of the session. It creates an instance of the
-        map class with the specified eval_config, constructs a playground using the construct_playground method
-        of the map class, and initializes a GUI with the playground and map. It then runs the GUI, which allows the
-        user to interact with. After the GUI finishes, it calculates the score for the exploration of the map and saves
-        the images and data related to the round.
+        The one_round method is responsible for running a single round of the
+        session. It creates an instance of the map class with the specified
+        eval_config, constructs a playground using the construct_playground
+        method of the map class, and initializes a GUI with the playground and
+        map. It then runs the GUI, which allows the user to interact with.
+        After the GUI finishes, it calculates the score for the exploration of
+        the map and saves the images and data related to the round.
         """
         print("\n********************************")
 
@@ -112,23 +130,31 @@ class Launcher:
                                           max_walltime_limit=self.max_walltime_limit,
                                           total_number_wounded_persons=self.number_wounded_persons)
 
-        playground = my_map.construct_playground(drone_type=MyDrone)
+        my_playground = my_map.construct_playground(drone_type=MyDrone)
 
         num_round_str = str(num_round)
-        team_number_str = str(self.team_info.team_number).zfill(2)
         if self.video_capture_enabled:
-            filename_video_capture = (f"{self.data_saver.path}/"
-                                      f"/screen_{eval_config.map_name}_{eval_config.zones_name_for_filename}"
-                                      f"_rd{num_round_str}_team{team_number_str}.avi")
+            try:
+                os.makedirs(self.result_path + "/videos/", exist_ok=True)
+            except FileExistsError as error:
+                print(error)
+            filename_video_capture = (f"{self.result_path}/videos/"
+                                      f"team{self.team_info.team_number_str}_"
+                                      f"{eval_config.map_name}_"
+                                      f"{eval_config.zones_name_for_filename}_"
+                                      f"rd{num_round_str}"
+                                      f".avi")
         else:
             filename_video_capture = None
 
-        my_gui = GuiSR(playground=playground,
+        my_gui = GuiSR(playground=my_playground,
                        the_map=my_map,
                        draw_interactive=False,
                        filename_video_capture=filename_video_capture)
 
-        window_title = f"Team: {team_number_str}   -   Map: {type(my_map).__name__}   -   Round: {num_round_str}"
+        window_title = (f"Team: {self.team_info.team_number_str}   -   "
+                        f"Map: {type(my_map).__name__}   -   "
+                        f"Round: {num_round_str}")
         my_gui.set_caption(window_title)
 
         my_map.explored_map.reset()

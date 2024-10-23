@@ -3,28 +3,27 @@ This program can be launched directly.
 To move the drone, you have to click on the map, then use the arrows on the keyboard
 """
 
-import os
 import sys
+from pathlib import Path
 from typing import List, Type
 
-from spg.utils.definitions import CollisionTypes
-
-from spg_overlay.utils.path import Path
-from spg_overlay.utils.pose import Pose
 import numpy as np
 
-# This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Insert the parent directory of the current file's directory into sys.path.
+# This allows Python to locate modules that are one level above the current
+# script, in this case spg_overlay.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from spg_overlay.reporting.data_saver import DataSaver
+from spg_overlay.reporting.result_path_creator import ResultPathCreator
 from spg_overlay.reporting.team_info import TeamInfo
 from spg_overlay.entities.drone_abstract import DroneAbstract
-from spg_overlay.entities.rescue_center import RescueCenter, wounded_rescue_center_collision
+from spg_overlay.entities.rescue_center import RescueCenter
 from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.gui_sr import GuiSR
 from spg_overlay.gui_map.map_abstract import MapAbstract
 from spg_overlay.utils.misc_data import MiscData
+from spg_overlay.utils.pose import Pose
 
 
 class MyDroneMovingWounded(DroneAbstract):
@@ -77,11 +76,6 @@ class MyMapMovingWounded(MapAbstract):
     def construct_playground(self, drone_type: Type[DroneAbstract]):
         playground = ClosedPlayground(size=self._size_area)
 
-        # RESCUE CENTER
-        playground.add_interaction(CollisionTypes.GEM,
-                                   CollisionTypes.ACTIVABLE_BY_GEM,
-                                   wounded_rescue_center_collision)
-
         playground.add(self._rescue_center, self._rescue_center_pos)
 
         # POSITIONS OF THE WOUNDED PERSONS
@@ -98,7 +92,9 @@ class MyMapMovingWounded(MapAbstract):
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
-                             number_drones=self._number_drones)
+                             number_drones=self._number_drones,
+                             max_timestep_limit=self._max_timestep_limit,
+                             max_walltime_limit=self._max_walltime_limit)
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
@@ -109,21 +105,21 @@ class MyMapMovingWounded(MapAbstract):
 
 def main():
     my_map = MyMapMovingWounded()
-    playground = my_map.construct_playground(drone_type=MyDroneMovingWounded)
+    my_playground = my_map.construct_playground(drone_type=MyDroneMovingWounded)
 
-    team_info = TeamInfo()
-    data_saver = DataSaver(team_info, enabled=True)
+    # Set this value to True to generate a video of the mission
     video_capture_enabled = False
-    video_capture_enabled &= data_saver.enabled
     if video_capture_enabled:
-        filename_video_capture = data_saver.path + "/example_movingWounded.avi"
+        team_info = TeamInfo()
+        rpc = ResultPathCreator(team_info)
+        filename_video_capture = rpc.path + "/example_movingWounded.avi"
     else:
         filename_video_capture = None
 
     # enable_visu_noises : to enable the visualization. It will show also a demonstration of the integration
     # of odometer values, by drawing the estimated path in red. The green circle shows the position of drone according
     # to the gps sensor and the compass.
-    gui = GuiSR(playground=playground,
+    gui = GuiSR(playground=my_playground,
                 the_map=my_map,
                 print_messages=True,
                 use_keyboard=True,

@@ -6,9 +6,8 @@ from spg_overlay.reporting.stats_computation import StatsComputation
 from spg_overlay.reporting.team_info import TeamInfo
 
 team_info = TeamInfo()
-team_number_str = str(team_info.team_number).zfill(2)
 directory = str(Path.home()) + '/results_swarm_rescue'
-path = directory + f'/team{team_number_str}_test_pdf'
+path = directory + f'/team{team_info.team_number_str}_test_pdf'
 
 try:
     os.makedirs(directory, exist_ok=True)

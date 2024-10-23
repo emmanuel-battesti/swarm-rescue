@@ -4,13 +4,14 @@ To move the drone, you have to click on the map, then use the arrows on the
 keyboard
 """
 
-import os
 import sys
+from pathlib import Path
 from typing import List, Type
 
-# This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0,
-                os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Insert the parent directory of the current file's directory into sys.path.
+# This allows Python to locate modules that are one level above the current
+# script, in this case spg_overlay.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.entities.rescue_center import RescueCenter
@@ -116,11 +117,11 @@ def print_keyboard_man():
 def main():
     print_keyboard_man()
     my_map = MyMapKeyboard()
-    playground = my_map.construct_playground(drone_type=MyDroneKeyboard)
+    my_playground = my_map.construct_playground(drone_type=MyDroneKeyboard)
 
     # draw_lidar_rays : enable the visualization of the lidar rays
     # draw_semantic_rays : enable the visualization of the semantic rays
-    gui = GuiSR(playground=playground,
+    gui = GuiSR(playground=my_playground,
                 the_map=my_map,
                 draw_lidar_rays=True,
                 draw_semantic_rays=True,

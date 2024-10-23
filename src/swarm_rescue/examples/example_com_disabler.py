@@ -1,18 +1,21 @@
 """
 This program can be launched directly.
 To move the drone, you have to click on the map, then use the arrows on the
- keyboard
+keyboard
 """
 
-import os
 import sys
+from pathlib import Path
 from typing import Type
 
-# This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0,
-                os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from spg_overlay.reporting.data_saver import DataSaver
+
+# Insert the parent directory of the current file's directory into sys.path.
+# This allows Python to locate modules that are one level above the current
+# script, in this case spg_overlay.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from spg_overlay.reporting.result_path_creator import ResultPathCreator
 from spg_overlay.reporting.team_info import TeamInfo
 from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.entities.sensor_disablers import NoComZone, KillZone
@@ -88,14 +91,14 @@ class MyMapComDisabler(MapAbstract):
 
 def main():
     my_map = MyMapComDisabler()
-    playground = my_map.construct_playground(drone_type=MyDroneComDisabler)
+    my_playground = my_map.construct_playground(drone_type=MyDroneComDisabler)
 
-    team_info = TeamInfo()
-    data_saver = DataSaver(team_info, enabled=True)
-    video_capture_enabled = True
-    video_capture_enabled &= data_saver.enabled
+    # Set this value to True to generate a video of the mission
+    video_capture_enabled = False
     if video_capture_enabled:
-        filename_video_capture = data_saver.path + "/example_com_disabler.avi"
+        team_info = TeamInfo()
+        rpc = ResultPathCreator(team_info)
+        filename_video_capture = rpc.path + "/example_com_disabler.avi"
     else:
         filename_video_capture = None
 
@@ -103,7 +106,7 @@ def main():
     # demonstration of the integration of odometer values, by drawing the
     # estimated path in red. The green circle shows the position of drone
     # according to the gps sensor and the compass.
-    gui = GuiSR(playground=playground,
+    gui = GuiSR(playground=my_playground,
                 the_map=my_map,
                 print_messages=True,
                 draw_com=True,

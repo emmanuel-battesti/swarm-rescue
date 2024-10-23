@@ -1,12 +1,13 @@
 import pandas
 from pandas import DataFrame
 
+from spg_overlay.reporting.team_info import TeamInfo
+
 
 class StatsComputation:
-    def __init__(self, team_info, path):
-        self.team_info = team_info
-        self.team_number_str = str(self.team_info.team_number).zfill(2)
-        self.path = path
+    def __init__(self, team_info: TeamInfo, result_path: str):
+        self._team_info = team_info
+        self._result_path = result_path
 
         self.final_score = 0
         self.mean_computation_freq = 0
@@ -19,8 +20,10 @@ class StatsComputation:
         self.df_screenshots = None
         self.df_data_website = None
 
-        file = pandas.read_csv(self.path +
-                               f'/stats_team_{self.team_number_str}.csv')
+        file = pandas.read_csv(self._result_path +
+                               f'/team_{self._team_info.team_number_str}'
+                               f'_stats.csv')
+
         self.dataframe: DataFrame = file.copy()
 
     def _compute_final_score(self):

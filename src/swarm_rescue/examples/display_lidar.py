@@ -1,18 +1,19 @@
 """
 This program can be launched directly.
-To move the drone, you have to click on the map, then use the arrows on
-the keyboard
+To move the drone, you have to click on the map, then use the arrows on the
+keyboard
 """
 
-import os
 import sys
+from pathlib import Path
 from typing import Type
 
 from spg.playground import Playground
 
-# This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0,
-                os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Insert the parent directory of the current file's directory into sys.path.
+# This allows Python to locate modules that are one level above the current
+# script, in this case spg_overlay.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from maps.walls_medium_02 import add_walls, add_boxes
 from spg_overlay.entities.drone_abstract import DroneAbstract
@@ -84,14 +85,14 @@ class MyMapLidar(MapAbstract):
 
 def main():
     my_map = MyMapLidar()
-    playground = my_map.construct_playground(drone_type=MyDroneLidar)
+    my_playground = my_map.construct_playground(drone_type=MyDroneLidar)
 
     # draw_lidar_rays : enable the visualization of the lidar rays
     # enable_visu_noises : to enable the visualization. It will show also a
     # demonstration of the integration of odometer values, by drawing the
     # estimated path in red. The green circle shows the position of drone
     # according to the gps sensor and the compass
-    gui = GuiSR(playground=playground,
+    gui = GuiSR(playground=my_playground,
                 the_map=my_map,
                 draw_lidar_rays=True,
                 use_keyboard=True,

@@ -323,7 +323,9 @@ class ImageToMap:
                 "the directory tools.\n")
         f.write(
             "This tool permits to create this kind of file by providing it "
-            "an image of the map we want to create.\n")
+            "an image of the\n")
+        f.write(
+            "map we want to create.\n")
         f.write("\"\"\"\n\n")
 
         f.write("from spg_overlay.entities.normal_wall import NormalWall, "

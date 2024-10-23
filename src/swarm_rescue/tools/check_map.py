@@ -3,7 +3,7 @@ from spg_overlay.entities.drone_abstract import DroneAbstract
 from spg_overlay.reporting.evaluation import EvalPlan, ZonesConfig, EvalConfig
 
 from maps.map_intermediate_01 import MyMapIntermediate01
-from maps.map_final_2023 import MyMapFinal
+from maps.map_final_2022_23 import MyMapFinal2022_23
 from maps.map_medium_01 import MyMapMedium01
 from maps.map_medium_02 import MyMapMedium02
 
@@ -28,9 +28,9 @@ if __name__ == "__main__":
         print(f"*** Map {eval_config.map_name}, "
               f"zones \'{eval_config.zones_name_for_filename}\'")
         my_map = eval_config.map_type(eval_config.zones_config)
-        playground = my_map.construct_playground(drone_type=MyDrone)
+        my_playground = my_map.construct_playground(drone_type=MyDrone)
 
-        my_gui = GuiSR(playground=playground,
+        my_gui = GuiSR(playground=my_playground,
                        the_map=my_map,
                        use_mouse_measure=True)
 

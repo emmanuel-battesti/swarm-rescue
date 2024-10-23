@@ -3,13 +3,14 @@ This program can be launched directly.
 """
 
 import math
-import os
 import random
 import sys
+from pathlib import Path
 
-# This line add, to sys.path, the path to parent path of this file
-sys.path.insert(0,
-                os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Insert the parent directory of the current file's directory into sys.path.
+# This allows Python to locate modules that are one level above the current
+# script, in this case spg_overlay.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from maps.map_intermediate_01 import MyMapIntermediate01
 from spg_overlay.entities.drone_abstract import DroneAbstract
@@ -90,9 +91,9 @@ class MyDroneRandom(DroneAbstract):
 
 def main():
     my_map = MyMapIntermediate01()
-    playground = my_map.construct_playground(drone_type=MyDroneRandom)
+    my_playground = my_map.construct_playground(drone_type=MyDroneRandom)
 
-    gui = GuiSR(playground=playground,
+    gui = GuiSR(playground=my_playground,
                 the_map=my_map,
                 use_keyboard=False,
                 use_mouse_measure=True,

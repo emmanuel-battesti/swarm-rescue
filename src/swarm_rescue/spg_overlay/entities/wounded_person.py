@@ -5,12 +5,11 @@ import pymunk
 from spg.agent.controller import CenteredContinuousController
 from spg.utils.definitions import CollisionTypes
 from spg.entity import Graspable
-from spg.agent.part import PhysicalPart
 from spg.element import PhysicalElement, RewardElement
 from spg.utils.definitions import LINEAR_FORCE
 
 from resources import path_resources
-from spg_overlay.utils.constants import LINEAR_SPEED_RATIO, LINEAR_SPEED_RATIO_WOUNDED
+from spg_overlay.utils.constants import LINEAR_SPEED_RATIO_WOUNDED
 
 from spg_overlay.utils.pose import Pose
 from spg_overlay.utils.path import Path

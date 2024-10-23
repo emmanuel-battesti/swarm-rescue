@@ -1,22 +1,30 @@
 import math
 import random
+import sys
+from pathlib import Path
 from typing import List, Type
 
+# Insert the parent directory of the current file's directory into sys.path.
+# This allows Python to locate modules that are one level above the current
+# script, in this case spg_overlay.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from spg.playground import Playground
-from spg.utils.definitions import CollisionTypes
 
 from spg_overlay.entities.drone_abstract import DroneAbstract
+from spg_overlay.entities.drone_motionless import DroneMotionless
 from spg_overlay.entities.rescue_center import RescueCenter
 from spg_overlay.entities.return_area import ReturnArea
 from spg_overlay.entities.sensor_disablers import (ZoneType, NoComZone,
                                                    NoGpsZone, KillZone)
 from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
+from spg_overlay.gui_map.gui_sr import GuiSR
 from spg_overlay.gui_map.map_abstract import MapAbstract
 from spg_overlay.reporting.evaluation import ZonesConfig
 from spg_overlay.utils.misc_data import MiscData
 
-from .walls_medium_02 import add_walls, add_boxes
+from maps.walls_medium_02 import add_walls, add_boxes
 
 
 class MyMapMedium02(MapAbstract):
@@ -29,8 +37,8 @@ class MyMapMedium02(MapAbstract):
         # PARAMETERS MAP
         self._size_area = (1113, 750)
 
-        self._return_area = ReturnArea(size=(202, 180))
-        self._return_area_pos = ((442, 160), 0)
+        self._return_area = ReturnArea(size=(202, 220))
+        self._return_area_pos = ((442, 140), 0)
 
         self._rescue_center = RescueCenter(size=(202, 101))
         self._rescue_center_pos = ((442, 306), 0)
@@ -111,3 +119,14 @@ class MyMapMedium02(MapAbstract):
             playground.add(drone, self._drones_pos[i])
 
         return playground
+
+
+if __name__ == '__main__':
+    my_map = MyMapMedium02()
+    my_playground = my_map.construct_playground(drone_type=DroneMotionless)
+
+    gui = GuiSR(playground=my_playground,
+                the_map=my_map,
+                use_mouse_measure=True,
+                )
+    gui.run()

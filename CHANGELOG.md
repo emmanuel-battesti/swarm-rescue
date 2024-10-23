@@ -3,6 +3,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.1] - 2024-10-23
+### Added
+- Add the maps used for the assessment of the 2023-24 challenge, but add the return zone.
+- Add a "main" function in the maps Python file. Permit to just display the map with motionless drones.
+
+### Changed
+- Enlarge return area on some maps.
+- Update readme.md.
+- Rename "playground" to "my_playground" to avoid warning in examples and maps.
+- Improvement and simplification of data saving and video record system.
+
+### Fixed
+- Fixed bugs with map_random.py.
+- Fixed bug in the pdf report.
+
 ## [4.0.0] - 2024-10-18
 
 ### Added
@@ -249,7 +264,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.1...HEAD
+[4.0.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.2.0...v4.0.0
 [3.2.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.0.1...v3.1.0
