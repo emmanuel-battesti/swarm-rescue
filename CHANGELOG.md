@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.2] - 2024-11-08
+### Added
+- Add a tool to display info about the computer src/swarm_rescue/tools/opengl_info.py
+
+### Changed
+- Update the documentation about installation: INSTALL.md
+
 ## [4.0.1] - 2024-10-23
 ### Added
 - Add the maps used for the assessment of the 2023-24 challenge, but add the return zone.
@@ -264,7 +271,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.1...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.2...HEAD
+[4.0.2]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.1...v4.0.2
 [4.0.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.2.0...v4.0.0
 [3.2.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.1.0...v3.2.0
