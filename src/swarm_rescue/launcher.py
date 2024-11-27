@@ -21,9 +21,11 @@ from maps.map_medium_01 import MyMapMedium01
 from maps.map_medium_02 import MyMapMedium02
 
 from solutions.my_drone_eval import MyDroneEval
+from solutions.my_drone_turning import MyDroneTurning
+from solutions.my_drone_turningV2 import MyDroneTurningV2
 
 
-class MyDrone(MyDroneEval):
+class MyDrone(MyDroneTurningV2):
     pass
 
 
@@ -67,7 +69,7 @@ class Launcher:
         self.team_info = TeamInfo()
         self.eval_plan = EvalPlan()
 
-        eval_config = EvalConfig(map_type=MyMapIntermediate01, nb_rounds=2)
+        eval_config = EvalConfig(map_type=MyMapIntermediate01, nb_rounds=1)
         self.eval_plan.add(eval_config=eval_config)
 
         # eval_config = EvalConfig(map_type=MyMapIntermediate02)
@@ -149,6 +151,7 @@ class Launcher:
 
         my_gui = GuiSR(playground=my_playground,
                        the_map=my_map,
+                       use_keyboard=True,
                        draw_interactive=False,
                        filename_video_capture=filename_video_capture)
 
