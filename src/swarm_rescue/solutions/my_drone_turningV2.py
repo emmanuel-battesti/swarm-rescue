@@ -55,6 +55,14 @@ class MyDroneTurningV2(DroneAbstract):
 
         return command
 
+
+
+
+
+
+
+
+
     """
     Si drone a un ordre de rotation, renvoie commande pour continuer cet ordre (float).
     Si pas d'ordre de rotation, renvoie 0.0  (pas de rotation)
@@ -77,6 +85,7 @@ class MyDroneTurningV2(DroneAbstract):
                 self.isTurning = False
                 self.step_turning = 0
                 self.initiated_with_odometer = False
+                self.angle_left_to_turn = 0
                 return 0.0
             
             else : 
@@ -96,6 +105,7 @@ class MyDroneTurningV2(DroneAbstract):
                 self.isTurning = False
                 self.step_turning = 0
                 self.angle_left_to_turn = 0
+                self.angleStopTurning = 0
                 return 0.0
 
             else : 
