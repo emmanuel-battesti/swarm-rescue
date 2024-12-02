@@ -43,7 +43,7 @@ class MyDroneTurning(DroneAbstract):
         
         else : 
             if self.close_to_wall():
-                command["rotation"] = self.rotate_to_angle(-math.pi/2)
+                command["rotation"] = self.rotate_to_angle(-math.pi/2) # initialisation de la rotation
             else : 
                 command["forward"] = 0.5
 

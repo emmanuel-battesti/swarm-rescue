@@ -23,9 +23,10 @@ from maps.map_medium_02 import MyMapMedium02
 from solutions.my_drone_eval import MyDroneEval
 from solutions.my_drone_turning import MyDroneTurning
 from solutions.my_drone_turningV2 import MyDroneTurningV2
+from solutions.my_dronewalletienne import MyDroneWall
 
 
-class MyDrone(MyDroneTurningV2):
+class MyDrone(MyDroneWall):
     pass
 
 
