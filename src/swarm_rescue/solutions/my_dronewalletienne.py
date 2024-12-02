@@ -34,13 +34,19 @@ class MyDroneWall(DroneAbstract):
         
         
         # Paramètre following walls
-        self.dmax = 40 # distance max pour suivre un mur
-        self.Kp = 2/math.pi # correction proportionnelle
+        self.dmax = 50 # distance max pour suivre un mur
+        self.dist_to_stay = 30 # distance à laquelle on veut rester du mur
+        
+        self.Kp = 4/math.pi # correction proportionnelle # theoriquement j'aurais du mettre 2
         self.Kd = 1 # correction dérivée
         self.Kdist = 1 # correction proportionnelle à la distance
         self.speed_following_wall = 0.2
         self.Ki = (1/10) * 1/20 # correction intégrale
-        self.past_ten_errors = [0]*10
+        self.past_ten_errors_angle = [0]*10
+        
+        self.Kp_distance = 1/(abs(self.dmax-self.dist_to_stay))
+        self.Ki_distance = 1/abs(self.dist_to_stay-self.dmax) * 1/10 * 1/20
+        self.past_ten_errors_distance = [0]*10
 
     def define_message_for_all(self):
         """
@@ -73,17 +79,17 @@ class MyDroneWall(DroneAbstract):
 
             epsilon_wall_angle = normalize_angle(epsilon_wall_angle) 
             
-            self.past_ten_errors.pop(0)
-            self.past_ten_errors.append(epsilon_wall_angle)
+            self.past_ten_errors_angle.pop(0)
+            self.past_ten_errors_angle.append(epsilon_wall_angle)
             
             deriv_epsilon_wall_angle = normalize_angle(self.odometer_values()[2]) # vitesse angulaire
 
             correction_proportionnelle = self.Kp * epsilon_wall_angle
             correction_derivee = self.Kd * deriv_epsilon_wall_angle
-            correction_sharp_turns = self.Kdist*1/(1+np.exp(-0.1*(min_dist-self.dmax)))
-            correction_integrale = self.Ki * sum(self.past_ten_errors)
+            #correction_sharp_turns = self.Kdist*1/(1+np.exp(-0.1*(min_dist-self.dmax)))
+            correction_integrale = self.Ki * sum(self.past_ten_errors_angle)
 
-            rotation = correction_proportionnelle + correction_derivee + correction_integrale +correction_sharp_turns
+            rotation = correction_proportionnelle + correction_derivee + correction_integrale 
             rotation = min( max(-1,rotation) , 1 ) 
 
             # rotation ne commence que si l'angle est supérieur à activation
@@ -91,9 +97,30 @@ class MyDroneWall(DroneAbstract):
             if abs(rotation) < activation: # en soit pas obligatoire mais pas besoin de solliciter les moteurs pour un rien, il vont décéder après.
                 rotation = 0.0
 
-            print(f"rotation_command : {rotation} |  epsilon_wall_angle : {epsilon_wall_angle} | min_dist : {min_dist}")
             command["rotation"] = rotation
-        
+
+            # lateral control to stay at a distance from the wall
+            epsilon_wall_distance = + min_dist - self.dist_to_stay 
+            deriv_epsilon_wall_distance = - np.sin(self.odometer_values()[1])*self.odometer_values()[0] # vitesse latérale
+            
+            print(f"deriv_epsilon_wall_distance : {deriv_epsilon_wall_distance}")
+            self.past_ten_errors_distance.pop(0)
+            self.past_ten_errors_distance.append(epsilon_wall_distance)
+
+            correction_proportionnelle_distance = self.Kp_distance * epsilon_wall_distance
+            correction_derivee_distance = self.Kd * deriv_epsilon_wall_distance
+            correction_integrale_distance = self.Ki_distance * sum(self.past_ten_errors_distance)
+
+            lateral = correction_proportionnelle_distance + correction_derivee_distance + correction_integrale_distance
+            lateral = min( max(-1,lateral) , 1 )
+
+            activation_distance = 0.1
+            if abs(lateral) < activation_distance:
+                lateral = 0.0
+
+            command["lateral"] = lateral
+            print(f"rotation_command : {rotation} | lateral_command : {lateral} |  epsilon_wall_angle : {epsilon_wall_angle} | epsilon_wall_distance : {epsilon_wall_distance} | min_dist : {min_dist}")
+
         else:
             pass
 
