@@ -1,3 +1,4 @@
+import gc
 import math
 import random
 import sys
@@ -20,7 +21,7 @@ from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.gui_map.closed_playground import ClosedPlayground
 from spg_overlay.gui_map.gui_sr import GuiSR
 from spg_overlay.gui_map.map_abstract import MapAbstract
-from spg_overlay.reporting.evaluation import ZonesConfig
+from spg_overlay.reporting.evaluation import ZonesConfig, EvalConfig, EvalPlan
 from spg_overlay.utils.misc_data import MiscData
 
 
@@ -28,8 +29,8 @@ class MyMapIntermediate02(MapAbstract):
 
     def __init__(self, zones_config: ZonesConfig = ()):
         super().__init__(zones_config)
-        self._max_timestep_limit = 3000
-        self._max_walltime_limit = 120
+        self._max_timestep_limit = 2700
+        self._max_walltime_limit = 540
 
         # PARAMETERS MAP
         self._size_area = (1200, 500)
@@ -112,11 +113,25 @@ class MyMapIntermediate02(MapAbstract):
 
 
 if __name__ == '__main__':
-    my_map = MyMapIntermediate02()
-    my_playground = my_map.construct_playground(drone_type=DroneMotionless)
+    eval_plan = EvalPlan()
 
-    gui = GuiSR(playground=my_playground,
-                the_map=my_map,
-                use_mouse_measure=True,
-                )
-    gui.run()
+    zones_config: ZonesConfig = ()
+    eval_config = EvalConfig(map_type=MyMapIntermediate02, zones_config=zones_config, nb_rounds=2)
+    eval_plan.add(eval_config=eval_config)
+
+    zones_config: ZonesConfig = (ZoneType.NO_COM_ZONE, ZoneType.KILL_ZONE)
+    eval_config = EvalConfig(map_type=MyMapIntermediate02, zones_config=zones_config, nb_rounds=2)
+    eval_plan.add(eval_config=eval_config)
+
+    for eval_config in eval_plan.list_eval_config:
+        gc.collect()
+
+        my_map = eval_config.map_type(eval_config.zones_config)
+
+        my_playground = my_map.construct_playground(drone_type=DroneMotionless)
+
+        gui = GuiSR(playground=my_playground,
+                    the_map=my_map,
+                    use_mouse_measure=True,
+                    )
+        gui.run()

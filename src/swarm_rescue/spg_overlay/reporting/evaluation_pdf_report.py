@@ -473,7 +473,8 @@ class EvaluationPdfReport:
                 exploration_score = row["Exploration Score"]
                 health_return_score = row["Health Return Score"]
                 time_score = row["Time Score"]
-                drone_health_percent = row["Mean Health Percent"]
+                # drone_health_percent = row["Mean Health Percent"]
+                crashed_percent = row["Crashed"]
                 config_score = row["Config Score"]
 
                 print(f"{self._team_info.team_number},"
@@ -482,7 +483,8 @@ class EvaluationPdfReport:
                       f"{exploration_score},"
                       f"{health_return_score},"
                       f"{time_score},"
-                      f"{drone_health_percent},"
+                      #f"{drone_health_percent},"
+                      f"{crashed_percent}%,"
                       f"{config_score}")
 
     def generate_pdf(self, stats_computation: StatsComputation):

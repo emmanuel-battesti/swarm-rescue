@@ -16,13 +16,12 @@
   - [Configure *Git Bash*](#configure-git-bash)
   - [Install this *swarm-rescue* repository](#install-this-swarm-rescue-repository)
 - [Troubleshootings](#troubleshootings)
-  - [Desactivation of OpenGL shaders](#desactivation-of-opengl-shaders)
+  - [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders)
   - [Tool to view your software versions](#tool-to-view-your-software-versions)
   - [Find OpenGL version on Ubuntu](#find-opengl-version-on-ubuntu)
   - [Update Mesa](#update-mesa)
 - [Python IDE](#python-ide)
 - [Contact](#contact)
-
 
 # Introduction
 
@@ -30,10 +29,9 @@ This installation procedure has been successfully tested on **Ubuntu** and **Win
 
 # Installation on macOs
 
-Installation on a **macOS system** seems difficult, but is virtually untested and will **not be supported** in the future. *Swarm-Rescue* requires a recent version of *OpenGL* to work. However, recent versions of MacOs no longer use *OpenGL*, but an equivalent library called *Metal*.
+Installation on a **macOS system** seems difficult, but is virtually untested and will **not be supported** in the future. *Swarm-Rescue* requires a recent version of *OpenGL* to work. However, recent versions of macOs no longer use *OpenGL*, but an equivalent library called *Metal*.
 
-In any case, the code has had to be adapted for macOS in the past, resulting in a loss of program performance compared to an Ubuntu machine. (See [Desactivation of OpenGL shaders](#desactivation-of-opengl-shaders))
-
+In any case, the code has had to be adapted for macOS in the past, resulting in a loss of program performance compared to an Ubuntu machine. (See [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders))
 
 # Installation on Ubuntu (recommended)
 
@@ -49,7 +47,7 @@ VirtualBox has a problem with the graphics driver and the way it handles OpenGL.
 
 You have several solutions:
 - Change to Ubuntu operating system without VirtualBox,
-- Use the manipulation describe here: [Desactivation of OpenGL shaders](#desactivation-of-opengl-shaders)
+- Use the manipulation described here: [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders)
 
 ## Git and Arcade library dependencies
 
@@ -70,7 +68,7 @@ We need, at least, *Python 3.8*, which is the default version of *Python* on *Ub
 sudo apt update
 sudo apt install python3 python3-venv python3-dev python3-pip 
 ```
-You can verify the version with the command :
+You can verify the version with the command:
 ```bash
 python3 --version
 ```
@@ -121,7 +119,7 @@ python3 ./src/swarm_rescue/launcher.py
 
 # Installation on Windows 10/11 with WSL2
 
-It's still **very experimental and untested**, but it seems possible to install *Swarm-Rescue* on WSL2 in Windows.
+It's still **very experimental and untested**, but it seems possible to install *Swarm-Rescue* on WSL2 on Windows.
 For this to work, certain points need to be checked:
 - Use WSL 2 and not WSL 1,
 - Have Windows 11 or Windows 10 with the latest updates,
@@ -130,8 +128,8 @@ For this to work, certain points need to be checked:
 
 Then simply follow the Ubuntu installation instructions: [Installation on Ubuntu (recommended)](#installation-on-ubuntu-recommended)
 
-> [!NOTE]  
-> To be more precise, there's no need to install a driver for the graphics card under WSL. WSL uses the Windows driver via a virtual graphics driver. OpenGL, necessary for SwarmRescue's operation, is managed by the Mesa library. The Mesa version of Ubuntu 22 on WSL does not support OpenGL 4.4 as required.
+> [!NOTE]
+> To be more precise, there's no need to install a driver for the graphics card under WSL. WSL uses the Windows driver via a virtual graphics driver. OpenGL, necessary for Swarm-Rescue's operation, is managed by the Mesa library. The Mesa version of Ubuntu 22 on WSL does not support OpenGL 4.4 as required.
 
 # Installation on Windows 10/11 with GitBash
 
@@ -157,11 +155,11 @@ First things first:
 If problems persist, you have several solutions:
 - Change your machine,
 - Change to Ubuntu operating system,
-- Use the manipulation describe here: [Desactivation of OpenGL shaders](#desactivation-of-opengl-shaders)
+- Use the manipulation describe here: [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders)
 
 ## *Python* installation
 
-- Open the following link in your web browser:  https://www.python.org/downloads/windows/
+- Open the following link in your web browser: https://www.python.org/downloads/windows/
 - The program will **not** work with a Python version greater than or equal to 12.
 - Don't choose the latest version of Python, but choose version 3.11.9. Currently (10/2023), it is "*Python 3.11.9 - April 2, 2024*".
 - For modern machines, you must select the *Windows installer (64-bit)*.
@@ -182,7 +180,7 @@ We will use the *Git Bash* terminal to work on the project later.
 
 - Run the *Git Bash* terminal.
 - **Warning**, by default you may **not** be in your home directory. So to get there, just type `cd`.
-- To facilitate the use of the *python* command, you need to create an alias to the real location of the python.exe program: `echo "alias python='winpty python.exe'" >> ~/.bashrc`.
+- To facilitate the use of the *python* command, you need to create an alias for the real location of the python.exe program: `echo "alias python='winpty python.exe'" >> ~/.bashrc`.
 - Then `source .bashrc` to activate the change.
 - If everything works, the command `python --version` should show the installed Python version, for example: `Python 3.11.9`.
 
@@ -231,16 +229,16 @@ python ./src/swarm_rescue/launcher.py
 ```
 # Troubleshootings
 
-## Desactivation of OpenGL shaders
+## Deactivation of OpenGL shaders
 
  Shaders are programs that use OpenGL and are written in the C-like language GLSL. These programs exploit the power of graphics cards and greatly accelerate calculations.
 
 Because of problems with OpenGL, our algorithms, which use shaders, also exist in non-shader versions.
 This version can be activated by changing a parameter in the code:
-- Open file src/swarm_rescue/spg_overlay/gui_map/closed_playground.py
+- Open file *src/swarm_rescue/spg_overlay/gui_map/closed_playground.py*
 - Go to line 37,
-- Change parameter use_shaders from True to False.
-  
+- Change parameter use_shaders from *True* to *False*.
+
 The downside of this manipulation is that it reduces performance. Calculations will take longer, especially if you have a lot of drones.
 
 ## Tool to view your software versions
@@ -265,7 +263,7 @@ glxinfo | grep "OpenGL version"
 
 ## Update Mesa
 
-Under linux or wsl2, to update the Mesa library to the last (but not-official) version:
+Under Linux or WSL2, to update the Mesa library to the lastest (but not-official) version:
 ```bash
 sudo add-apt-repository ppa:kisak/kisak-mesa
 sudo apt update

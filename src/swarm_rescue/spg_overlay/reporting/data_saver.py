@@ -77,7 +77,7 @@ class DataSaver:
     def _create_stats_file(self):
         # Create the file for the result stats and add the header line
         self._stats_filename = (self._result_path +
-                                f"/team_{self._team_info.team_number_str}"
+                                f"/team{self._team_info.team_number_str}"
                                 f"_stats.csv")
         file = open(self._stats_filename, 'w')
         file.close()
@@ -88,7 +88,7 @@ class DataSaver:
                              'Mean Health Percent', 'Rescued Percent',
                              'Exploration Score', 'Health Return Score',
                              'Elapsed Time Step', 'Real Time Elapsed',
-                             'Rescue All Time Step', 'Time Score',
+                             'Rescue All Time Step', 'Time Score', 'Crashed',
                              'Round Score')])
 
     def _add_line(self, data):
@@ -115,10 +115,17 @@ class DataSaver:
                        elapsed_walltime,
                        full_rescue_timestep,
                        score_timestep,
+                       has_crashed,
                        final_score):
         """Saves the statistics for one round to the CSV file."""
         if not self._enabled:
             return
+
+        if has_crashed:
+            crashed_value = 100.0
+        else:
+            crashed_value = 0.0
+
         data = [(self._team_info.team_number,
                  eval_config.id_config,
                  eval_config.map_name,
@@ -136,6 +143,7 @@ class DataSaver:
                  "%.2f" % elapsed_walltime,
                  str(full_rescue_timestep),
                  "%.1f" % score_timestep,
+                 crashed_value,
                  "%.2f" % final_score)]
 
         self._add_line(data)

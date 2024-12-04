@@ -21,7 +21,7 @@ class StatsComputation:
         self.df_data_website = None
 
         file = pandas.read_csv(self._result_path +
-                               f'/team_{self._team_info.team_number_str}'
+                               f'/team{self._team_info.team_number_str}'
                                f'_stats.csv')
 
         self.dataframe: DataFrame = file.copy()
@@ -120,7 +120,7 @@ class StatsComputation:
         df = self.dataframe[
             ["Zones Casual", "Rescued Percent",
              "Exploration Score", "Health Return Score", "Time Score",
-             "Mean Health Percent", "Round Score"]]
+             "Mean Health Percent", "Crashed", "Round Score"]]
         df2 = df.groupby('Zones Casual').mean()
         df2 = df2.reset_index()
 
@@ -141,6 +141,8 @@ class StatsComputation:
         self.df_data_website["Mean Health Percent"] = (
             self.df_data_website["Mean Health Percent"].apply(
                 lambda x: f"{x:.0f}"))
+        self.df_data_website["Crashed"] = (
+            self.df_data_website["Crashed"].apply(lambda x: f"{x:.0f}"))
         self.df_data_website["Config Score"] = (
             self.df_data_website["Config Score"].apply(lambda x: f"{x:.2f}"))
 

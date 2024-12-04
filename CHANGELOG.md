@@ -3,6 +3,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.0.3] - 2024-12-04
+
+### Added
+- Add submission_guidelines.md file.
+- Add a script file: create_zip_submission.sh
+
+### Changed
+- Minor change to the final report and terminal display
+
+### Fixed
+- Correction of a few typos in the README file.
+
 ## [4.0.2] - 2024-11-08
 ### Added
 - Add a tool to display info about the computer src/swarm_rescue/tools/opengl_info.py
@@ -36,7 +48,7 @@ All notable changes to this project will be documented in this file.
 - Drones can detect if they are in the "return area".
 
 ### Changed
-- Changed drone behavior with elasticity and friction parameters : more friction and elasticity with the walls and other drones.
+- Changed drone behavior with elasticity and friction parameters: more friction and elasticity with the walls and other drones.
 - Added the health level of the returned drones in the final score calculation and in the pdf report.
 - Updated requirements and documentation.
 - Indentation and code details.
@@ -105,13 +117,13 @@ All notable changes to this project will be documented in this file.
 - Bug fix in the computation of the number of wounded person bring to the rescue center, in the case of multi-grasping.
 - Fixed a bug in the calculation of the number of wounded person brought to the rescue center when they are brought by more than one drone.
 - Spelling in README.md
-- Compatibility with the new version of numpy : numpy.int has been deprecated, use int instead.
+- Compatibility with the new version of numpy: numpy.int has been deprecated, use int instead.
 
 ## [2.2.1] - 2022-12-15
 
 ### Changed
 - Cleaning example.
-- Disabled forbidden functions : position(), angle(), velocity(), angular_velocity() => generate an exception.
+- Disabled forbidden functions: position(), angle(), velocity(), angular_velocity() => generate an exception.
 
 ### Added
 - Added map_intermediate_02.py !
@@ -122,7 +134,7 @@ All notable changes to this project will be documented in this file.
 - Added some tests.
 
 ### Fixed
-- bug fix : the execution of the code goes through your control() function even if you have activated the use of the keyboard to control the drone.
+- bug fix: the execution of the code goes through your control() function even if you have activated the use of the keyboard to control the drone.
 - there should be no more NaN at the first reading of the sensor data.
 - installation bug.
 
@@ -152,7 +164,7 @@ All notable changes to this project will be documented in this file.
 - visualization of the noises on gps sensor, compass sensor and odometer sensor.
 
 ### Fixed
-- improve code : typing, comments, documentation
+- improve code: typing, comments, documentation
 - fix small bugs
 
 ## [2.0.0] - 2022-10-10
@@ -199,7 +211,7 @@ All notable changes to this project will be documented in this file.
 - The starting points of the drones are not random anymore. The position of all drones now displays a square.
 
 ### Added
-- New map : MyMapCompet02
+- New map: MyMapCompet02
 - Teams should now fill the team_info.yml file in the solutions/ directory
 - *launcher.py* now produces a pdf report of the performances in the *~/results_swarm_rescue/* directory according to the challenge evaluation rules
 
@@ -210,7 +222,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - Change fov of the *DroneLidar* from 180° to 360°, but we keep 90 rays.
-- Split the sensor *DronePosition* in 2 sensors : *DroneGPS*, for only the position in pixels, and *DroneCompass*, for only the orientation of the drone in radians. Thus, the no-GPS zone will only apply to *DroneGP*S sensor, the orientation is still available.
+- Split the sensor *DronePosition* in 2 sensors: *DroneGPS*, for only the position in pixels, and *DroneCompass*, for only the orientation of the drone in radians. Thus, the no-GPS zone will only apply to *DroneGP*S sensor, the orientation is still available.
 - In the no-GPS zone, the measured position was always (0, 0). Now, it is (NaN, NaN).
 
 ### Added
@@ -221,7 +233,7 @@ All notable changes to this project will be documented in this file.
     - *gps_is_disabled()*
     - *compass_is_disabled()*
     - but no *communication_is_disabled()*...
-- Now, drone have a velocity sensor *DroneVelocity* and the functions : *measured_velocity()*, *measured_angular_velocity()*, *true_velocity()*, *true_angular_velocity()*
+- Now, drone have a velocity sensor *DroneVelocity* and the functions: *measured_velocity()*, *measured_angular_velocity()*, *true_velocity()*, *true_angular_velocity()*
 
 ### Fixed
 
@@ -271,7 +283,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.2...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.3...HEAD
+[4.0.3]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.2...v4.0.3
 [4.0.2]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.1...v4.0.2
 [4.0.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.0...v4.0.1
 [4.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v3.2.0...v4.0.0

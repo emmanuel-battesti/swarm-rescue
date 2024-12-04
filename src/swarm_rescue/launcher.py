@@ -116,7 +116,6 @@ class Launcher:
         After the GUI finishes, it calculates the score for the exploration of
         the map and saves the images and data related to the round.
         """
-        print("\n********************************")
 
         my_map = eval_config.map_type(eval_config.zones_config)
         self.number_drones = my_map.number_drones
@@ -211,6 +210,8 @@ class Launcher:
         """
         ok = True
 
+        print(f"--------------------------------------------------------------------------------------------")
+
         for eval_config in self.eval_plan.list_eval_config:
             gc.collect()
             print("")
@@ -218,10 +219,11 @@ class Launcher:
             if not isinstance(eval_config.zones_config, Tuple) and not isinstance(eval_config.zones_config[0], Tuple):
                 raise ValueError("Invalid eval_config.zones_config. It should be a tuple of tuples of ZoneType.")
 
-            print(f"////////////////////////////////////////////////////////////////////////////////////////////")
-            print(f"*** Map: {eval_config.map_name}, special zones: {eval_config.zones_name_casual}")
-
+            print(f"--------------------------------------------------------------------------------------------")
             for num_round in range(eval_config.nb_rounds):
+                print(f"--------------------------------------------------------------------------------------------")
+                print(f"* Map: {eval_config.map_name}, special zones: {eval_config.zones_name_casual}, "
+                      f"round: {num_round + 1}/{eval_config.nb_rounds}")
                 gc.collect()
                 result = self.one_round(eval_config, num_round + 1, hide_solution_output)
                 (percent_drones_destroyed, mean_drones_health, elapsed_timestep,
@@ -263,6 +265,7 @@ class Launcher:
                                                elapsed_walltime,
                                                full_rescue_timestep,
                                                score_timestep,
+                                               has_crashed,
                                                round_score)
 
                 if has_crashed:
@@ -272,6 +275,7 @@ class Launcher:
                         self.data_saver.generate_pdf_report()
                         return ok
 
+        print(f"--------------------------------------------------------------------------------------------")
         self.data_saver.generate_pdf_report()
 
         return ok
