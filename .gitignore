@@ -64,3 +64,8 @@ venv/
 .venv*/
 .conda*/
 .python-version
+
+
+logs/*
+logs/*/*
+logs/
