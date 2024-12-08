@@ -39,6 +39,7 @@ class MyDroneBasic(DroneAbstract):
                          **kwargs)
         # Initialisation du state
         self.state  = self.State.SEARCHING_WALL
+        self.previous_state = self.State.SEARCHING_WALL # Debugging purpose
         
         # WAITING STATE
         self.step_waiting = 50 # step waiting without mooving when loosing the sight of wounded
@@ -51,6 +52,7 @@ class MyDroneBasic(DroneAbstract):
         self.dmax = 60 # distance max pour suivre un mur
         self.dist_to_stay = 40 # distance à laquelle on veut rester du mur
         self.speed_following_wall = 0.3
+        self.speed_turning = 0.05
 
         self.Kp_angle = 4/math.pi # correction proportionnelle # theoriquement j'aurais du mettre 2
         self.Kd_angle = 2*self.Kp_angle # correction dérivée
@@ -64,9 +66,8 @@ class MyDroneBasic(DroneAbstract):
         # -----------------------------------------
         
         # paramètres logs
-        self.record_log = False
+        self.record_log = True
         self.log_file = "logs/log.txt"
-        self.log = {"epsilon_wall_angle":[],"epsilon_wall_distance":[]} # buffer de taille 50 pour les logs
         self.log_initialized = False
         self.flush_interval = 50  # Number of timesteps before flushing buffer
         self.timestep_count = 0  # Counter to track timesteps        
@@ -79,47 +80,17 @@ class MyDroneBasic(DroneAbstract):
         pass
 
     def control(self):
+        
+        # RECUPÈRATION INFORMATIONS SENSORS (LIDAR, SEMANTIC)
         found_wall,epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
         found_wounded, found_rescue_center,epsilon_wounded,epsilon_rescue_center,is_near_rescue_center = self.process_semantic_sensor()
 
         # paramètres responsables des transitions
         paramètres_transitions = { "found_wall": found_wall, "found_wounded": found_wounded, "found_rescue_center": found_rescue_center,"grasped_entities" : bool(self.base.grasper.grasped_entities), "\nstep_waiting_count": self.step_waiting_count} 
-        #print(paramètres_transitions)
-        #############
-        # TRANSITIONS OF THE STATE MACHINE
-        #############
+        
+        # TRANSITIONS OF THE STATE 
+        self.state_update(found_wall,found_wounded,found_rescue_center)
 
-        if ((self.state in (self.State.SEARCHING_WALL,self.State.FOLLOWING_WALL)) and (found_wounded)):
-            self.state = self.State.GRASPING_WOUNDED
-        
-        elif (self.state is self.State.SEARCHING_WALL and found_wall):
-            self.state = self.State.FOLLOWING_WALL
-        
-        elif (self.state is self.State.FOLLOWING_WALL and not found_wall):
-            self.state = self.State.SEARCHING_WALL
-        
-        elif (self.state is self.State.GRASPING_WOUNDED and not found_wounded and not self.base.grasper.grasped_entities):
-            self.state = self.State.WAITING
-        
-        elif (self.state is self.State.WAITING and self.step_waiting_count >= self.step_waiting):
-            self.state = self.State.SEARCHING_WALL
-            self.step_waiting_count = 0
-        
-        elif (self.state is self.State.WAITING and found_wounded):
-            self.state = self.State.GRASPING_WOUNDED
-            self.step_waiting_count = 0
-        
-        elif (self.state is self.State.GRASPING_WOUNDED and bool(self.base.grasper.grasped_entities)):
-            self.state = self.State.SEARCHING_RESCUE_CENTER
-        
-        elif ((self.state in (self.State.SEARCHING_RESCUE_CENTER, self.State.GOING_RESCUE_CENTER)) and (not self.base.grasper.grasped_entities)):
-            self.state = self.State.WAITING
-        
-        elif (self.state is self.State.SEARCHING_RESCUE_CENTER and found_rescue_center):
-            self.state = self.State.GOING_RESCUE_CENTER
-
-        #print(f"State : {self.state}")
-        
         ##########
         # COMMANDS FOR EACH STATE
         ##########
@@ -131,7 +102,6 @@ class MyDroneBasic(DroneAbstract):
         command_going_rescue_center = {"forward": 3*self.grasping_speed,"lateral": 0.0,"rotation": 0.0,"grasper": 1}
 
         # WAITING STATE
-        
         if self.state is self.State.WAITING:
             self.step_waiting_count += 1
             return command_nothing
@@ -142,35 +112,35 @@ class MyDroneBasic(DroneAbstract):
         elif  self.state is self.State.FOLLOWING_WALL:
 
             epsilon_wall_angle = normalize_angle(epsilon_wall_angle) 
-            self.log["epsilon_wall_angle"].append(epsilon_wall_angle)
+            # self.log["epsilon_wall_angle"].append(epsilon_wall_angle)
             epsilon_wall_distance =  min_dist - self.dist_to_stay 
-            self.log["epsilon_wall_distance"].append(epsilon_wall_distance)
+            # self.log["epsilon_wall_distance"].append(epsilon_wall_distance)
             
-            
+            self.logging_variables({"epsilon_wall_angle": epsilon_wall_angle, "epsilon_wall_distance": epsilon_wall_distance})
             ## LOGGING
-            self.timestep_count += 1
-            # Periodically flush the buffer to the log file
-            if self.timestep_count % self.flush_interval == 0 and self.record_log:
-                mode = "w" if not self.log_initialized else "a"  # Open file in write mode only once pour écraser la data
-                with open(self.log_file, mode) as log_file:
+            # self.timestep_count += 1
+            # # Periodically flush the buffer to the log file
+            # if self.timestep_count % self.flush_interval == 0 and self.record_log:
+            #     mode = "w" if not self.log_initialized else "a"  # Open file in write mode only once pour écraser la data
+            #     with open(self.log_file, mode) as log_file:
                     
-                    # Write the header if the log file is empty
-                    if not self.log_initialized:
-                        log_file.write("Timestep,Epsilon_Wall_Angle,Epsilon_Wall_Distance\n")
-                        self.log_initialized = True
+            #         # Write the header if the log file is empty
+            #         if not self.log_initialized:
+            #             log_file.write("Timestep,Epsilon_Wall_Angle,Epsilon_Wall_Distance\n")
+            #             self.log_initialized = True
                     
-                    for i in range(self.flush_interval):
-                        log_file.write(f"{self.timestep_count - self.flush_interval + i},"
-                                       f"{self.log['epsilon_wall_angle'][i]},"
-                                       f"{self.log['epsilon_wall_distance'][i]}\n")
+            #         for i in range(self.flush_interval):
+            #             log_file.write(f"{self.timestep_count - self.flush_interval + i},"
+            #                            f"{self.log['epsilon_wall_angle'][i]},"
+            #                            f"{self.log['epsilon_wall_distance'][i]}\n")
                  
-                self.log["epsilon_wall_distance"].clear()  # Clear the buffer
-                self.log["epsilon_wall_angle"].clear()  # Clear the buffer
+            #     self.log["epsilon_wall_distance"].clear()  # Clear the buffer
+            #     self.log["epsilon_wall_angle"].clear()  # Clear the buffer
 
             
             command_following_walls = self.pid_controller(command_following_walls,epsilon_wall_angle,self.Kp_angle,self.Kd_angle,self.Ki_angle,self.past_ten_errors_angle,"rotation")
             command_following_walls = self.pid_controller(command_following_walls,epsilon_wall_distance,self.Kp_distance,self.Kd_distance,self.Ki_distance,self.past_ten_errors_distance,"lateral")
-            print(command_following_walls)
+            #print(command_following_walls)
         
             return command_following_walls
 
@@ -191,10 +161,16 @@ class MyDroneBasic(DroneAbstract):
         elif self.state is self.State.GOING_RESCUE_CENTER:
             epsilon_rescue_center = normalize_angle(epsilon_rescue_center) 
             command_going_rescue_center = self.pid_controller(command_going_rescue_center,epsilon_rescue_center,self.Kp_angle,self.Kd_angle,self.Ki_angle,self.past_ten_errors_angle,"rotation")
+            
+            if is_near_rescue_center:
+                command_going_rescue_center["forward"] = 0.0
+                command_going_rescue_center["rotation"] = 1.0
+            
             return command_going_rescue_center
         
         # STATE NOT FOUND raise error
         raise ValueError("State not found")
+        return command_nothing
     
     def process_semantic_sensor(self):
         semantic_values = self.semantic_values()
@@ -255,10 +231,10 @@ class MyDroneBasic(DroneAbstract):
             near_obstacle = True
 
         epsilon_wall_angle = angle_nearest_obstacle - np.pi/2
-        #print(epsilon_wall_angle,near_obstacle)
 
         return (near_obstacle,epsilon_wall_angle,min_dist)
 
+    # Takes the current relative error and with a PID controller, returns the command
     def pid_controller(self,command,epsilon,Kp,Kd,Ki,past_ten_errors,mode):
         
         past_ten_errors.pop(0)
@@ -281,7 +257,79 @@ class MyDroneBasic(DroneAbstract):
 
         if mode == "rotation" : 
             if correction > 0.8 :
-                command["forward"] = 0.07
+                command["forward"] = self.speed_turning
 
         return command
+    
+    def state_update(self,found_wall,found_wounded,found_rescue_center):
+        
+        self.previous_state = self.state
+        
+        if ((self.state in (self.State.SEARCHING_WALL,self.State.FOLLOWING_WALL)) and (found_wounded)):
+            self.state = self.State.GRASPING_WOUNDED
+        
+        elif (self.state is self.State.SEARCHING_WALL and found_wall):
+            self.state = self.State.FOLLOWING_WALL
+        
+        elif (self.state is self.State.FOLLOWING_WALL and not found_wall):
+            self.state = self.State.SEARCHING_WALL
+        
+        elif (self.state is self.State.GRASPING_WOUNDED and not found_wounded and not self.base.grasper.grasped_entities):
+            self.state = self.State.WAITING
+        
+        elif (self.state is self.State.WAITING and self.step_waiting_count >= self.step_waiting):
+            self.state = self.State.SEARCHING_WALL
+            self.step_waiting_count = 0
+        
+        elif (self.state is self.State.WAITING and found_wounded):
+            self.state = self.State.GRASPING_WOUNDED
+            self.step_waiting_count = 0
+        
+        elif (self.state is self.State.GRASPING_WOUNDED and bool(self.base.grasper.grasped_entities)):
+            self.state = self.State.SEARCHING_RESCUE_CENTER
+        
+        elif ((self.state in (self.State.SEARCHING_RESCUE_CENTER, self.State.GOING_RESCUE_CENTER)) and (not self.base.grasper.grasped_entities)):
+            self.state = self.State.WAITING
+        
+        elif (self.state is self.State.SEARCHING_RESCUE_CENTER and found_rescue_center):
+            self.state = self.State.GOING_RESCUE_CENTER
 
+    # Use this function only at one place in the control method. Not handled othewise.
+    # params : variables_to_log : dict of variables to log with keys as variable names and values as variable values.
+    def logging_variables(self, variables_to_log):
+        """
+        Buffers and logs variables to the log file when the buffer reaches the flush interval.
+
+        :param variables_to_log: dict of variables to log with keys as variable names 
+                                and values as variable values.
+        """
+        if not self.record_log:
+            return
+
+        # Initialize the log buffer if not already done
+        if not hasattr(self, "log_buffer"):
+            self.log_buffer = []
+
+        # Append the current variables to the buffer
+        log_entry = {"Timestep": self.timestep_count, **variables_to_log}
+        self.log_buffer.append(log_entry)
+
+        # Write the buffer to file when it reaches the flush interval
+        if len(self.log_buffer) >= self.flush_interval:
+            mode = "w" if not self.log_initialized else "a"
+            with open(self.log_file, mode) as log_file:
+                # Write the header if not initialized
+                if not self.log_initialized:
+                    headers = ",".join(log_entry.keys())
+                    log_file.write(headers + "\n")
+                    self.log_initialized = True
+
+                # Write buffered entries
+                for entry in self.log_buffer:
+                    line = ",".join(map(str, entry.values()))
+                    log_file.write(line + "\n")
+
+            # Clear the buffer
+            self.log_buffer.clear()
+        
+        self.timestep_count += 1
