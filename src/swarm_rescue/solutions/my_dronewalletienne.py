@@ -33,24 +33,25 @@ class MyDroneWall(DroneAbstract):
         self.state  = self.Activity.SEARCHING_WALL
         
         # Paramètre following walls
-        self.dmax = 70 # distance max pour suivre un mur
-        self.dist_to_stay = 50 # distance à laquelle on veut rester du mur
-        self.speed_following_wall = 0.2
+        self.dmax = 50 # distance max pour suivre un mur
+        self.dist_to_stay = 30 # distance à laquelle on veut rester du mur
+        self.speed_following_wall = 0.3
 
         self.Kp_angle = 4/math.pi # correction proportionnelle # theoriquement j'aurais du mettre 2
-        self.Kd_angle = 1 # correction dérivée
-        self.Ki_angle = (1/10) * 1/20 # correction intégrale
+        self.Kd_angle = 2*self.Kp_angle # correction dérivée
+        self.Ki_angle = self.Kp_angle*5/8#4 # (1/10) * 1/20 # correction intégrale
         self.past_ten_errors_angle = [0]*10
         
-        self.Kp_distance = 1/(abs(self.dmax-self.dist_to_stay))
-        self.Ki_distance = 1/abs(self.dist_to_stay-self.dmax) * 1/20
-        self.Kd_distance = 1
+        self.Kp_distance = 4/(abs(self.dmax-self.dist_to_stay))
+        self.Ki_distance = 1/abs(self.dist_to_stay-self.dmax) *1/20 *1/10
+        self.Kd_distance = 4
         self.past_ten_errors_distance = [0]*10
 
         # paramètres affichage
-        self.record_log = False
-        self.log_file = "log.txt"
+        self.record_log = True
+        self.log_file = "logs/log.txt"
         self.log = {"epsilon_wall_angle":[],"epsilon_wall_distance":[]} # buffer de taille 50 pour les logs
+        self.log_initialized = False
         self.flush_interval = 50  # Number of timesteps before flushing buffer
         self.timestep_count = 0  # Counter to track timesteps        
 
@@ -86,19 +87,32 @@ class MyDroneWall(DroneAbstract):
 
             epsilon_wall_angle = normalize_angle(epsilon_wall_angle) 
             self.log["epsilon_wall_angle"].append(epsilon_wall_angle)
-
+            epsilon_wall_distance =  min_dist - self.dist_to_stay 
+            self.log["epsilon_wall_distance"].append(epsilon_wall_distance)
+            
+            
+            ## LOGGING
             self.timestep_count += 1
-
             # Periodically flush the buffer to the log file
-            if self.timestep_count % self.flush_interval == 0:
-                
-                
-                with open(self.log_file, "a") as log_file:
-                    for angle in self.log["epsilon_wall_angle"]:
-                        log_file.write(f"{angle}\n")
-                print("Buffer flushed to log file")
+            if self.timestep_count % self.flush_interval == 0 and self.record_log:
+                mode = "w" if not self.log_initialized else "a"  # Open file in write mode only once pour écraser la data
+                with open(self.log_file, mode) as log_file:
+                    
+                    # Write the header if the log file is empty
+                    if not self.log_initialized:
+                        log_file.write("Timestep,Epsilon_Wall_Angle,Epsilon_Wall_Distance\n")
+                        self.log_initialized = True
+                    
+                    for i in range(self.flush_interval):
+                        log_file.write(f"{self.timestep_count - self.flush_interval + i},"
+                                       f"{self.log['epsilon_wall_angle'][i]},"
+                                       f"{self.log['epsilon_wall_distance'][i]}\n")
+                 
+                self.log["epsilon_wall_distance"].clear()  # Clear the buffer
                 self.log["epsilon_wall_angle"].clear()  # Clear the buffer
 
+            
+            
             self.past_ten_errors_angle.pop(0)
             self.past_ten_errors_angle.append(epsilon_wall_angle)
             
@@ -120,8 +134,7 @@ class MyDroneWall(DroneAbstract):
             command["rotation"] = rotation
 
             # lateral control to stay at a distance from the wall
-            epsilon_wall_distance =  min_dist - self.dist_to_stay 
-            self.log["epsilon_wall_distance"].append(epsilon_wall_distance)
+            
             deriv_epsilon_wall_distance = - np.sin(self.odometer_values()[1])*self.odometer_values()[0] # vitesse latérale
             
             print(f"deriv_epsilon_wall_distance : {deriv_epsilon_wall_distance}")
