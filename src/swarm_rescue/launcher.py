@@ -24,7 +24,7 @@ from solutions.my_drone_eval import MyDroneEval
 from solutions.my_drone_turning import MyDroneTurning
 from solutions.my_drone_turningV2 import MyDroneTurningV2
 from solutions.my_dronewalletienne import MyDroneWall
-from solutions.my_drone_basic import MyDroneBasic
+from solutions.my_drone_basic_mapping import MyDroneBasic
 
 class MyDrone(MyDroneBasic):
     pass
