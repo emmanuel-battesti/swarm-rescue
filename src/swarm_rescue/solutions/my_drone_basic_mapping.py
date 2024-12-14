@@ -46,18 +46,28 @@ class OccupancyGrid(Grid):
         self.grid = np.zeros((self.x_max_grid, self.y_max_grid))
         self.zoomed_grid = np.empty((self.x_max_grid, self.y_max_grid))
 
-    def set_initial_cell(self, world_x, world_y, value):
+    def set_initial_cell(self, world_x, world_y):
         """
-        Store the cell that corresponds to the initial drone position and the special value.
+        Store the cell that corresponds to the initial drone position 
         This should be called once the drone initial position is known.
         """
         cell_x, cell_y = self._conv_world_to_grid(world_x, world_y)
-        self.initial_cell = (cell_x, cell_y)
-        self.initial_cell_value = value
-        # Set the initial cell value now
+        
         if 0 <= cell_x < self.x_max_grid and 0 <= cell_y < self.y_max_grid:
-            self.grid[cell_x, cell_y] = value
-
+            self.initial_cell = (cell_x, cell_y)
+    
+    def to_binary_map(self):
+        """
+        Convert the probabilistic occupancy grid into a binary grid.
+        1 = obstacle
+        0 = free
+        Cells with value >= 0 are considered obstacles.
+        Cells with value < 0 are considered free.
+        """
+        binary_map = np.zeros_like(self.grid, dtype=int)
+        binary_map[self.grid >= 0] = 1
+        return binary_map
+    
     def update_grid(self, pose: Pose):
         """
         Bayesian map update with new observation
@@ -69,8 +79,6 @@ class OccupancyGrid(Grid):
         EMPTY_ZONE_VALUE = -0.602
         OBSTACLE_ZONE_VALUE = 2.0
         FREE_ZONE_VALUE = -4.0
-        # The drone Start in the Return Area that is closed to the Rescue Center. So This area is the return point for the Drones when they have a wounded person.
-        # The grid you always keep the point marked as CLOSE_TO_RESCUE_CENTER the same. even if the value is updated.
 
         THRESHOLD_MIN = -40
         THRESHOLD_MAX = 40
@@ -119,11 +127,11 @@ class OccupancyGrid(Grid):
         self.grid = np.clip(self.grid, THRESHOLD_MIN, THRESHOLD_MAX)
 
 
-        # Restore the initial cell value # That could have been set to free or empty
-        if self.initial_cell and self.initial_cell_value is not None:
-            cell_x, cell_y = self.initial_cell
-            if 0 <= cell_x < self.x_max_grid and 0 <= cell_y < self.y_max_grid:
-                self.grid[cell_x, cell_y] = self.initial_cell_value
+        # # Restore the initial cell value # That could have been set to free or empty
+        # if self.initial_cell and self.initial_cell_value is not None:
+        #     cell_x, cell_y = self.initial_cell
+        #     if 0 <= cell_x < self.x_max_grid and 0 <= cell_y < self.y_max_grid:
+        #         self.grid[cell_x, cell_y] = self.initial_cell_value
 
         # compute zoomed grid for displaying
         self.zoomed_grid = self.grid.copy()
@@ -164,7 +172,6 @@ class MyDroneBasic(DroneAbstract):
                                   lidar=self.lidar())
         self.default_initial_cell_value = -10.0
         self.display_map = True
-
 
         # Initialisation du state
         self.state  = self.State.SEARCHING_WALL
@@ -211,10 +218,10 @@ class MyDroneBasic(DroneAbstract):
         
         # increment the iteration counter
         self.timestep_count += 1
-
+        
         # MAPPING
         self.mapping(display = self.display_map)
-
+        
         # RECUPÈRATION INFORMATIONS SENSORS (LIDAR, SEMANTIC)
         found_wall,epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
         found_wounded, found_rescue_center,epsilon_wounded,epsilon_rescue_center,is_near_rescue_center = self.process_semantic_sensor()
@@ -412,7 +419,7 @@ class MyDroneBasic(DroneAbstract):
             print("Starting control")
             start_x, start_y = self.measured_gps_position()
             print(f"Initial position: {start_x}, {start_y}")
-            self.grid.set_initial_cell(start_x, start_y, self.default_initial_cell_value)
+            self.grid.set_initial_cell(start_x, start_y)
         
         self.estimated_pose = Pose(np.asarray(self.measured_gps_position()),
                                    self.measured_compass_angle())
@@ -426,7 +433,6 @@ class MyDroneBasic(DroneAbstract):
              self.grid.display(self.grid.zoomed_grid,
                                self.estimated_pose,
                                title="zoomed occupancy grid")
-
 
     # Use this function only at one place in the control method. Not handled othewise.
     # params : variables_to_log : dict of variables to log with keys as variable names and values as variable values.
