@@ -1,5 +1,5 @@
 """
-Le drone suit les murs
+Le drone suit un path après avoir trouver le wounded person.
 """
 
 from enum import Enum
@@ -7,7 +7,7 @@ import math
 from typing import Optional
 import cv2
 import numpy as np
-
+import arcade
 
 from spg_overlay.utils.constants import MAX_RANGE_LIDAR_SENSOR
 from spg_overlay.entities.drone_abstract import DroneAbstract
@@ -18,7 +18,7 @@ from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.utils.utils import circular_mean, normalize_angle
 from spg_overlay.utils.pose import Pose
 from spg_overlay.utils.grid import Grid
-
+from spg_overlay.utils.astar import *
 
 class OccupancyGrid(Grid):
     """Simple occupancy grid"""
@@ -64,6 +64,7 @@ class OccupancyGrid(Grid):
         Cells with value >= 0 are considered obstacles.
         Cells with value < 0 are considered free.
         """
+        print(np.count_nonzero(self.grid < 0))
         binary_map = np.zeros_like(self.grid, dtype=int)
         binary_map[self.grid >= 0] = 1
         return binary_map
@@ -141,7 +142,7 @@ class OccupancyGrid(Grid):
         self.zoomed_grid = cv2.resize(self.zoomed_grid, new_zoomed_size,
                                       interpolation=cv2.INTER_NEAREST)
 
-class MyDroneBasic(DroneAbstract):
+class MyDroneFollowingPath(DroneAbstract):
     class State(Enum):
         """
         All the states of the drone as a state machine
@@ -190,7 +191,9 @@ class MyDroneBasic(DroneAbstract):
         self.speed_turning = 0.05
 
         self.Kp_angle = 4/math.pi # correction proportionnelle # theoriquement j'aurais du mettre 2
-        self.Kd_angle = 2*self.Kp_angle # correction dérivée
+        self.Kp_angle_1 = 9/math.pi
+        self.Kd_angle_1 = self.Kp_angle_1/10
+        self.Kd_angle =self.Kp_angle/10 # correction dérivée
         self.Ki_angle = (1/10)*(1/20)*2/math.pi#4 # (1/10) * 1/20 # correction intégrale
         self.past_ten_errors_angle = [0]*10
         
@@ -203,6 +206,7 @@ class MyDroneBasic(DroneAbstract):
         # following path
         self.indice_current_waypoint = 0
         self.finished_path = False
+        self.path = []
 
         # paramètres logs
         self.record_log = True
@@ -230,8 +234,9 @@ class MyDroneBasic(DroneAbstract):
         found_wounded, found_rescue_center,epsilon_wounded,epsilon_rescue_center,is_near_rescue_center = self.process_semantic_sensor()
 
         # paramètres responsables des transitions
+
         paramètres_transitions = { "found_wall": found_wall, "found_wounded": found_wounded, "found_rescue_center": found_rescue_center,"grasped_entities" : bool(self.base.grasper.grasped_entities), "\nstep_waiting_count": self.step_waiting_count} 
-        
+        #print(paramètres_transitions)
         # TRANSITIONS OF THE STATE 
         self.state_update(found_wall,found_wounded,found_rescue_center)
 
@@ -244,6 +249,7 @@ class MyDroneBasic(DroneAbstract):
         command_tout_droit = {"forward": 0.5,"lateral": 0.0,"rotation": 0.0,"grasper": 0}
         command_searching_rescue_center = {"forward": self.speed_following_wall,"lateral": 0.0,"rotation": 0.0,"grasper": 1}
         command_going_rescue_center = {"forward": 3*self.grasping_speed,"lateral": 0.0,"rotation": 0.0,"grasper": 1}
+        command_following_path_with_wounded = {"forward": 0.5,"lateral": 0.0,"rotation": 0.0,"grasper": 1}
 
         # WAITING STATE
         if self.state is self.State.WAITING:
@@ -273,11 +279,47 @@ class MyDroneBasic(DroneAbstract):
             return command_grasping_wounded
 
         elif self.state is self.State.SEARCHING_RESCUE_CENTER:
-            epsilon_wall_angle = normalize_angle(epsilon_wall_angle) 
-            epsilon_wall_distance =  min_dist - self.dist_to_stay 
-            command_searching_rescue_center = self.pid_controller(command_searching_rescue_center,epsilon_wall_angle,self.Kp_angle,self.Kd_angle,self.Ki_angle,self.past_ten_errors_angle,"rotation")
-            command_searching_rescue_center = self.pid_controller(command_searching_rescue_center,epsilon_wall_distance,self.Kp_distance,self.Kd_distance,self.Ki_distance,self.past_ten_errors_distance,"lateral")
-            return command_searching_rescue_center
+            # Calculate path at the beginning of the state
+            if self.previous_state is not self.State.SEARCHING_RESCUE_CENTER:
+                #print(self.grid.grid)
+                #print(np.count_nonzero(self.grid.grid < 0 ))
+                MAP = self.grid.to_binary_map()
+                grid_current_pose = self.grid._conv_world_to_grid(self.estimated_pose.position[0],self.estimated_pose.position[1])
+
+                Max_inflation = 4
+                for x in range(Max_inflation+1):
+                    print("iteration",x)
+                    MAP_inflated = inflate_obstacles(MAP,Max_inflation-(x))
+                    # redefinir le start comme le point libre le plus proche de la position actuelle.
+                    start_point_x, start_point_y = next_point_free(MAP_inflated,grid_current_pose[0],grid_current_pose[1])
+                    end_point_x, end_point_y = next_point_free(MAP_inflated,self.grid.initial_cell[0],self.grid.initial_cell[1])
+                    print(f"Start point : {start_point_x},{start_point_y}")
+                    print(f"verify : {MAP_inflated[start_point_x][start_point_y]}")
+                    # nombres de 0 dans Map_inflated
+                    #print(f"Nombre de 0 dans Map_inflated : {np.count_nonzero(MAP_inflated == 0)}")
+                    path = a_star_search(MAP_inflated,(start_point_x,start_point_y),self.grid.initial_cell)
+                    
+                    if len(path) > 0:
+                        print( f"inflation : {Max_inflation-(x)}")
+                        break
+                
+                path_simplified = simplify_collinear_points(path)
+
+                # 2.1. Simplification par ligne de vue
+                path_line_of_sight = simplify_by_line_of_sight(path_simplified, MAP_inflated)
+                print(path_simplified)
+                # 2.2. Simplification par Ramer-Douglas-Peucker avec epsilon = 0.5 par exemple
+                path_rdp = ramer_douglas_peucker(path_line_of_sight, 0.5)
+                path_rdp_world = [self.grid._conv_grid_to_world(x,y) for x,y in path_rdp]
+                self.indice_current_waypoint = 0
+                print("Path calculated")
+                self.path = path_rdp_world
+                
+                print(self.path)
+
+            command = self.follow_path(self.path)
+            
+            return command
         
         elif self.state is self.State.GOING_RESCUE_CENTER:
             epsilon_rescue_center = normalize_angle(epsilon_rescue_center) 
@@ -291,7 +333,6 @@ class MyDroneBasic(DroneAbstract):
         
         # STATE NOT FOUND raise error
         raise ValueError("State not found")
-        return command_nothing
     
     def process_semantic_sensor(self):
         semantic_values = self.semantic_values()
@@ -357,7 +398,7 @@ class MyDroneBasic(DroneAbstract):
 
     # Takes the current relative error and with a PID controller, returns the command
     # mode : "rotation" or "lateral" for now could be speed or other if implemented
-    def pid_controller(self,command,epsilon,Kp,Kd,Ki,past_ten_errors,mode):
+    def pid_controller(self,command,epsilon,Kp,Kd,Ki,past_ten_errors,mode,command_slow = 0.8):
         
         past_ten_errors.pop(0)
         past_ten_errors.append(epsilon)
@@ -371,32 +412,35 @@ class MyDroneBasic(DroneAbstract):
         
         correction_proportionnelle = Kp * epsilon
         correction_derivee = Kd * deriv_epsilon
-        correction_integrale = Ki * sum(past_ten_errors)
+        correction_integrale = 0
+        #correction_integrale = Ki * sum(past_ten_errors)
         correction = correction_proportionnelle + correction_derivee + correction_integrale
         command[mode] = correction
         command[mode] = min( max(-1,correction) , 1 )
 
 
         if mode == "rotation" : 
-            if correction > 0.8 :
+            if correction > command_slow :
                 command["forward"] = self.speed_turning
 
         return command
     
     def is_near_waypoint(self,waypoint):
         distance_to_waypoint = np.linalg.norm(waypoint - self.estimated_pose.position)
-        if distance_to_waypoint < 10:
+        print(f"Distance to waypoint : {distance_to_waypoint}")
+        if distance_to_waypoint < 20:
+            print("WAYPOINT REACH")
             return True
         return False
-
 
     def follow_path(self,path):
         if self.is_near_waypoint(path[self.indice_current_waypoint]):
             self.indice_current_waypoint += 1
+            #print(f"Waypoint reached {self.indice_current_waypoint}")
             if self.indice_current_waypoint >= len(path):
                 self.finished_path = True
                 return
-        self.go_to_waypoint(path[self.indice_current_waypoint])
+        return self.go_to_waypoint(path[self.indice_current_waypoint][0],path[self.indice_current_waypoint][1])
 
     def go_to_waypoint(self,x,y):
         # Compute the epsilon angle to the waypoint
@@ -404,14 +448,14 @@ class MyDroneBasic(DroneAbstract):
         dy = y - self.estimated_pose.position[1]
         epsilon = math.atan2(dy,dx) - self.estimated_pose.orientation
         epsilon = normalize_angle(epsilon)
-        command_path = self.pid_controller({"forward": 0.5,"lateral": 0.0,"rotation": 0.0,"grasper": 1},epsilon,self.Kp_angle,self.Kd_angle,self.Ki_angle,self.past_ten_errors_angle,"rotation")
+        print(f"Epsilon : {epsilon}")
+        command_path = self.pid_controller({"forward": 0.7,"lateral": 0.0,"rotation": 0.0,"grasper": 1},epsilon,self.Kp_angle_1,self.Kd_angle_1,self.Ki_angle,self.past_ten_errors_angle,"rotation",0.1)
         return command_path
-
 
     def state_update(self,found_wall,found_wounded,found_rescue_center):
         
         self.previous_state = self.state
-        
+        #print(f"Previous state : {self.previous_state}")
         if ((self.state in (self.State.SEARCHING_WALL,self.State.FOLLOWING_WALL)) and (found_wounded)):
             self.state = self.State.GRASPING_WOUNDED
         
@@ -441,6 +485,7 @@ class MyDroneBasic(DroneAbstract):
         elif (self.state is self.State.SEARCHING_RESCUE_CENTER and found_rescue_center):
             self.state = self.State.GOING_RESCUE_CENTER
 
+        print(f"State : {self.state}")
     def mapping(self, display = False):
         
         if self.timestep_count == 1:
@@ -500,3 +545,34 @@ class MyDroneBasic(DroneAbstract):
             # Clear the buffer
             self.log_buffer.clear()
         
+
+    def draw_bottom_layer(self):
+        #self.draw_setpoint()
+        self.draw_path(self.path)
+
+    def draw_setpoint(self):
+        half_width = self._half_size_array[0]
+        half_height = self._half_size_array[1]
+        pt1 = np.array([half_width, 0])
+        pt2 =  np.array([half_width, 2 * half_height])
+        arcade.draw_line(float(pt2[0]),
+                         float(pt2[1]),
+                         float(pt1[0]),
+                         float(pt1[1]),
+                         color=arcade.color.GRAY)
+
+
+    def draw_path(self, path):
+        length = len(path)
+        # print(length)
+        pt2 = None
+        for ind_pt in range(length):
+            pose = path[ind_pt]
+            pt1 = pose + self._half_size_array
+            # print(ind_pt, pt1, pt2)
+            if ind_pt > 0:
+                arcade.draw_line(float(pt2[0]),
+                                 float(pt2[1]),
+                                 float(pt1[0]),
+                                 float(pt1[1]), [125,125,125])
+            pt2 = pt1

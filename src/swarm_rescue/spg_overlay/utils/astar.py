@@ -1,5 +1,7 @@
 import heapq
 import math
+import copy
+import numpy as np
 
 def octile_heuristic(a, b):
     """
@@ -26,6 +28,11 @@ def a_star_search(grid, start, goal):
     if not (0 <= goal[0] < len(grid) and 0 <= goal[1] < len(grid[0])):
         return []
     if grid[start[0]][start[1]] == 1 or grid[goal[0]][goal[1]] == 1:
+        print("START OR GOAL NOT IN FREE GRID")
+        print("start=", start)
+        print("goal=", goal)
+        print("grid[start[0]][start[1]]=", grid[start[0]][start[1]])
+        print("grid[goal[0]][goal[1]]=", grid[goal[0]][goal[1]])
         return []
 
     # 8 directions : V, H, et diagonales
@@ -195,28 +202,59 @@ def ramer_douglas_peucker(points, epsilon):
     else:
         return [start, end]
 
-# Exemple d'utilisation :
-grid = [
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0],
-    [0,0,1,1,1,0,0,0],
-    [0,0,0,0,1,0,0,0],
-    [0,0,0,0,0,0,0,0]
-]
+def inflate_obstacles(grid, inflation_radius=1):
+    rows = len(grid)
+    cols = len(grid[0])
+    # deep copy of the grid
+    inflated_grid = copy.deepcopy(grid)
+    print("inflated_grid=", inflated_grid)
+    print("grid=", grid)
 
-path = a_star_search(grid, (0,0), (4,7))
-# Chemin initial (par exemple résultat d'A*) :
+    for x in range(rows):
+        for y in range(cols):
+            if grid[x][y] == 1:
+                for dx in range(-inflation_radius, inflation_radius+1):
+                    for dy in range(-inflation_radius, inflation_radius+1):
+                        nx, ny = x + dx, y + dy
+                        if 0 <= nx < rows and 0 <= ny < cols:
+                            inflated_grid[nx][ny] = 1
+    
+    print(f" 0 inflated  : {np.count_nonzero(inflated_grid == 0)}")
+    return inflated_grid
 
-# 1. Simplification des segments colinéaires
-path_simplified = simplify_collinear_points(path)
+# fonction qui cherche le point le plus proche libre dans une grille de 0 et 1(0 est libre
 
-# 2.1. Simplification par ligne de vue
-path_line_of_sight = simplify_by_line_of_sight(path_simplified, grid)
+def next_point_free(grid, x, y):
+    rows = len(grid)
+    cols = len(grid[0])
 
-# 2.2. Simplification par Ramer-Douglas-Peucker avec epsilon = 0.5 par exemple
-path_rdp = ramer_douglas_peucker(path_line_of_sight, 0.5)
+    for i in range(0, rows):  # i parcourt la distance verticale
+        for j in range(0, cols):  # j parcourt la distance horizontale
+            # Vérification de chaque direction en s'assurant de rester dans la grille
+            if (x+i < rows and y+j < cols) and grid[x+i][y+j] == 0:
+                return (x+i, y+j)
+            if (x-i >= 0 and y-j >= 0) and grid[x-i][y-j] == 0:
+                return (x-i, y-j)
+            if (x+i < rows and y-j >= 0) and grid[x+i][y-j] == 0:
+                return (x+i, y-j)
+            if (x-i >= 0 and y+j < cols) and grid[x-i][y+j] == 0:
+                return (x-i, y+j)
 
-print("Path initial:", path)
-print("Path simplifié (colinéaire):", path_simplified)
-print("Path simplifié (line of sight):", path_line_of_sight)
-print("Path simplifié (RDP):", path_rdp)
+    print("NO FREE POINT")
+    # Si aucun point libre n'a été trouvé
+    return None
+
+
+
+
+# # example inflation obstacle : 
+# grid = [
+#     [0, 0, 0, 0, 0],
+#     [0, 1, 0, 0, 0],
+#     [0, 0, 0, 0, 0],
+#     [0, 0, 0, 0, 0],
+#     [0, 0, 0, 0, 0]
+# ]
+
+# inflated_grid = inflate_obstacles(grid, inflation_radius=1)
+# print(inflated_grid)

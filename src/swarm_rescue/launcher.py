@@ -25,8 +25,9 @@ from solutions.my_drone_turning import MyDroneTurning
 from solutions.my_drone_turningV2 import MyDroneTurningV2
 from solutions.my_dronewalletienne import MyDroneWall
 from solutions.my_drone_basic_mapping import MyDroneBasic
+from solutions.my_drone_following_path import MyDroneFollowingPath
 
-class MyDrone(MyDroneBasic):
+class MyDrone(MyDroneFollowingPath):
     pass
 
 
