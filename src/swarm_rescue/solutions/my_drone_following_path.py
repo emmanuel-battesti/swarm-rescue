@@ -197,6 +197,12 @@ class MyDroneFollowingPath(DroneAbstract):
         self.Ki_angle = (1/10)*(1/20)*2/math.pi#4 # (1/10) * 1/20 # correction intégrale
         self.past_ten_errors_angle = [0]*10
         
+
+        self.Kp_distance_1 = 2/(abs(10))
+        self.Ki_distance_1 = 1/abs(10) *1/20 *1/10
+        self.Kd_distance_1 = 2*self.Kp_distance_1
+
+
         self.Kp_distance = 2/(abs(self.dmax-self.dist_to_stay))
         self.Ki_distance = 1/abs(self.dist_to_stay-self.dmax) *1/20 *1/10
         self.Kd_distance = 2*self.Kp_distance
@@ -205,6 +211,7 @@ class MyDroneFollowingPath(DroneAbstract):
         
         # following path
         self.indice_current_waypoint = 0
+        self.inital_point_path = (0,0)
         self.finished_path = False
         self.path = []
 
@@ -283,6 +290,7 @@ class MyDroneFollowingPath(DroneAbstract):
             if self.previous_state is not self.State.SEARCHING_RESCUE_CENTER:
                 #print(self.grid.grid)
                 #print(np.count_nonzero(self.grid.grid < 0 ))
+                self.inital_point_path = self.estimated_pose.position[0],self.estimated_pose.position[1]
                 MAP = self.grid.to_binary_map()
                 grid_current_pose = self.grid._conv_world_to_grid(self.estimated_pose.position[0],self.estimated_pose.position[1])
 
@@ -439,17 +447,31 @@ class MyDroneFollowingPath(DroneAbstract):
             #print(f"Waypoint reached {self.indice_current_waypoint}")
             if self.indice_current_waypoint >= len(path):
                 self.finished_path = True
+                self.indice_current_waypoint = 0
                 return
         return self.go_to_waypoint(path[self.indice_current_waypoint][0],path[self.indice_current_waypoint][1])
 
     def go_to_waypoint(self,x,y):
-        # Compute the epsilon angle to the waypoint
+        # ASSERVISSEMENT EN ANGLE
         dx = x - self.estimated_pose.position[0]
         dy = y - self.estimated_pose.position[1]
         epsilon = math.atan2(dy,dx) - self.estimated_pose.orientation
         epsilon = normalize_angle(epsilon)
         print(f"Epsilon : {epsilon}")
         command_path = self.pid_controller({"forward": 0.7,"lateral": 0.0,"rotation": 0.0,"grasper": 1},epsilon,self.Kp_angle_1,self.Kd_angle_1,self.Ki_angle,self.past_ten_errors_angle,"rotation",0.1)
+
+        # ASSERVISSEMENT LATERAL
+        if self.indice_current_waypoint == 0:
+            x_previous_waypoint,y_previous_waypoint = self.inital_point_path
+        else : 
+            x_previous_waypoint,y_previous_waypoint = self.path[self.indice_current_waypoint-1][0],self.path[self.indice_current_waypoint-1][1]
+
+        epsilon_distance = compute_relative_distance_to_droite(x_previous_waypoint,y_previous_waypoint,x,y,self.estimated_pose.position[0],self.estimated_pose.position[1])
+        # epsilon distance needs to be signed (positive if the drone is on the left of the path)
+
+        print(f"Epsilon distance : {epsilon_distance}")
+        command_path = self.pid_controller(command_path,epsilon_distance,self.Kp_distance_1,self.Kd_distance_1,self.Ki_distance_1,self.past_ten_errors_distance,"lateral",0.5)
+        
         return command_path
 
     def state_update(self,found_wall,found_wounded,found_rescue_center):

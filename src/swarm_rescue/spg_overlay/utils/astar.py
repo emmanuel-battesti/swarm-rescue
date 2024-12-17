@@ -245,16 +245,29 @@ def next_point_free(grid, x, y):
     return None
 
 
+def compute_relative_distance_to_droite(x0, y0, x1, y1, x, y):
 
+    ux = x1 - x0
+    uy = y1 - y0
 
-# # example inflation obstacle : 
-# grid = [
-#     [0, 0, 0, 0, 0],
-#     [0, 1, 0, 0, 0],
-#     [0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0]
-# ]
+    vx = x - x0
+    vy = y - y0
 
-# inflated_grid = inflate_obstacles(grid, inflation_radius=1)
-# print(inflated_grid)
+    # pseudo produit vectoriel
+    cross_product = ux * vy - uy * vx
+    if cross_product>0:
+        cross_product_signe = -1
+    else:
+        cross_product_signe = 1
+    
+    # Cas particulier : droite verticale
+    if x1 == x0:
+        return cross_product_signe * abs(x - x0)
+    # Cas particulier : droite horizontale        
+
+    # distance entre le point (x, y) et la droite (x0, y0) (x1, y1)
+    m = (y1 - y0) / (x1 - x0)
+    x_proj = (m*m*x0 + m*(y - y0) + x) / (m*m + 1)
+    y_proj = m * (x_proj - x0) + y0
+
+    return cross_product_signe * math.sqrt((x_proj - x)**2 + (y_proj - y)**2)
