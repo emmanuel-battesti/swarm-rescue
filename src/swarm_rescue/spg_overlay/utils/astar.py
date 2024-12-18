@@ -13,6 +13,9 @@ def octile_heuristic(a, b):
     return dx + dy + (math.sqrt(2) - 2)*min(dx, dy)
 
 def a_star_search(grid, start, goal):
+    
+    if start == (None,None) or goal == (None,None):return []
+
     """
     A* sur une grille avec déplacements diagonaux.
     Coût des mouvements :
@@ -207,8 +210,7 @@ def inflate_obstacles(grid, inflation_radius=1):
     cols = len(grid[0])
     # deep copy of the grid
     inflated_grid = copy.deepcopy(grid)
-    print("inflated_grid=", inflated_grid)
-    print("grid=", grid)
+    
 
     for x in range(rows):
         for y in range(cols):
@@ -219,31 +221,52 @@ def inflate_obstacles(grid, inflation_radius=1):
                         if 0 <= nx < rows and 0 <= ny < cols:
                             inflated_grid[nx][ny] = 1
     
-    print(f" 0 inflated  : {np.count_nonzero(inflated_grid == 0)}")
     return inflated_grid
 
-# fonction qui cherche le point le plus proche libre dans une grille de 0 et 1(0 est libre
+def next_point_free(grid, x, y, dmax):
+    """
+    Recherche le point libre le plus proche autour de (x, y) dans la grille,
+    en augmentant progressivement la distance jusqu'à dmax de manière circulaire.
 
-def next_point_free(grid, x, y):
+    Parameters:
+        grid (list of list of int): Grille d'occupation où 0 = libre, 1 = obstacle.
+        x (int): Coordonnée x du point initial.
+        y (int): Coordonnée y du point initial.
+        dmax (int): Distance maximale de recherche.
+
+    Returns:
+        tuple: Coordonnées (nx, ny) du point libre trouvé.
+        None: Si aucun point libre n'est trouvé dans la portée spécifiée.
+    """
     rows = len(grid)
     cols = len(grid[0])
 
-    for i in range(0, rows):  # i parcourt la distance verticale
-        for j in range(0, cols):  # j parcourt la distance horizontale
-            # Vérification de chaque direction en s'assurant de rester dans la grille
-            if (x+i < rows and y+j < cols) and grid[x+i][y+j] == 0:
-                return (x+i, y+j)
-            if (x-i >= 0 and y-j >= 0) and grid[x-i][y-j] == 0:
-                return (x-i, y-j)
-            if (x+i < rows and y-j >= 0) and grid[x+i][y-j] == 0:
-                return (x+i, y-j)
-            if (x-i >= 0 and y+j < cols) and grid[x-i][y+j] == 0:
-                return (x-i, y+j)
+    # Vérifie si le point initial est libre
+    if 0 <= x < rows and 0 <= y < cols and grid[x][y] == 0:
+        return (x, y)
 
-    print("NO FREE POINT")
+    # Parcourt les distances de 1 à dmax
+    for d in range(1, dmax + 1):
+        # Parcourt tous les points à distance d de manière circulaire
+        for dx in range(-d, d + 1):
+            dy = d - abs(dx)
+
+            # Vérifie les deux positions possibles pour dy (positif et négatif)
+            for sign_dy in [dy, -dy] if dy != 0 else [dy]:
+                nx = x + dx
+                ny = y + sign_dy
+
+                # Vérifie si (nx, ny) est dans les limites de la grille
+                if 0 <= nx < rows and 0 <= ny < cols:
+                    if grid[nx][ny] == 0:
+                        return (nx, ny)
+
+        # Optionnel : Parcours les coins diagonaux supplémentaires
+        # (Déjà couvert par les boucles ci-dessus)
+
     # Si aucun point libre n'a été trouvé
-    return None
-
+    print("NO FREE POINT")
+    return None,None
 
 def compute_relative_distance_to_droite(x0, y0, x1, y1, x, y):
 

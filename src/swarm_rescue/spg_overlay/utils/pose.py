@@ -35,6 +35,7 @@ class Position:
 #         self.position: Position = position
 #         self.orientation: float = orientation
 
+
 class Pose:
     def __init__(self, position=np.zeros(2, ), orientation=0.0):
         if not isinstance(position, np.ndarray):

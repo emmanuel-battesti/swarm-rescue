@@ -165,17 +165,16 @@ class MyDroneFollowingPath(DroneAbstract):
                          **kwargs)
         
         # MAPING
-        self.estimated_pose = Pose() # Fonctionne que avec gps
+        self.estimated_pose = Pose() # Fonctionne commant sans le GPS ?  erreur ou qu'est ce que cela retourne ? 
         resolution = 8 # pourquoi ?  Ok bon compromis entre précision et temps de calcul
         self.grid = OccupancyGrid(size_area_world=self.size_area,
                                   resolution=resolution,
                                   lidar=self.lidar())
-        self.default_initial_cell_value = -10.0
-        self.display_map = True
+        self.display_map = False # Display the probability map during the simulation
 
         # Initialisation du state
         self.state  = self.State.SEARCHING_WALL
-        self.previous_state = self.State.SEARCHING_WALL # Debugging purpose
+        self.previous_state = self.State.WAITING # Utile pour vérfier que c'est la première fois que l'on rentre dans un état
         
         # WAITING STATE
         self.step_waiting = 50 # step waiting without mooving when loosing the sight of wounded
@@ -214,9 +213,11 @@ class MyDroneFollowingPath(DroneAbstract):
         self.inital_point_path = (0,0)
         self.finished_path = False
         self.path = []
+        self.path_grid = []
+        self.distance_close_waypoint = 20
 
         # paramètres logs
-        self.record_log = True
+        self.record_log = False
         self.log_file = "logs/log.txt"
         self.log_initialized = False
         self.flush_interval = 50  # Number of timesteps before flushing buffer
@@ -288,45 +289,43 @@ class MyDroneFollowingPath(DroneAbstract):
         elif self.state is self.State.SEARCHING_RESCUE_CENTER:
             # Calculate path at the beginning of the state
             if self.previous_state is not self.State.SEARCHING_RESCUE_CENTER:
-                #print(self.grid.grid)
-                #print(np.count_nonzero(self.grid.grid < 0 ))
+                
+                # CREATION DU PATH : 
+                
+                # enregistre la position lorsque l'on rentre dans LE STATE. -> use to make l'asservissement lateral
                 self.inital_point_path = self.estimated_pose.position[0],self.estimated_pose.position[1]
-                MAP = self.grid.to_binary_map()
-                grid_current_pose = self.grid._conv_world_to_grid(self.estimated_pose.position[0],self.estimated_pose.position[1])
+                MAP = self.grid.to_binary_map() # Convertit la MAP de proba en MAP binaire
+                grid_initial_point_path = self.grid._conv_world_to_grid(self.inital_point_path[0],self.inital_point_path[1]) # initial point in grid coordinates
 
-                Max_inflation = 4
+                # On élargie les mur au plus large possible pour trouver un chemin qui passe le plus loin des murs/obstacles possibles.
+                Max_inflation =  7
                 for x in range(Max_inflation+1):
-                    print("iteration",x)
-                    MAP_inflated = inflate_obstacles(MAP,Max_inflation-(x))
-                    # redefinir le start comme le point libre le plus proche de la position actuelle.
-                    start_point_x, start_point_y = next_point_free(MAP_inflated,grid_current_pose[0],grid_current_pose[1])
-                    end_point_x, end_point_y = next_point_free(MAP_inflated,self.grid.initial_cell[0],self.grid.initial_cell[1])
-                    print(f"Start point : {start_point_x},{start_point_y}")
-                    print(f"verify : {MAP_inflated[start_point_x][start_point_y]}")
-                    # nombres de 0 dans Map_inflated
-                    #print(f"Nombre de 0 dans Map_inflated : {np.count_nonzero(MAP_inflated == 0)}")
-                    path = a_star_search(MAP_inflated,(start_point_x,start_point_y),self.grid.initial_cell)
+                    print("inflation : ",Max_inflation - x)
+                    MAP_inflated = inflate_obstacles(MAP,Max_inflation-x)
+                    # redefinir le start comme le point libre le plus proche de la position actuelle à distance max d'inflation pour pas que le point soit inacessible.
+                    # SUREMENT UNE MEILLEUR MANIERE DE FAIRE.
+                    start_point_x, start_point_y = next_point_free(MAP_inflated,grid_initial_point_path[0],grid_initial_point_path[1],Max_inflation-x + 3)
+                    end_point_x, end_point_y = next_point_free(MAP_inflated,self.grid.initial_cell[0],self.grid.initial_cell[1],Max_inflation-x+ 3) # initial cell already in grid coordinates.
+                    path = a_star_search(MAP_inflated,(start_point_x,start_point_y),(end_point_x,end_point_y))
                     
                     if len(path) > 0:
                         print( f"inflation : {Max_inflation-(x)}")
                         break
                 
+                # Remove colinear points
                 path_simplified = simplify_collinear_points(path)
 
-                # 2.1. Simplification par ligne de vue
+                # Simplification par ligne de vue
                 path_line_of_sight = simplify_by_line_of_sight(path_simplified, MAP_inflated)
-                print(path_simplified)
-                # 2.2. Simplification par Ramer-Douglas-Peucker avec epsilon = 0.5 par exemple
+               
+                # Simplification par Ramer-Douglas-Peucker avec epsilon = 0.5 par exemple
                 path_rdp = ramer_douglas_peucker(path_line_of_sight, 0.5)
-                path_rdp_world = [self.grid._conv_grid_to_world(x,y) for x,y in path_rdp]
+                self.path_grid = path_rdp
+                self.path = [self.grid._conv_grid_to_world(x,y) for x,y in self.path_grid]
                 self.indice_current_waypoint = 0
                 print("Path calculated")
-                self.path = path_rdp_world
                 
-                print(self.path)
-
             command = self.follow_path(self.path)
-            
             return command
         
         elif self.state is self.State.GOING_RESCUE_CENTER:
@@ -415,6 +414,8 @@ class MyDroneFollowingPath(DroneAbstract):
             deriv_epsilon = normalize_angle(self.odometer_values()[2])
         elif mode == "lateral":
             deriv_epsilon = - np.sin(self.odometer_values()[1])*self.odometer_values()[0] # vitesse latérale
+        elif mode == "forward" : 
+            deriv_epsilon = self.odometer_values()[0]*np.cos(self.odometer_values()[1]) # vitesse longitudinale
         else : 
             raise ValueError("Mode not found")
         
@@ -435,29 +436,31 @@ class MyDroneFollowingPath(DroneAbstract):
     
     def is_near_waypoint(self,waypoint):
         distance_to_waypoint = np.linalg.norm(waypoint - self.estimated_pose.position)
-        print(f"Distance to waypoint : {distance_to_waypoint}")
-        if distance_to_waypoint < 20:
-            print("WAYPOINT REACH")
+        if distance_to_waypoint < self.distance_close_waypoint:
+            print(f"WAYPOINT {self.indice_current_waypoint} REACH")
             return True
         return False
 
     def follow_path(self,path):
         if self.is_near_waypoint(path[self.indice_current_waypoint]):
-            self.indice_current_waypoint += 1
+            self.indice_current_waypoint += 1 # next point in path
             #print(f"Waypoint reached {self.indice_current_waypoint}")
             if self.indice_current_waypoint >= len(path):
-                self.finished_path = True
+                self.finished_path = True # NOT USE YET
                 self.indice_current_waypoint = 0
+                self.path = []
+                self.path_grid = []
                 return
+        
         return self.go_to_waypoint(path[self.indice_current_waypoint][0],path[self.indice_current_waypoint][1])
 
     def go_to_waypoint(self,x,y):
+        
         # ASSERVISSEMENT EN ANGLE
         dx = x - self.estimated_pose.position[0]
         dy = y - self.estimated_pose.position[1]
         epsilon = math.atan2(dy,dx) - self.estimated_pose.orientation
         epsilon = normalize_angle(epsilon)
-        print(f"Epsilon : {epsilon}")
         command_path = self.pid_controller({"forward": 1,"lateral": 0.0,"rotation": 0.0,"grasper": 1},epsilon,self.Kp_angle_1,self.Kd_angle_1,self.Ki_angle,self.past_ten_errors_angle,"rotation",0.5)
 
         # ASSERVISSEMENT LATERAL
@@ -467,11 +470,13 @@ class MyDroneFollowingPath(DroneAbstract):
             x_previous_waypoint,y_previous_waypoint = self.path[self.indice_current_waypoint-1][0],self.path[self.indice_current_waypoint-1][1]
 
         epsilon_distance = compute_relative_distance_to_droite(x_previous_waypoint,y_previous_waypoint,x,y,self.estimated_pose.position[0],self.estimated_pose.position[1])
-        # epsilon distance needs to be signed (positive if the drone is on the left of the path)
-
-        print(f"Epsilon distance : {epsilon_distance}")
+        # epsilon distance needs to be signed (positive if the angle relative to the theoritical path is positive)
         command_path = self.pid_controller(command_path,epsilon_distance,self.Kp_distance_1,self.Kd_distance_1,self.Ki_distance_1,self.past_ten_errors_distance,"lateral",0.5)
         
+        # ASSERVISSENT EN DISTANCE 
+        epsilon_distance_to_waypoint = np.linalg.norm(np.array([x,y]) - self.estimated_pose.position)
+        command_path = self.pid_controller(command_path,epsilon_distance_to_waypoint,self.Kp_distance,self.Kd_distance,self.Ki_distance,self.past_ten_errors_distance,"forward",1)
+
         return command_path
 
     def state_update(self,found_wall,found_wounded,found_rescue_center):
@@ -508,9 +513,10 @@ class MyDroneFollowingPath(DroneAbstract):
             self.state = self.State.GOING_RESCUE_CENTER
 
         print(f"State : {self.state}")
+    
     def mapping(self, display = False):
         
-        if self.timestep_count == 1:
+        if self.timestep_count == 1: # first iteration
             print("Starting control")
             start_x, start_y = self.measured_gps_position()
             print(f"Initial position: {start_x}, {start_y}")
@@ -567,8 +573,7 @@ class MyDroneFollowingPath(DroneAbstract):
             # Clear the buffer
             self.log_buffer.clear()
         
-
-    def draw_bottom_layer(self):
+    def draw_top_layer(self):
         #self.draw_setpoint()
         self.draw_path(self.path)
 
