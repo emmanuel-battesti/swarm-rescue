@@ -18,7 +18,7 @@ from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.utils.utils import circular_mean, normalize_angle
 from spg_overlay.utils.pose import Pose
 from spg_overlay.utils.grid import Grid
-from spg_overlay.utils.astar import *
+from solutions.utils.astar import *
 
 class OccupancyGrid(Grid):
     """Simple occupancy grid"""
