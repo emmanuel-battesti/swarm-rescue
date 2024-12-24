@@ -14,7 +14,7 @@ from spg_overlay.reporting.data_saver import DataSaver
 from spg_overlay.reporting.team_info import TeamInfo
 from spg_overlay.gui_map.gui_sr import GuiSR
 
-from maps.map_intermediate_01 import MyMapIntermediate01
+from maps.map_intermediate_noGPS import MyMapIntermediate01
 from maps.map_intermediate_02 import MyMapIntermediate02
 from maps.map_final_2022_23 import MyMapFinal2022_23
 from maps.map_medium_01 import MyMapMedium01
@@ -25,9 +25,9 @@ from solutions.my_drone_turning import MyDroneTurning
 from solutions.my_drone_turningV2 import MyDroneTurningV2
 from solutions.my_dronewalletienne import MyDroneWall
 from solutions.my_drone_basic_mapping import MyDroneBasic
-from solutions.my_drone_following_path import MyDroneFollowingPath
+from solutions.my_drone_nogps_mapping import MyDroneNoGps
 
-class MyDrone(MyDroneFollowingPath):
+class MyDrone(MyDroneNoGps):
     pass
 
 
@@ -155,6 +155,7 @@ class Launcher:
                        the_map=my_map,
                        use_keyboard=True,
                        draw_interactive=False,
+                       enable_visu_noises=True,
                        filename_video_capture=filename_video_capture)
 
         window_title = (f"Team: {self.team_info.team_number_str}   -   "

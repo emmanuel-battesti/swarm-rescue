@@ -3,6 +3,7 @@ Le drone suit un path après avoir trouver le wounded person.
 """
 
 from enum import Enum
+from collections import deque
 import math
 from typing import Optional
 import cv2
@@ -16,7 +17,7 @@ from spg_overlay.entities.drone_distance_sensors import DroneSemanticSensor
 from spg_overlay.entities.rescue_center import RescueCenter
 from spg_overlay.entities.wounded_person import WoundedPerson
 from spg_overlay.utils.utils import circular_mean, normalize_angle
-from spg_overlay.utils.pose import Pose
+from solutions.utils.pose import Pose
 from spg_overlay.utils.grid import Grid
 from solutions.utils.astar import *
 
@@ -64,7 +65,7 @@ class OccupancyGrid(Grid):
         Cells with value >= 0 are considered obstacles.
         Cells with value < 0 are considered free.
         """
-        print(np.count_nonzero(self.grid < 0))
+        #print(np.count_nonzero(self.grid < 0))
         binary_map = np.zeros_like(self.grid, dtype=int)
         binary_map[self.grid >= 0] = 1
         return binary_map
@@ -142,7 +143,7 @@ class OccupancyGrid(Grid):
         self.zoomed_grid = cv2.resize(self.zoomed_grid, new_zoomed_size,
                                       interpolation=cv2.INTER_NEAREST)
 
-class MyDroneFollowingPath(DroneAbstract):
+class MyDroneNoGps(DroneAbstract):
     class State(Enum):
         """
         All the states of the drone as a state machine
@@ -170,7 +171,18 @@ class MyDroneFollowingPath(DroneAbstract):
         self.grid = OccupancyGrid(size_area_world=self.size_area,
                                   resolution=resolution,
                                   lidar=self.lidar())
+        
+
         self.display_map = True # Display the probability map during the simulation
+
+
+        # POSTION 
+        # deque remplit de 0 
+
+        self.previous_position = deque(maxlen=1) 
+        self.previous_position.append((0,0))  
+        self.previous_orientation = deque(maxlen=1) 
+        self.previous_orientation.append(0) 
 
         # Initialisation du state
         self.state  = self.State.SEARCHING_WALL
@@ -300,7 +312,7 @@ class MyDroneFollowingPath(DroneAbstract):
                 # On élargie les mur au plus large possible pour trouver un chemin qui passe le plus loin des murs/obstacles possibles.
                 Max_inflation =  7
                 for x in range(Max_inflation+1):
-                    print("inflation : ",Max_inflation - x)
+                    #print("inflation : ",Max_inflation - x)
                     MAP_inflated = inflate_obstacles(MAP,Max_inflation-x)
                     # redefinir le start comme le point libre le plus proche de la position actuelle à distance max d'inflation pour pas que le point soit inacessible.
                     # SUREMENT UNE MEILLEUR MANIERE DE FAIRE.
@@ -309,7 +321,7 @@ class MyDroneFollowingPath(DroneAbstract):
                     path = a_star_search(MAP_inflated,(start_point_x,start_point_y),(end_point_x,end_point_y))
                     
                     if len(path) > 0:
-                        print( f"inflation : {Max_inflation-(x)}")
+                        #print( f"inflation : {Max_inflation-(x)}")
                         break
                 
                 # Remove colinear points
@@ -323,7 +335,7 @@ class MyDroneFollowingPath(DroneAbstract):
                 self.path_grid = path_rdp
                 self.path = [self.grid._conv_grid_to_world(x,y) for x,y in self.path_grid]
                 self.indice_current_waypoint = 0
-                print("Path calculated")
+                #print("Path calculated")
                 
             command = self.follow_path(self.path)
             return command
@@ -413,7 +425,7 @@ class MyDroneFollowingPath(DroneAbstract):
             epsilon = normalize_angle(epsilon)
             deriv_epsilon = normalize_angle(self.odometer_values()[2])
         elif mode == "lateral":
-            deriv_epsilon = - np.sin(self.odometer_values()[1])*self.odometer_values()[0] # vitesse latérale
+            deriv_epsilon = -np.sin(self.odometer_values()[1])*self.odometer_values()[0] # vitesse latérale
         elif mode == "forward" : 
             deriv_epsilon = self.odometer_values()[0]*np.cos(self.odometer_values()[1]) # vitesse longitudinale
         else : 
@@ -437,7 +449,7 @@ class MyDroneFollowingPath(DroneAbstract):
     def is_near_waypoint(self,waypoint):
         distance_to_waypoint = np.linalg.norm(waypoint - self.estimated_pose.position)
         if distance_to_waypoint < self.distance_close_waypoint:
-            print(f"WAYPOINT {self.indice_current_waypoint} REACH")
+            #print(f"WAYPOINT {self.indice_current_waypoint} REACH")
             return True
         return False
 
@@ -512,18 +524,22 @@ class MyDroneFollowingPath(DroneAbstract):
         elif (self.state is self.State.SEARCHING_RESCUE_CENTER and found_rescue_center):
             self.state = self.State.GOING_RESCUE_CENTER
 
-        print(f"State : {self.state}")
+        #print(f"State : {self.state}")
     
     def mapping(self, display = False):
         
         if self.timestep_count == 1: # first iteration
             print("Starting control")
-            start_x, start_y = self.measured_gps_position()
+            start_x, start_y = self.measured_gps_position() # never none ? 
             print(f"Initial position: {start_x}, {start_y}")
             self.grid.set_initial_cell(start_x, start_y)
         
+
         self.estimated_pose = Pose(np.asarray(self.measured_gps_position()),
-                                   self.measured_compass_angle())
+                                   self.measured_compass_angle(),self.odometer_values(),self.previous_position[-1],self.previous_orientation[-1],self.size_area)
+        
+        self.previous_position.append(self.estimated_pose.position)
+        self.previous_orientation.append(self.estimated_pose.orientation)
         
         self.grid.update_grid(pose=self.estimated_pose)
         

@@ -71,8 +71,7 @@ class MyDroneBasic(DroneAbstract):
         self.log_initialized = False
         self.flush_interval = 50  # Number of timesteps before flushing buffer
         self.timestep_count = 0  # Counter to track timesteps        
-
-        
+      
     def define_message_for_all(self):
         """
         Here, we don't need communication...
@@ -235,6 +234,7 @@ class MyDroneBasic(DroneAbstract):
         return (near_obstacle,epsilon_wall_angle,min_dist)
 
     # Takes the current relative error and with a PID controller, returns the command
+    # mode : "rotation" or "lateral" for now could be speed or other if implemented
     def pid_controller(self,command,epsilon,Kp,Kd,Ki,past_ten_errors,mode):
         
         past_ten_errors.pop(0)
