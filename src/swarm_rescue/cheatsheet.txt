@@ -1,0 +1,16 @@
+GIT
+
+1) git checkout etienne
+
+2) git add .
+
+3) git commit -m "message"
+
+4) git push origin etienne
+
+
+SWARM
+
+1) source .venv/bin/activate
+
+2) deactivate
