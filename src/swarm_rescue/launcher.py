@@ -20,6 +20,11 @@ from maps.map_final_2022_23 import MyMapFinal2022_23
 from maps.map_medium_01 import MyMapMedium01
 from maps.map_medium_02 import MyMapMedium02
 
+# Test my_maps
+from my_maps.map_test_1 import MyMapTest1
+
+
+
 from solutions.my_drone_motionless import MyDroneMotionless
 from solutions.my_drone_eval import MyDroneEval
 from solutions.my_drone_turning import MyDroneTurning
@@ -72,7 +77,7 @@ class Launcher:
         self.team_info = TeamInfo()
         self.eval_plan = EvalPlan()
 
-        eval_config = EvalConfig(map_type=MyMapIntermediate01, nb_rounds=1)
+        eval_config = EvalConfig(map_type=MyMapTest1, nb_rounds=1)
         self.eval_plan.add(eval_config=eval_config)
 
         # eval_config = EvalConfig(map_type=MyMapIntermediate02)
