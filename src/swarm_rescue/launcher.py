@@ -20,6 +20,7 @@ from maps.map_final_2022_23 import MyMapFinal2022_23
 from maps.map_medium_01 import MyMapMedium01
 from maps.map_medium_02 import MyMapMedium02
 
+from solutions.my_drone_motionless import MyDroneMotionless
 from solutions.my_drone_eval import MyDroneEval
 from solutions.my_drone_turning import MyDroneTurning
 from solutions.my_drone_turningV2 import MyDroneTurningV2
@@ -27,7 +28,7 @@ from solutions.my_dronewalletienne import MyDroneWall
 from solutions.my_drone_basic_mapping import MyDroneBasic
 from solutions.my_drone_nogps_mapping import MyDroneNoGps
 
-class MyDrone(MyDroneNoGps):
+class MyDrone(MyDroneMotionless):
     pass
 
 
