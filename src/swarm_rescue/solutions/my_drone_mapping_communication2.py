@@ -70,12 +70,12 @@ class OccupancyGrid(Grid):
         binary_map[self.grid >= 0] = 1
         return binary_map
     
-    def update_grid(self, pose: Pose):
+    def to_update_grid(self, pose: Pose):
         """
-        Bayesian map update with new observation
-        lidar : lidar data
-        pose : corrected pose in world coordinates
+        Returns the list of things to update on the grid
         """
+        to_update = []
+
         EVERY_N = 3
         LIDAR_DIST_CLIP = 40.0
         EMPTY_ZONE_VALUE = -0.602
@@ -107,9 +107,9 @@ class OccupancyGrid(Grid):
                                                   sin_rays)
 
         for pt_x, pt_y in zip(points_x, points_y):
-            self.add_value_along_line(pose.position[0], pose.position[1],
+            to_update.append({"code":"ALONG_LINE","arg":(pose.position[0], pose.position[1],
                                       pt_x, pt_y,
-                                      EMPTY_ZONE_VALUE)
+                                      EMPTY_ZONE_VALUE)})
 
         # For obstacle zones, all values of lidar_dist are < max_range
         select_collision = lidar_dist < max_range
@@ -120,11 +120,19 @@ class OccupancyGrid(Grid):
         points_x = points_x[select_collision]
         points_y = points_y[select_collision]
 
-        self.add_points(points_x, points_y, OBSTACLE_ZONE_VALUE)
+        to_update.append({"code":"POINTS","arg":(points_x, points_y, OBSTACLE_ZONE_VALUE)})
 
         # the current position of the drone is free !
-        self.add_points(pose.position[0], pose.position[1], FREE_ZONE_VALUE)
+        to_update.append({"code":"POINTS","arg":(pose.position[0], pose.position[1], FREE_ZONE_VALUE)})
 
+        return to_update
+
+    def update_grid(self, to_update):
+        """
+        Bayesian map update with new observation
+        lidar : lidar data
+        pose : corrected pose in world coordinates
+        """
         # threshold values
         self.grid = np.clip(self.grid, THRESHOLD_MIN, THRESHOLD_MAX)
 

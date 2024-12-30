@@ -14,7 +14,7 @@ from spg_overlay.reporting.data_saver import DataSaver
 from spg_overlay.reporting.team_info import TeamInfo
 from spg_overlay.gui_map.gui_sr import GuiSR
 
-from maps.map_intermediate_noGPS import MyMapIntermediate01
+from maps.map_intermediate_01 import MyMapIntermediate01
 from maps.map_intermediate_02 import MyMapIntermediate02
 from maps.map_final_2022_23 import MyMapFinal2022_23
 from maps.map_medium_01 import MyMapMedium01
@@ -33,7 +33,7 @@ from solutions.my_dronewalletienne import MyDroneWall
 from solutions.my_drone_basic_mapping import MyDroneBasic
 from solutions.my_drone_nogps_mapping import MyDroneNoGps
 
-class MyDrone(MyDroneMotionless):
+class MyDrone(MyDroneNoGps):
     pass
 
 
@@ -77,7 +77,7 @@ class Launcher:
         self.team_info = TeamInfo()
         self.eval_plan = EvalPlan()
 
-        eval_config = EvalConfig(map_type=MyMaptest, nb_rounds=1)
+        eval_config = EvalConfig(map_type=MyMapIntermediate01, nb_rounds=1)
         self.eval_plan.add(eval_config=eval_config)
 
         # eval_config = EvalConfig(map_type=MyMapIntermediate02)
