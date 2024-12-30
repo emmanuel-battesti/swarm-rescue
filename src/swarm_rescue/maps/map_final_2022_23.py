@@ -94,9 +94,6 @@ class MyMapFinal2022_23(MapAbstract):
         self._explored_map.initialize_walls(playground)
 
         # DISABLER ZONES
-        # self._kill_zone_pos = ((200, 217), 0)
-        # playground.add(self._kill_zone, self._kill_zone_pos)
-
         if ZoneType.NO_COM_ZONE in self._zones_config:
             playground.add(self._no_com_zone, self._no_com_zone_pos)
 

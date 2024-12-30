@@ -7,39 +7,65 @@ from spg_overlay.entities.normal_wall import NormalWall, NormalBox
 
 # Dimension of the map : (802, 602)
 
-def dimensions(playground):
-
-    return(802,602)
+def dimensions():
+    return (802,602)
 
 def add_walls(playground):
 
-    wall = NormalWall(pos_start=(0, 1), pos_end=(802, 1))
+    wall = NormalWall(pos_start=(188, 122), pos_end=(453, 122))
     playground.add(wall, wall.wall_coordinates)
 
-    wall = NormalWall(pos_start=(801, 0), pos_end=(801, 602))
+    wall = NormalWall(pos_start=(-487, -42), pos_end=(-10, -42))
     playground.add(wall, wall.wall_coordinates)
 
-    wall = NormalWall(pos_start=(802, 601), pos_end=(0, 601))
+    wall = NormalWall(pos_start=(-401, 300), pos_end=(401, 300))
     playground.add(wall, wall.wall_coordinates)
 
-    wall = NormalWall(pos_start=(1, 602), pos_end=(1, 0))
+    wall = NormalWall(pos_start=(400, 301), pos_end=(400, -301))
     playground.add(wall, wall.wall_coordinates)
 
-    wall = NormalWall(pos_start=(353, 359), pos_end=(-23, 359))
+    wall = NormalWall(pos_start=(-401, -300), pos_end=(401, -300))
     playground.add(wall, wall.wall_coordinates)
 
-    wall = NormalWall(pos_start=(312, 510), pos_end=(964, 510))
+    wall = NormalWall(pos_start=(-400, 301), pos_end=(-400, -301))
     playground.add(wall, wall.wall_coordinates)
 
-    wall = NormalWall(pos_start=(679, 125), pos_end=(679, -36))
+    wall = NormalWall(pos_start=(-10, -43), pos_end=(-10, 188))
+    playground.add(wall, wall.wall_coordinates)
+
+    wall = NormalWall(pos_start=(184, -77), pos_end=(184, 121))
+    playground.add(wall, wall.wall_coordinates)
+
+    wall = NormalWall(pos_start=(183, -77), pos_end=(306, -77))
+    playground.add(wall, wall.wall_coordinates)
+
+    wall = NormalWall(pos_start=(307, -78), pos_end=(307, 61))
+    playground.add(wall, wall.wall_coordinates)
+
+    wall = NormalWall(pos_start=(216, 59), pos_end=(308, 59))
+    playground.add(wall, wall.wall_coordinates)
+
+    wall = NormalWall(pos_start=(216, 58), pos_end=(216, -25))
+    playground.add(wall, wall.wall_coordinates)
+
+    wall = NormalWall(pos_start=(-401, 300), pos_end=(401, 300))
+    playground.add(wall, wall.wall_coordinates)
+
+    wall = NormalWall(pos_start=(400, 301), pos_end=(400, -301))
+    playground.add(wall, wall.wall_coordinates)
+
+    wall = NormalWall(pos_start=(-401, -300), pos_end=(401, -300))
+    playground.add(wall, wall.wall_coordinates)
+
+    wall = NormalWall(pos_start=(-400, 301), pos_end=(-400, -301))
     playground.add(wall, wall.wall_coordinates)
 
 
 def add_boxes(playground):
 
-    box = NormalBox(up_left_point=(300, 98), width=60, height=39)
+    box = NormalBox(up_left_point=(-232, 268), width=129, height=135)
     playground.add(box, box.wall_coordinates)
 
-    box = NormalBox(up_left_point=(537, 215), width=39, height=174)
+    box = NormalBox(up_left_point=(-156, -135), width=144, height=110)
     playground.add(box, box.wall_coordinates)
 

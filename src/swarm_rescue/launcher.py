@@ -20,8 +20,8 @@ from maps.map_final_2022_23 import MyMapFinal2022_23
 from maps.map_medium_01 import MyMapMedium01
 from maps.map_medium_02 import MyMapMedium02
 
-# Test my_maps
-from my_maps.map_test_1 import MyMapTest1
+# Test map_editor
+from map_editor.map_test import MyMaptest
 
 
 
@@ -77,7 +77,7 @@ class Launcher:
         self.team_info = TeamInfo()
         self.eval_plan = EvalPlan()
 
-        eval_config = EvalConfig(map_type=MyMapTest1, nb_rounds=1)
+        eval_config = EvalConfig(map_type=MyMaptest, nb_rounds=1)
         self.eval_plan.add(eval_config=eval_config)
 
         # eval_config = EvalConfig(map_type=MyMapIntermediate02)
