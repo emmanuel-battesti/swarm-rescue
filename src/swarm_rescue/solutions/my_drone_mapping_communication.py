@@ -108,9 +108,11 @@ class OccupancyGrid(Grid):
                                                   sin_rays)
 
         for pt_x, pt_y in zip(points_x, points_y):
-            to_update.append({"code":"LINE","arg":(pose.position[0], pose.position[1],
-                                                        pt_x, pt_y,
-                                                        EMPTY_ZONE_VALUE)})
+            to_update.append(DroneMessage(
+                            subject=DroneMessage.Subject.MAPPING,
+                            code=DroneMessage.Code.LINE,
+                            arg=(pose.position[0], pose.position[1], pt_x, pt_y, EMPTY_ZONE_VALUE))
+                            )
 
         # For obstacle zones, all values of lidar_dist are < max_range
         select_collision = lidar_dist < max_range
@@ -121,10 +123,19 @@ class OccupancyGrid(Grid):
         points_x = points_x[select_collision]
         points_y = points_y[select_collision]
 
-        to_update.append({"code":"POINTS","arg":(points_x, points_y, OBSTACLE_ZONE_VALUE)})
+        
+        to_update.append(DroneMessage(
+                        subject=DroneMessage.Subject.MAPPING,
+                        code=DroneMessage.Code.POINTS,
+                        arg=(points_x, points_y, OBSTACLE_ZONE_VALUE))
+                        )
 
         # the current position of the drone is free !
-        to_update.append({"code":"POINTS","arg":(pose.position[0], pose.position[1], FREE_ZONE_VALUE)})
+        to_update.append(DroneMessage(
+                        subject=DroneMessage.Subject.MAPPING,
+                        code=DroneMessage.Code.POINTS,
+                        arg=(pose.position[0], pose.position[1], FREE_ZONE_VALUE))
+                        )
 
         return to_update
 
@@ -138,16 +149,21 @@ class OccupancyGrid(Grid):
         THRESHOLD_MAX = 40
 
         for message in to_update:
-            print()
-            print(message)
-            code = message["code"]
-            arg = message["arg"]
-            if code == "LINE":
-                self.add_value_along_line(*arg)
-            elif code == "POINTS":
-                self.add_points(*arg)
+            # Ensure the message is a valid DroneMessage instance
+            if not isinstance(message, DroneMessage):
+                raise ValueError("Invalid message type. Expected a DroneMessage instance.")
 
-        # threshold values
+            code = message.code
+            arg = message.arg
+
+            if code == DroneMessage.Code.LINE:
+                self.add_value_along_line(*arg)
+            elif code == DroneMessage.Code.POINTS:
+                self.add_points(*arg)
+            else:
+                raise ValueError(f"Unknown code in DroneMessage: {code}")
+
+        # Threshold values in the grid
         self.grid = np.clip(self.grid, THRESHOLD_MIN, THRESHOLD_MAX)
 
 
@@ -164,6 +180,28 @@ class OccupancyGrid(Grid):
                            int(self.size_area_world[0] * 0.5))
         self.zoomed_grid = cv2.resize(self.zoomed_grid, new_zoomed_size,
                                       interpolation=cv2.INTER_NEAREST)
+
+class DroneMessage:
+    class Subject:
+        MAPPING = "MAPPING"
+        COMMUNICATION = "COMMUNICATION"
+        CONTROL = "CONTROL"
+        ALERT = "ALERT"
+    
+    class Code:
+        LINE = "LINE"
+        POINTS = "POINTS"
+
+    def __init__(self, subject: str, code: str, arg, drone_id=None):
+        if subject not in vars(DroneMessage.Subject).values():
+            raise ValueError(f"Invalid subject: {subject}")
+        if code not in vars(DroneMessage.Code).values():
+            raise ValueError(f"Invalid code: {code}")
+
+        self.subject = subject
+        self.code = code
+        self.arg = arg
+        self.drone_id = drone_id
 
 class MyDroneMappingCommunication(DroneAbstract):
     class State(Enum):
