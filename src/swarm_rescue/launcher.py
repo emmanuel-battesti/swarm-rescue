@@ -22,7 +22,7 @@ from maps.map_medium_02 import MyMapMedium02
 
 # Test map_editor
 from map_editor.map_test import MyMaptest
-
+from map_editor.map_test2 import MyMaptest2
 
 
 from solutions.my_drone_motionless import MyDroneMotionless
@@ -32,8 +32,9 @@ from solutions.my_drone_turningV2 import MyDroneTurningV2
 from solutions.my_dronewalletienne import MyDroneWall
 from solutions.my_drone_basic_mapping import MyDroneBasic
 from solutions.my_drone_nogps_mapping import MyDroneNoGps
+from solutions.my_drone_mapping_communication import MyDroneMappingCommunication
 
-class MyDrone(MyDroneNoGps):
+class MyDrone(MyDroneMappingCommunication):
     pass
 
 
@@ -77,7 +78,7 @@ class Launcher:
         self.team_info = TeamInfo()
         self.eval_plan = EvalPlan()
 
-        eval_config = EvalConfig(map_type=MyMapIntermediate01, nb_rounds=1)
+        eval_config = EvalConfig(map_type=MyMaptest2, nb_rounds=1)
         self.eval_plan.add(eval_config=eval_config)
 
         # eval_config = EvalConfig(map_type=MyMapIntermediate02)

@@ -1,5 +1,9 @@
 """
-Le drone suit un path après avoir trouver le wounded person.
+Le drone suit un path après avoir trouvé le wounded person.
+
+Chaque drone communique aux autres les nouvelles informations de mapping qu'il
+a récoltés à chaque timestep. Tous les drones mettent à jour leur
+occupancy grid en conséquence.
 """
 
 from enum import Enum
@@ -21,6 +25,145 @@ from solutions.utils.pose import Pose
 from spg_overlay.utils.grid import Grid
 from solutions.utils.astar import *
 
+class OccupancyGrid(Grid):
+    """Simple occupancy grid"""
+
+    def __init__(self,
+                 size_area_world,
+                 resolution: float,
+                 lidar):
+        super().__init__(size_area_world=size_area_world,
+                         resolution=resolution)
+
+        self.size_area_world = size_area_world
+        self.resolution = resolution
+
+        self.lidar = lidar
+
+        self.x_max_grid: int = int(self.size_area_world[0] / self.resolution
+                                   + 0.5)
+        self.y_max_grid: int = int(self.size_area_world[1] / self.resolution
+                                   + 0.5)
+
+        self.initial_cell = None
+        self.initial_cell_value = None
+
+        self.grid = np.zeros((self.x_max_grid, self.y_max_grid))
+        self.zoomed_grid = np.empty((self.x_max_grid, self.y_max_grid))
+
+    def set_initial_cell(self, world_x, world_y):
+        """
+        Store the cell that corresponds to the initial drone position 
+        This should be called once the drone initial position is known.
+        """
+        cell_x, cell_y = self._conv_world_to_grid(world_x, world_y)
+        
+        if 0 <= cell_x < self.x_max_grid and 0 <= cell_y < self.y_max_grid:
+            self.initial_cell = (cell_x, cell_y)
+    
+    def to_binary_map(self):
+        """
+        Convert the probabilistic occupancy grid into a binary grid.
+        1 = obstacle
+        0 = free
+        Cells with value >= 0 are considered obstacles.
+        Cells with value < 0 are considered free.
+        """
+        #print(np.count_nonzero(self.grid < 0))
+        binary_map = np.zeros_like(self.grid, dtype=int)
+        binary_map[self.grid >= 0] = 1
+        return binary_map
+    
+    def to_update(self, pose: Pose):
+        """
+        Returns the list of things to update on the grid
+        """
+        to_update = []
+
+        EVERY_N = 3
+        LIDAR_DIST_CLIP = 40.0
+        EMPTY_ZONE_VALUE = -0.602
+        OBSTACLE_ZONE_VALUE = 2.0
+        FREE_ZONE_VALUE = -4.0
+
+        lidar_dist = self.lidar.get_sensor_values()[::EVERY_N].copy()
+        lidar_angles = self.lidar.ray_angles[::EVERY_N].copy()
+
+        # Compute cos and sin of the absolute angle of the lidar
+        cos_rays = np.cos(lidar_angles + pose.orientation)
+        sin_rays = np.sin(lidar_angles + pose.orientation)
+
+        max_range = MAX_RANGE_LIDAR_SENSOR * 0.9 # pk ? 
+
+        # For empty zones
+        # points_x and point_y contains the border of detected empty zone
+        # We use a value a little bit less than LIDAR_DIST_CLIP because of the
+        # noise in lidar
+        lidar_dist_empty = np.maximum(lidar_dist - LIDAR_DIST_CLIP, 0.0)
+        # All values of lidar_dist_empty_clip are now <= max_range
+        lidar_dist_empty_clip = np.minimum(lidar_dist_empty, max_range)
+        points_x = pose.position[0] + np.multiply(lidar_dist_empty_clip,
+                                                  cos_rays)
+        points_y = pose.position[1] + np.multiply(lidar_dist_empty_clip,
+                                                  sin_rays)
+
+        for pt_x, pt_y in zip(points_x, points_y):
+            to_update.append({"code":"LINE","arg":(pose.position[0], pose.position[1],
+                                                        pt_x, pt_y,
+                                                        EMPTY_ZONE_VALUE)})
+
+        # For obstacle zones, all values of lidar_dist are < max_range
+        select_collision = lidar_dist < max_range
+
+        points_x = pose.position[0] + np.multiply(lidar_dist, cos_rays)
+        points_y = pose.position[1] + np.multiply(lidar_dist, sin_rays)
+
+        points_x = points_x[select_collision]
+        points_y = points_y[select_collision]
+
+        to_update.append({"code":"POINTS","arg":(points_x, points_y, OBSTACLE_ZONE_VALUE)})
+
+        # the current position of the drone is free !
+        to_update.append({"code":"POINTS","arg":(pose.position[0], pose.position[1], FREE_ZONE_VALUE)})
+
+        return to_update
+
+    def update(self, to_update):
+        """
+        Bayesian map update with new observation
+        lidar : lidar data
+        pose : corrected pose in world coordinates
+        """
+        THRESHOLD_MIN = -40
+        THRESHOLD_MAX = 40
+
+        for message in to_update:
+            print()
+            print(message)
+            code = message["code"]
+            arg = message["arg"]
+            if code == "LINE":
+                self.add_value_along_line(*arg)
+            elif code == "POINTS":
+                self.add_points(*arg)
+
+        # threshold values
+        self.grid = np.clip(self.grid, THRESHOLD_MIN, THRESHOLD_MAX)
+
+
+        # # Restore the initial cell value # That could have been set to free or empty
+        # if self.initial_cell and self.initial_cell_value is not None:
+        #     cell_x, cell_y = self.initial_cell
+        #     if 0 <= cell_x < self.x_max_grid and 0 <= cell_y < self.y_max_grid:
+        #         self.grid[cell_x, cell_y] = self.initial_cell_value
+
+        # compute zoomed grid for displaying
+        self.zoomed_grid = self.grid.copy()
+        
+        new_zoomed_size = (int(self.size_area_world[1] * 0.5),
+                           int(self.size_area_world[0] * 0.5))
+        self.zoomed_grid = cv2.resize(self.zoomed_grid, new_zoomed_size,
+                                      interpolation=cv2.INTER_NEAREST)
 
 class MyDroneMappingCommunication(DroneAbstract):
     class State(Enum):
@@ -47,8 +190,9 @@ class MyDroneMappingCommunication(DroneAbstract):
         # MAPING
         self.estimated_pose = Pose() # Fonctionne commant sans le GPS ?  erreur ou qu'est ce que cela retourne ? 
         resolution = 8 # pourquoi ?  Ok bon compromis entre précision et temps de calcul
-        self.grid = [self.OccupancyGrid(size_area_world=self.size_area,
-                                  resolution=resolution)]
+        self.grid = OccupancyGrid(size_area_world=self.size_area,
+                                  resolution=resolution,
+                                  lidar=self.lidar())
 
         self.display_map = True # Display the probability map during the simulation
 
@@ -110,168 +254,11 @@ class MyDroneMappingCommunication(DroneAbstract):
         self.log_file = "logs/log.txt"
         self.log_initialized = False
         self.flush_interval = 50  # Number of timesteps before flushing buffer
-        self.timestep_count = 0  # Counter to track timesteps
-
-    class OccupancyGrid(Grid):
-        """Simple occupancy grid"""
-
-        def __init__(self,
-                    size_area_world,
-                    resolution: float,
-                    lidar):
-            super().__init__(size_area_world=size_area_world,
-                            resolution=resolution)
-
-            self.size_area_world = size_area_world
-            self.resolution = resolution
-
-            self.lidar = lidar
-
-            self.x_max_grid: int = int(self.size_area_world[0] / self.resolution
-                                    + 0.5)
-            self.y_max_grid: int = int(self.size_area_world[1] / self.resolution
-                                    + 0.5)
-
-            self.initial_cell = None
-            self.initial_cell_value = None
-
-            self.grid = np.zeros((self.x_max_grid, self.y_max_grid))
-            self.zoomed_grid = np.empty((self.x_max_grid, self.y_max_grid))
-
-        def to_binary_map(self):
-            """
-            Convert the probabilistic occupancy grid into a binary grid.
-            1 = obstacle
-            0 = free
-            Cells with value >= 0 are considered obstacles.
-            Cells with value < 0 are considered free.
-            """
-            #print(np.count_nonzero(self.grid < 0))
-            binary_map = np.zeros_like(self.grid, dtype=int)
-            binary_map[self.grid >= 0] = 1
-            return binary_map
-
-        def set_initial_cell(self, world_x, world_y):
-            """
-            Store the cell that corresponds to the initial drone position 
-            This should be called once the drone initial position is known.
-            Each drone has a different initial_cell
-            """
-            cell_x, cell_y = self._conv_world_to_grid(world_x, world_y)
-            
-            if 0 <= cell_x < self.x_max_grid and 0 <= cell_y < self.y_max_grid:
-                
-                self.initial_cell = (cell_x, cell_y)
-        
-        def update_message(self, pose: Pose):
-            """
-            Message for other drones to update their
-            Occupancy grid with this drone's informations
-            """
-            message = self.GridMessage()
-
-            EVERY_N = 3
-            LIDAR_DIST_CLIP = 40.0
-            EMPTY_ZONE_VALUE = -0.602
-            OBSTACLE_ZONE_VALUE = 2.0
-            FREE_ZONE_VALUE = -4.0
-
-            THRESHOLD_MIN = -40
-            THRESHOLD_MAX = 40
-
-            lidar_dist = self.lidar.get_sensor_values()[::EVERY_N].copy()
-            lidar_angles = self.lidar.ray_angles[::EVERY_N].copy()
-
-            # Compute cos and sin of the absolute angle of the lidar
-            cos_rays = np.cos(lidar_angles + pose.orientation)
-            sin_rays = np.sin(lidar_angles + pose.orientation)
-
-            max_range = MAX_RANGE_LIDAR_SENSOR * 0.9 # pk ? 
-
-            # For empty zones
-            # points_x and point_y contains the border of detected empty zone
-            # We use a value a little bit less than LIDAR_DIST_CLIP because of the
-            # noise in lidar
-            lidar_dist_empty = np.maximum(lidar_dist - LIDAR_DIST_CLIP, 0.0)
-            # All values of lidar_dist_empty_clip are now <= max_range
-            lidar_dist_empty_clip = np.minimum(lidar_dist_empty, max_range)
-            points_x = pose.position[0] + np.multiply(lidar_dist_empty_clip,
-                                                    cos_rays)
-            points_y = pose.position[1] + np.multiply(lidar_dist_empty_clip,
-                                                    sin_rays)
-
-            for pt_x, pt_y in zip(points_x, points_y):
-                message.list_instructions.append(self.GridInstruction())
-
-                self.add_value_along_line(pose.position[0], pose.position[1],
-                                        pt_x, pt_y,
-                                        EMPTY_ZONE_VALUE)
-
-            # For obstacle zones, all values of lidar_dist are < max_range
-            select_collision = lidar_dist < max_range
-
-            points_x = pose.position[0] + np.multiply(lidar_dist, cos_rays)
-            points_y = pose.position[1] + np.multiply(lidar_dist, sin_rays)
-
-            points_x = points_x[select_collision]
-            points_y = points_y[select_collision]
-
-            self.add_points(points_x, points_y, OBSTACLE_ZONE_VALUE)
-
-            # the current position of the drone is free !
-            self.add_points(pose.position[0], pose.position[1], FREE_ZONE_VALUE)
-
-            # threshold values
-            self.grid = np.clip(self.grid, THRESHOLD_MIN, THRESHOLD_MAX)
-
-
-            # # Restore the initial cell value # That could have been set to free or empty
-            # if self.initial_cell and self.initial_cell_value is not None:
-            #     cell_x, cell_y = self.initial_cell
-            #     if 0 <= cell_x < self.x_max_grid and 0 <= cell_y < self.y_max_grid:
-            #         self.grid[cell_x, cell_y] = self.initial_cell_value
-
-            # compute zoomed grid for displaying
-            self.zoomed_grid = self.grid.copy()
-            
-            new_zoomed_size = (int(self.size_area_world[1] * 0.5),
-                            int(self.size_area_world[0] * 0.5))
-            self.zoomed_grid = cv2.resize(self.zoomed_grid, new_zoomed_size,
-                                        interpolation=cv2.INTER_NEAREST)
-
-
-    # -------- COMMUNICATION -------- #
-    class Message():
-        """Any message passed through define_message_for_all"""
-
-        def __init__(self):
-            self.sender_id = self.identifier
-
-    class GridMessage(Message):
-        """Message used to give informations about occupancy grids"""
-
-        class GridInstruction():
-            def __init__(self,
-                        instruction_type,
-                        content):
-                self.instruction_type = instruction_type
-                self.content = content
-        
-        class InstructionType(Enum):
-            """Types of Grid instructions"""
-            ADD_ALONG_LIGN = 1
-            ADD_ON_POINTS = 2
-
-        def __init__(self,
-                    list_instructions = []):
-            super().init()
-            self.list_instructions = list_instructions    
+        self.timestep_count = 0  # Counter to track timesteps        
       
     def define_message_for_all(self):
-        """
-        Here, we don't need communication...
-        """
-        pass
+        message = self.grid.to_update(pose=self.estimated_pose)
+        return message
 
     def control(self):
         
@@ -573,15 +560,18 @@ class MyDroneMappingCommunication(DroneAbstract):
         self.previous_position.append(self.estimated_pose.position)
         self.previous_orientation.append(self.estimated_pose.orientation)
         
-        self.grid.update_grid(pose=self.estimated_pose)
+        grid_update_informations = self.grid.to_update(pose=self.estimated_pose)
+        if self.communicator:
+            received_messages = self.communicator.received_messages
+            for msg in received_messages:
+                message = msg[1]
+                grid_update_informations += message
+        self.grid.update(grid_update_informations)
         
         if display and (self.timestep_count % 5 == 0):
-             self.grid.display(self.grid.grid,
-                               self.estimated_pose,
-                               title="occupancy grid")
              self.grid.display(self.grid.zoomed_grid,
                                self.estimated_pose,
-                               title="zoomed occupancy grid")
+                               title=f"Drone {self.identifier} zoomed occupancy grid")
 
     # Use this function only at one place in the control method. Not handled othewise.
     # params : variables_to_log : dict of variables to log with keys as variable names and values as variable values.
