@@ -25,16 +25,9 @@ from map_editor.map_test import MyMaptest
 from map_editor.map_test2 import MyMaptest2
 
 
-from solutions.my_drone_motionless import MyDroneMotionless
-from solutions.my_drone_eval import MyDroneEval
-from solutions.my_drone_turning import MyDroneTurning
-from solutions.my_drone_turningV2 import MyDroneTurningV2
-from solutions.my_dronewalletienne import MyDroneWall
-from solutions.my_drone_basic_mapping import MyDroneBasic
-from solutions.my_drone_nogps_mapping import MyDroneNoGps
-from solutions.my_drone_mapping_communication import MyDroneMappingCommunication
+from solutions.my_drone_frontier_exploration import MyDroneFrontex
 
-class MyDrone(MyDroneMappingCommunication):
+class MyDrone(MyDroneFrontex):
     pass
 
 
