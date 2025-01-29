@@ -15,7 +15,7 @@ class OccupancyGrid(Grid):
 
     class Frontier:
 
-        MIN_FRONTIER_SIZE = 5
+        MIN_FRONTIER_SIZE = 2
 
         def __init__(self, cells):
             """
@@ -211,7 +211,7 @@ class OccupancyGrid(Grid):
 
         # Combinaison des résultats
         boundaries_map = np.pad(boundaries_x, ((0, 0), (0, 1))) | np.pad(boundaries_y, ((0, 1), (0, 0)))
-        boundaries_map = boundaries_map * (binary_map==self.UNDISCOVERED)    # Frontier with width one
+        boundaries_map = boundaries_map
 
         labeled_array, num_features = label(boundaries_map, self.frontier_connectivity_structure)
 

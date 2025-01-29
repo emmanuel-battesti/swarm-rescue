@@ -11,7 +11,7 @@ class MappingParams:
 
 @dataclass
 class WaitingStateParams:
-    step_waiting: int = 300
+    step_waiting: int = 50
 
 @dataclass
 class GraspingParams:

@@ -79,7 +79,6 @@ class MyDroneFrontex(DroneAbstract):
         self.wall_following_params = WallFollowingParams()
 
         # FRONTIER EXPLORATION
-        self.reached_frontier = True
         self.explored_all_frontiers = False
 
         # PID PARAMS
@@ -91,7 +90,7 @@ class MyDroneFrontex(DroneAbstract):
         self.path_params = PathParams()
         self.indice_current_waypoint = 0
         self.inital_point_path = (0,0)
-        self.finished_path = False
+        self.finished_path = True
         self.path = []
         self.path_grid = []
 
@@ -161,11 +160,10 @@ class MyDroneFrontex(DroneAbstract):
     def plan_path_to_rescue_center(self):
         self.path = self.compute_safest_path(self.grid.initial_cell)
         self.indice_current_waypoint = 0
-        self.reached_frontier = False
 
     def handle_going_rescue_center(self, epsilon_rescue_center, is_near_rescue_center):
         epsilon_rescue_center = normalize_angle(epsilon_rescue_center)
-        command = {"forward": 3 * self.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1}
+        command = {"forward": 3 * self.grasping_params.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1}
         command = self.pid_controller(command, epsilon_rescue_center, self.pid_params.Kp_angle, self.pid_params.Kd_angle, self.pid_params.Ki_angle, self.past_ten_errors_angle, "rotation")
 
         if is_near_rescue_center:
@@ -175,25 +173,21 @@ class MyDroneFrontex(DroneAbstract):
         return command
 
     def handle_exploring_frontiers(self):
-        if self.reached_frontier:
-            self.plan_path_to_frontier()
-        command = self.follow_path(self.path)
-
         if self.finished_path:
-            self.reached_frontier = True
+            self.plan_path_to_frontier()
             self.finished_path = False
 
-        return command
-
-    def handle_unknown_state(self):
-        raise ValueError("State not found")
+        if self.explored_all_frontiers:
+            return self.handle_waiting()
+        else:
+            return self.follow_path(self.path)
 
     def plan_path_to_frontier(self):
         next_frontier = self.grid.closest_largest_centroid_frontier(self.estimated_pose)
-        if next is not None:
+        print(next_frontier)
+        if next_frontier is not None:
             self.path = self.compute_safest_path(next_frontier)
             self.indice_current_waypoint = 0
-            self.reached_frontier = False
         else:
             self.explored_all_frontiers = True
 
@@ -212,14 +206,20 @@ class MyDroneFrontex(DroneAbstract):
             end_x, end_y = next_point_free(MAP_inflated, *target_cell, max_inflation - inflation + 3)
 
             path = a_star_search(MAP_inflated, (start_x, start_y), (end_x, end_y))
+
             if path:
-                path_simplified = self.simplify_path(path, MAP_inflated)
+                path_simplified = self.simplify_path(path, MAP_inflated) or [start_cell]
                 return [self.grid._conv_grid_to_world(x, y) for x, y in path_simplified]
+            else:
+                return [self.grid._conv_grid_to_world(*start_cell)]*2
 
     def simplify_path(self, path, MAP):
         path_simplified = simplify_collinear_points(path)
         path_line_of_sight = simplify_by_line_of_sight(path_simplified, MAP)
         return ramer_douglas_peucker(path_line_of_sight, 0.5)
+    
+    def handle_unknown_state(self):
+        raise ValueError("State not found")
 
     def process_semantic_sensor(self):
         semantic_values = self.semantic_values()
