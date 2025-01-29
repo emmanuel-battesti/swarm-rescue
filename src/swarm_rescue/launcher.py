@@ -25,7 +25,7 @@ from map_editor.map_test import MyMaptest
 from map_editor.map_test2 import MyMaptest2
 
 
-from solutions.my_drone_frontier_exploration import MyDroneFrontex
+from solutions.my_drone_frontier_exploration3 import MyDroneFrontex
 
 class MyDrone(MyDroneFrontex):
     pass

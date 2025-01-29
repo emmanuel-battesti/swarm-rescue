@@ -11,8 +11,7 @@ class MappingParams:
 
 @dataclass
 class WaitingStateParams:
-    step_waiting: int = 30
-    step_waiting_count: int = 0
+    step_waiting: int = 300
 
 @dataclass
 class GraspingParams:
@@ -28,16 +27,22 @@ class WallFollowingParams:
 @dataclass
 class PIDParams:
     Kp_angle: float = 4 / math.pi
-    Kd_angle: float = 4 / math.pi / 10
+    Kp_angle_1: float = 9 / math.pi
+    Kd_angle: float = Kp_angle / 10
+    Kd_angle_1: float = Kp_angle / 10
     Ki_angle: float = (1 / 10) * (1 / 20) * 2 / math.pi
     
-    Kp_distance: float = 2 / abs(60 - 40)
-    Ki_distance: float = 1 / abs(40 - 60) * 1 / 20 * 1 / 10
-    Kd_distance: float = 2 * (2 / abs(60 - 40))
+    Kp_distance: float = 2 / abs(WallFollowingParams.dmax - WallFollowingParams.dist_to_stay)
+    Kp_distance_1 : float = 2 / abs(10)
+    Ki_distance: float = 1 / abs(WallFollowingParams.dist_to_stay) * 1 / 200
+    Ki_distance_1: float = 1 / abs(10) * 1 / 20 * 1 / 10
+    Kd_distance: float = 2 * Kp_distance
+    Kd_distance_1: float = 2 * Kp_distance_1
 
 @dataclass
 class PathParams:
     distance_close_waypoint: int = 20
+    max_inflation_obstacle: int = 7
 
 @dataclass
 class LogParams:
@@ -45,4 +50,3 @@ class LogParams:
     log_file: str = "logs/log.txt"
     log_initialized: bool = False
     flush_interval: int = 50
-    timestep_count: int = 0

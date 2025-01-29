@@ -24,7 +24,7 @@ from solutions.utils.messages import DroneMessage
 from solutions.utils.grids import OccupancyGrid
 from solutions.utils.dataclasses_config import *
 
-class MyDroneFrontex2(DroneAbstract):
+class MyDroneFrontex(DroneAbstract):
     class State(Enum):
         """
         All the states of the drone as a state machine
@@ -70,6 +70,7 @@ class MyDroneFrontex2(DroneAbstract):
         
         # WAITING STATE
         self.waiting_params = WaitingStateParams()
+        self.step_waiting_count = 0
 
         # GRASPING 
         self.grasping_params = GraspingParams()
@@ -79,6 +80,7 @@ class MyDroneFrontex2(DroneAbstract):
 
         # FRONTIER EXPLORATION
         self.reached_frontier = True
+        self.explored_all_frontiers = False
 
         # PID PARAMS
         self.pid_params = PIDParams()
@@ -94,165 +96,131 @@ class MyDroneFrontex2(DroneAbstract):
         self.path_grid = []
 
         # LOG PARAMS
-        self.log_params = LogParams()     
-        self.timestep_count = 0
-              
+        self.log_params = LogParams()   
+        self.timestep_count = 0  
+      
     def define_message_for_all(self):
         message = self.grid.to_update(pose=self.estimated_pose)
         return message
 
     def control(self):
         self.timestep_count += 1
-        
-        # MAPPING
-        self.mapping(display = self.display_map)
-        
-        # Sensor data retrieval (Lidar, Semantic)
-        found_wall,epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
-        found_wounded, found_rescue_center,epsilon_wounded,epsilon_rescue_center,is_near_rescue_center = self.process_semantic_sensor()
+
+        # Update Mapping
+        self.mapping(display=self.mapping_params.display_map)
+
+        # Retrieve Sensor Data
+        found_wall, epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
+        found_wounded, found_rescue_center, epsilon_wounded, epsilon_rescue_center, is_near_rescue_center = self.process_semantic_sensor()
 
         # TRANSITIONS OF THE STATE
-        self.state_update(found_wall,found_wounded,found_rescue_center)
+        self.state_update(found_wall, found_wounded, found_rescue_center)
 
-        ##########
-        # COMMANDS FOR EACH STATE
-        ##########
-        command_nothing = {"forward": 0.0,"lateral": 0.0,"rotation": 0.0,"grasper": 0}
-        command_following_walls = {"forward": self.speed_following_wall,"lateral": 0.0,"rotation": 0.0,"grasper": 0}
-        command_grasping_wounded = {"forward": self.grasping_speed,"lateral": 0.0,"rotation": 0.0,"grasper": 1}
-        command_straight_ahead = {"forward": 0.5,"lateral": 0.0,"rotation": 0.0,"grasper": 0}
-        command_searching_rescue_center = {"forward": self.speed_following_wall,"lateral": 0.0,"rotation": 0.0,"grasper": 1}
-        command_going_rescue_center = {"forward": 3*self.grasping_speed,"lateral": 0.0,"rotation": 0.0,"grasper": 1}
-        command_following_path_with_wounded = {"forward": 0.5,"lateral": 0.0,"rotation": 0.0,"grasper": 1}
+        # Execute Corresponding Command
+        state_handlers = {
+            self.State.WAITING: self.handle_waiting,
+            self.State.SEARCHING_WALL: self.handle_searching_wall,
+            self.State.FOLLOWING_WALL: lambda: self.handle_following_wall(epsilon_wall_angle, min_dist),
+            self.State.GRASPING_WOUNDED: lambda: self.handle_grasping_wounded(epsilon_wounded),
+            self.State.SEARCHING_RESCUE_CENTER: self.handle_searching_rescue_center,
+            self.State.GOING_RESCUE_CENTER: lambda: self.handle_going_rescue_center(epsilon_rescue_center, is_near_rescue_center),
+            self.State.EXPLORING_FRONTIERS: self.handle_exploring_frontiers,
+        }
 
-        if self.state is self.State.WAITING:
-            self.step_waiting_count += 1
-            return command_nothing
+        return state_handlers.get(self.state, self.handle_unknown_state)()
 
-        elif  self.state is self.State.SEARCHING_WALL:
-            return command_straight_ahead
-         
-        elif  self.state is self.State.FOLLOWING_WALL:
+    def handle_waiting(self):
+        self.step_waiting_count += 1
+        return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
 
-            epsilon_wall_angle = normalize_angle(epsilon_wall_angle) 
-            epsilon_wall_distance =  min_dist - self.dist_to_stay 
-            
-            self.logging_variables({"epsilon_wall_angle": epsilon_wall_angle, "epsilon_wall_distance": epsilon_wall_distance})
-            
-            command_following_walls = self.pid_controller(command_following_walls,epsilon_wall_angle,self.Kp_angle,self.Kd_angle,self.Ki_angle,self.past_ten_errors_angle,"rotation")
-            command_following_walls = self.pid_controller(command_following_walls,epsilon_wall_distance,self.Kp_distance,self.Kd_distance,self.Ki_distance,self.past_ten_errors_distance,"lateral")
-        
-            return command_following_walls
+    def handle_searching_wall(self):
+        return {"forward": 0.5, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
 
-        elif self.state is self.State.GRASPING_WOUNDED:
-            
-            epsilon_wounded_angle = normalize_angle(epsilon_wounded) 
-            command_grasping_wounded = self.pid_controller(command_grasping_wounded,epsilon_wounded_angle,self.Kp_angle,self.Kd_angle,self.Ki_angle,self.past_ten_errors_angle,"rotation")
-            
-            return command_grasping_wounded
+    def handle_following_wall(self, epsilon_wall_angle, min_dist):
+        epsilon_wall_angle = normalize_angle(epsilon_wall_angle)
+        epsilon_wall_distance = min_dist - self.wall_following_params.dist_to_stay
 
-        elif self.state is self.State.SEARCHING_RESCUE_CENTER:
-            # Calculate path at the beginning of the state
-            if self.previous_state is not self.State.SEARCHING_RESCUE_CENTER:
-                
-                # CREATION DU PATH : 
-                
-                # enregistre la position lorsque l'on rentre dans LE STATE. -> use to make l'asservissement lateral
-                self.inital_point_path = self.estimated_pose.position[0],self.estimated_pose.position[1]
-                MAP = self.grid.to_binary_map() # Convertit la MAP de proba en MAP binaire
-                grid_initial_point_path = self.grid._conv_world_to_grid(self.inital_point_path[0],self.inital_point_path[1]) # initial point in grid coordinates
+        self.logging_variables({"epsilon_wall_angle": epsilon_wall_angle, "epsilon_wall_distance": epsilon_wall_distance})
 
-                # On élargie les mur au plus large possible pour trouver un chemin qui passe le plus loin des murs/obstacles possibles.
-                Max_inflation =  7
-                for x in range(Max_inflation+1):
-                    #print("inflation : ",Max_inflation - x)
-                    MAP_inflated = inflate_obstacles(MAP,Max_inflation-x)
-                    # redefinir le start comme le point libre le plus proche de la position actuelle à distance max d'inflation pour pas que le point soit inacessible.
-                    # SUREMENT UNE MEILLEUR MANIERE DE FAIRE.
-                    start_point_x, start_point_y = next_point_free(MAP_inflated,grid_initial_point_path[0],grid_initial_point_path[1],Max_inflation-x + 3)
-                    end_point_x, end_point_y = next_point_free(MAP_inflated,self.grid.initial_cell[0],self.grid.initial_cell[1],Max_inflation-x+ 3) # initial cell already in grid coordinates.
-                    path = a_star_search(MAP_inflated,(start_point_x,start_point_y),(end_point_x,end_point_y))
-                    
-                    if len(path) > 0:
-                        #print( f"inflation : {Max_inflation-(x)}")
-                        break
-                
-                # Remove colinear points
-                path_simplified = simplify_collinear_points(path)
+        command = {"forward": self.wall_following_params.speed_following_wall, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
+        command = self.pid_controller(command, epsilon_wall_angle, self.pid_params.Kp_angle, self.pid_params.Kd_angle, self.pid_params.Ki_angle, self.past_ten_errors_angle, "rotation")
+        command = self.pid_controller(command, epsilon_wall_distance, self.pid_params.Kp_distance, self.pid_params.Kd_distance, self.pid_params.Ki_distance, self.past_ten_errors_distance, "lateral")
 
-                # Simplification par ligne de vue
-                path_line_of_sight = simplify_by_line_of_sight(path_simplified, MAP_inflated)
-               
-                # Simplification par Ramer-Douglas-Peucker avec epsilon = 0.5 par exemple
-                path_rdp = ramer_douglas_peucker(path_line_of_sight, 0.5)
-                self.path_grid = path_rdp
-                self.path = [self.grid._conv_grid_to_world(x,y) for x,y in self.path_grid]
-                self.indice_current_waypoint = 0
-                #print("Path calculated")
-                
-            command = self.follow_path(self.path)
-            return command
-        
-        elif self.state is self.State.GOING_RESCUE_CENTER:
-            epsilon_rescue_center = normalize_angle(epsilon_rescue_center) 
-            command_going_rescue_center = self.pid_controller(command_going_rescue_center,epsilon_rescue_center,self.Kp_angle,self.Kd_angle,self.Ki_angle,self.past_ten_errors_angle,"rotation")
-            
-            if is_near_rescue_center:
-                command_going_rescue_center["forward"] = 0.0
-                command_going_rescue_center["rotation"] = 1.0
-            
-            return command_going_rescue_center
-        
-        elif self.state is self.State.EXPLORING_FRONTIERS:
-            # Calculate path at the beginning of the state
-            self.grid.frontiers_update()
-            if self.reached_frontier:
-                # CREATION DU PATH : 
-                
-                # enregistre la position lorsque l'on rentre dans LE STATE. -> use to make l'asservissement lateral
-                self.inital_point_path = self.estimated_pose.position[0],self.estimated_pose.position[1]
-                MAP = self.grid.to_binary_map() # Convertit la MAP de proba en MAP binaire
-                grid_initial_point_path = self.grid._conv_world_to_grid(self.inital_point_path[0],self.inital_point_path[1]) # initial point in grid coordinates
+        return command
 
-                # On élargie les mur au plus large possible pour trouver un chemin qui passe le plus loin des murs/obstacles possibles.
-                Max_inflation =  7
-                for x in range(Max_inflation+1):
-                    #print("inflation : ",Max_inflation - x)
-                    MAP_inflated = inflate_obstacles(MAP,Max_inflation-x)
-                    # redefinir le start comme le point libre le plus proche de la position actuelle à distance max d'inflation pour pas que le point soit inacessible.
-                    # SUREMENT UNE MEILLEUR MANIERE DE FAIRE.
-                    start_point_x, start_point_y = next_point_free(MAP_inflated,grid_initial_point_path[0],grid_initial_point_path[1],Max_inflation-x + 3)
-                    closest_centroid_frontier = self.grid.closest_centroid_frontier(self.estimated_pose)
-                    end_point_x, end_point_y = next_point_free(MAP_inflated,closest_centroid_frontier[0],closest_centroid_frontier[1],Max_inflation-x+ 3) # initial cell already in grid coordinates.
-                    world_end_pose = self.grid._conv_grid_to_world(end_point_x,end_point_y)
-                    path = a_star_search(MAP_inflated,(start_point_x,start_point_y),(end_point_x,end_point_y))
-                    self.finished_path = False
-                    
-                    if len(path) > 0:
-                        #print( f"inflation : {Max_inflation-(x)}")
-                        break
-                
-                # Remove colinear points
-                path_simplified = simplify_collinear_points(path)
+    def handle_grasping_wounded(self, epsilon_wounded):
+        epsilon_wounded = normalize_angle(epsilon_wounded)
+        command = {"forward": self.grasping_params.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1}
+        return self.pid_controller(command, epsilon_wounded, self.pid_params.Kp_angle, self.pid_params.Kd_angle, self.pid_params.Ki_angle, self.past_ten_errors_angle, "rotation")
 
-                # Simplification par ligne de vue
-                path_line_of_sight = simplify_by_line_of_sight(path_simplified, MAP_inflated)
-               
-                # Simplification par Ramer-Douglas-Peucker avec epsilon = 0.5 par exemple
-                path_rdp = ramer_douglas_peucker(path_line_of_sight, 0.5)
-                self.path_grid = path_rdp
-                self.path = [self.grid._conv_grid_to_world(x,y) for x,y in self.path_grid]
-                self.indice_current_waypoint = 0
-                #print("Path calculated")
-                self.reached_frontier = False
-            command = self.follow_path(self.path)
-            if self.finished_path:
-                self.reached_frontier = True
-            return command
+    def handle_searching_rescue_center(self):
+        if self.previous_state is not self.State.SEARCHING_RESCUE_CENTER:
+            self.plan_path_to_rescue_center()
+        return self.follow_path(self.path)
 
-        # STATE NOT FOUND raise error
+    def plan_path_to_rescue_center(self):
+        self.path = self.compute_safest_path(self.grid.initial_cell)
+        self.indice_current_waypoint = 0
+        self.reached_frontier = False
+
+    def handle_going_rescue_center(self, epsilon_rescue_center, is_near_rescue_center):
+        epsilon_rescue_center = normalize_angle(epsilon_rescue_center)
+        command = {"forward": 3 * self.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1}
+        command = self.pid_controller(command, epsilon_rescue_center, self.pid_params.Kp_angle, self.pid_params.Kd_angle, self.pid_params.Ki_angle, self.past_ten_errors_angle, "rotation")
+
+        if is_near_rescue_center:
+            command["forward"] = 0.0
+            command["rotation"] = 1.0  # Rotate in place to drop off
+
+        return command
+
+    def handle_exploring_frontiers(self):
+        if self.reached_frontier:
+            self.plan_path_to_frontier()
+        command = self.follow_path(self.path)
+
+        if self.finished_path:
+            self.reached_frontier = True
+            self.finished_path = False
+
+        return command
+
+    def handle_unknown_state(self):
         raise ValueError("State not found")
-    
+
+    def plan_path_to_frontier(self):
+        next_frontier = self.grid.closest_largest_centroid_frontier(self.estimated_pose)
+        if next is not None:
+            self.path = self.compute_safest_path(next_frontier)
+            self.indice_current_waypoint = 0
+            self.reached_frontier = False
+        else:
+            self.explored_all_frontiers = True
+
+    def compute_safest_path(self, target_cell):
+        """
+        Returns the path, if it exists, that joins drone's position to target_cell
+        while approaching the least possible any wall
+        """
+        start_cell = self.grid._conv_world_to_grid(*self.estimated_pose.position)
+        MAP = self.grid.to_binary_map()
+
+        max_inflation = self.path_params.max_inflation_obstacle
+        for inflation in range(max_inflation):
+            MAP_inflated = inflate_obstacles(MAP,max_inflation-inflation)
+            start_x, start_y = next_point_free(MAP_inflated, *start_cell, max_inflation - inflation + 3)
+            end_x, end_y = next_point_free(MAP_inflated, *target_cell, max_inflation - inflation + 3)
+
+            path = a_star_search(MAP_inflated, (start_x, start_y), (end_x, end_y))
+            if path:
+                path_simplified = self.simplify_path(path, MAP_inflated)
+                return [self.grid._conv_grid_to_world(x, y) for x, y in path_simplified]
+
+    def simplify_path(self, path, MAP):
+        path_simplified = simplify_collinear_points(path)
+        path_line_of_sight = simplify_by_line_of_sight(path_simplified, MAP)
+        return ramer_douglas_peucker(path_line_of_sight, 0.5)
+
     def process_semantic_sensor(self):
         semantic_values = self.semantic_values()
         
@@ -308,7 +276,7 @@ class MyDroneFrontex2(DroneAbstract):
             angle_nearest_obstacle = ray_angles[np.argmin(lidar_values)]
 
         near_obstacle = False
-        if min_dist < self.dmax: # pourcentage de la vitesse je pense
+        if min_dist < self.wall_following_params.dmax: # pourcentage de la vitesse je pense
             near_obstacle = True
 
         epsilon_wall_angle = angle_nearest_obstacle - np.pi/2
@@ -342,13 +310,13 @@ class MyDroneFrontex2(DroneAbstract):
 
         if mode == "rotation" : 
             if correction > command_slow :
-                command["forward"] = self.speed_turning
+                command["forward"] = self.wall_following_params.speed_turning
 
         return command
     
     def is_near_waypoint(self,waypoint):
         distance_to_waypoint = np.linalg.norm(waypoint - self.estimated_pose.position)
-        if distance_to_waypoint < self.distance_close_waypoint:
+        if distance_to_waypoint < self.path_params.distance_close_waypoint:
             #print(f"WAYPOINT {self.indice_current_waypoint} REACH")
             return True
         return False
@@ -373,7 +341,7 @@ class MyDroneFrontex2(DroneAbstract):
         dy = y - self.estimated_pose.position[1]
         epsilon = math.atan2(dy,dx) - self.estimated_pose.orientation
         epsilon = normalize_angle(epsilon)
-        command_path = self.pid_controller({"forward": 1,"lateral": 0.0,"rotation": 0.0,"grasper": 1},epsilon,self.Kp_angle_1,self.Kd_angle_1,self.Ki_angle,self.past_ten_errors_angle,"rotation",0.5)
+        command_path = self.pid_controller({"forward": 1,"lateral": 0.0,"rotation": 0.0,"grasper": 1},epsilon,self.pid_params.Kp_angle_1,self.pid_params.Kd_angle_1,self.pid_params.Ki_angle,self.past_ten_errors_angle,"rotation",0.5)
 
         # ASSERVISSEMENT LATERAL
         if self.indice_current_waypoint == 0:
@@ -383,7 +351,7 @@ class MyDroneFrontex2(DroneAbstract):
 
         epsilon_distance = compute_relative_distance_to_droite(x_previous_waypoint,y_previous_waypoint,x,y,self.estimated_pose.position[0],self.estimated_pose.position[1])
         # epsilon distance needs to be signed (positive if the angle relative to the theoritical path is positive)
-        command_path = self.pid_controller(command_path,epsilon_distance,self.Kp_distance_1,self.Kd_distance_1,self.Ki_distance_1,self.past_ten_errors_distance,"lateral",0.5)
+        command_path = self.pid_controller(command_path,epsilon_distance,self.pid_params.Kp_distance_1,self.pid_params.Kd_distance_1,self.pid_params.Ki_distance_1,self.past_ten_errors_distance,"lateral",0.5)
         
         # ASSERVISSENT EN DISTANCE 
         epsilon_distance_to_waypoint = np.linalg.norm(np.array([x,y]) - self.estimated_pose.position)
@@ -391,54 +359,59 @@ class MyDroneFrontex2(DroneAbstract):
 
         return command_path
 
-    def state_update(self,found_wall,found_wounded,found_rescue_center):
-        
+    def state_update(self, found_wall, found_wounded, found_rescue_center):
         self.previous_state = self.state
-        #print(f"Previous state : {self.previous_state}")
         
-        # Exploring the map by following walls
+        conditions = {
+            "found_wall": found_wall,
+            "lost_wall": not found_wall,
+            "found_wounded": found_wounded,
+            "holding_wounded": bool(self.base.grasper.grasped_entities),
+            "lost_wounded": not found_wounded and not self.base.grasper.grasped_entities,
+            "found_rescue_center": found_rescue_center,
+            "lost_rescue_center": not self.base.grasper.grasped_entities,
+            "no_frontiers_left": len(self.grid.frontiers) == 0,
+            "waiting_time_over": self.step_waiting_count >= self.waiting_params.step_waiting
+        }
 
-        if ((self.state in (self.State.SEARCHING_WALL,self.State.FOLLOWING_WALL)) and (found_wounded)):
-            self.state = self.State.GRASPING_WOUNDED
-        
-        elif (self.state is self.State.SEARCHING_WALL and found_wall):
-            self.state = self.State.FOLLOWING_WALL
-        
-        elif (self.state is self.State.FOLLOWING_WALL and not found_wall):
-            self.state = self.State.SEARCHING_WALL
+        STATE_TRANSITIONS = {
+            self.State.WAITING: {
+                "found_wounded": self.State.GRASPING_WOUNDED,
+                "waiting_time_over": self.State.EXPLORING_FRONTIERS
+            },
+            self.State.GRASPING_WOUNDED: {
+                "lost_wounded": self.State.WAITING,
+                "holding_wounded": self.State.SEARCHING_RESCUE_CENTER
+            },
+            self.State.SEARCHING_RESCUE_CENTER: {
+                "lost_rescue_center": self.State.WAITING,
+                "found_rescue_center": self.State.GOING_RESCUE_CENTER
+            },
+            self.State.GOING_RESCUE_CENTER: {
+                "lost_rescue_center": self.State.WAITING
+            },
+            self.State.EXPLORING_FRONTIERS: {
+                "found_wounded": self.State.GRASPING_WOUNDED,
+                "no_frontiers_left": self.State.FOLLOWING_WALL
+            },
+            self.State.SEARCHING_WALL: {
+                "found_wounded": self.State.GRASPING_WOUNDED,
+                "found_wall": self.State.FOLLOWING_WALL
+            },
+            self.State.FOLLOWING_WALL: {
+                "found_wounded": self.State.GRASPING_WOUNDED,
+                "lost_wall": self.State.SEARCHING_WALL
+            }
+        }
 
-        # Exploring the map by exploring frontiers
+        for condition, next_state in STATE_TRANSITIONS.get(self.state, {}).items():
+            if conditions[condition]:
+                self.state = next_state
+                break
 
-        if (self.state is self.State.EXPLORING_FRONTIERS and len(self.grid.frontiers)==0):
-            print("frontiers",self.grid.frontiers)
-            self.grid.frontiers_update()
-            print("frontiers",self.grid.frontiers)
-            self.grid.frontiers_update()
-            print("frontiers",self.grid.frontiers)
-            self.state = self.State.FOLLOWING_WALL
-        
-        # Getting back to rescue center with a wounded person
-
-        elif (self.state is self.State.GRASPING_WOUNDED and not found_wounded and not self.base.grasper.grasped_entities):
-            self.state = self.State.WAITING
-        
-        elif (self.state is self.State.WAITING and self.step_waiting_count >= self.step_waiting):
-            self.state = self.State.EXPLORING_FRONTIERS
+        if self.state != self.previous_state and self.state == self.State.WAITING:
             self.step_waiting_count = 0
-        
-        elif (self.state is self.State.WAITING and found_wounded):
-            self.state = self.State.GRASPING_WOUNDED
-            self.step_waiting_count = 0
-        
-        elif (self.state is self.State.GRASPING_WOUNDED and bool(self.base.grasper.grasped_entities)):
-            self.state = self.State.SEARCHING_RESCUE_CENTER
-        
-        elif ((self.state in (self.State.SEARCHING_RESCUE_CENTER, self.State.GOING_RESCUE_CENTER)) and (not self.base.grasper.grasped_entities)):
-            self.state = self.State.WAITING
-        
-        elif (self.state is self.State.SEARCHING_RESCUE_CENTER and found_rescue_center):
-            self.state = self.State.GOING_RESCUE_CENTER
-        #print(f"State : {self.state}")
+
     
     def mapping(self, display = False):
         
@@ -477,7 +450,7 @@ class MyDroneFrontex2(DroneAbstract):
         :param variables_to_log: dict of variables to log with keys as variable names 
                                 and values as variable values.
         """
-        if not self.record_log:
+        if not self.log_params.record_log:
             return
 
         # Initialize the log buffer if not already done
@@ -489,9 +462,9 @@ class MyDroneFrontex2(DroneAbstract):
         self.log_buffer.append(log_entry)
 
         # Write the buffer to file when it reaches the flush interval
-        if len(self.log_buffer) >= self.flush_interval:
+        if len(self.log_buffer) >= self.log_params.flush_interval:
             mode = "w" if not self.log_initialized else "a"
-            with open(self.log_file, mode) as log_file:
+            with open(self.log_params.log_file, mode) as log_file:
                 # Write the header if not initialized
                 if not self.log_initialized:
                     headers = ",".join(log_entry.keys())

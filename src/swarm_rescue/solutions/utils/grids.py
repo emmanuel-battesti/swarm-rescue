@@ -219,13 +219,25 @@ class OccupancyGrid(Grid):
         frontiers = [np.argwhere(labeled_array == i) for i in range(1, num_features + 1)]
         self.frontiers = [self.Frontier(cells) for cells in frontiers if len(cells) >= self.Frontier.MIN_FRONTIER_SIZE]
     
-    def closest_centroid_frontier(self, pose: Pose):
+    def closest_largest_centroid_frontier(self, pose: Pose):
         """
-        Return the centroid of the frontier that is closest to pose
-        IN GRID COORDINATES
+        Returns the centroid of the frontier with best interest considering both distance to pose and size.
+        IN GRID COORDINATES.
         """
-        x_world,y_world = pose.position[0],pose.position[1]
-        pos_drone_grid = np.array(self._conv_world_to_grid(x_world,y_world))
-        centroid_closest_frontier = min( (frontier.compute_centroid() for frontier in self.frontiers),
-                                        key=lambda c: np.linalg.norm(c - pos_drone_grid) )
-        return centroid_closest_frontier
+        self.frontiers_update()
+        if not self.frontiers:
+            return None
+
+        pos_drone_grid = np.array(self._conv_world_to_grid(*pose.position))
+        centroids_with_size = [
+            (frontier.compute_centroid(), frontier.size()) for frontier in self.frontiers
+        ]
+        
+        def interest_measure(frontier_data):
+            centroid, size = frontier_data
+            distance = np.linalg.norm(centroid - pos_drone_grid)
+            return distance / (size + 1)**2
+        
+        closest_centroid, _ = min(centroids_with_size, key=interest_measure, default=(None, None))
+        return closest_centroid
+
