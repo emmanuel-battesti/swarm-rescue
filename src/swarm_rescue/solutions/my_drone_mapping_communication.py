@@ -73,12 +73,12 @@ class MyDroneMappingCommunication(DroneAbstract):
         self.previous_orientation.append(0) 
 
         # Initialisation du state
-        self.state  = self.State.EXPLORING_FRONTIERS
+        self.state  = self.State.WAITING
         self.previous_state = self.State.WAITING # Utile pour vérfier que c'est la première fois que l'on rentre dans un état
         self.reached_frontier = True
         
         # WAITING STATE
-        self.step_waiting = 50 # step waiting without mooving when loosing the sight of wounded
+        self.step_waiting = 300 # step waiting without mooving when loosing the sight of wounded
         self.step_waiting_count = 0
 
         # GRASPING 
@@ -135,9 +135,6 @@ class MyDroneMappingCommunication(DroneAbstract):
         
         # MAPPING
         self.mapping(display = self.display_map)
-        self.grid.frontiers_update()
-        for frontier in self.grid.frontiers:
-            print(frontier.compute_centroid())
         
         # RECUPÈRATION INFORMATIONS SENSORS (LIDAR, SEMANTIC)
         found_wall,epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
@@ -242,6 +239,7 @@ class MyDroneMappingCommunication(DroneAbstract):
         
         elif self.state is self.State.EXPLORING_FRONTIERS:
             # Calculate path at the beginning of the state
+            self.grid.frontiers_update()
             if self.reached_frontier:
                 # CREATION DU PATH : 
                 
@@ -258,9 +256,14 @@ class MyDroneMappingCommunication(DroneAbstract):
                     # redefinir le start comme le point libre le plus proche de la position actuelle à distance max d'inflation pour pas que le point soit inacessible.
                     # SUREMENT UNE MEILLEUR MANIERE DE FAIRE.
                     start_point_x, start_point_y = next_point_free(MAP_inflated,grid_initial_point_path[0],grid_initial_point_path[1],Max_inflation-x + 3)
-                    closest_frontier = self.grid.closest_centroid_frontier(self.estimated_pose)
-                    end_point_x, end_point_y = next_point_free(MAP_inflated,closest_frontier[0],closest_frontier[1],Max_inflation-x+ 3) # initial cell already in grid coordinates.
+                    closest_centroid_frontier = self.grid.closest_centroid_frontier(self.estimated_pose)
+                    print()
+                    print(closest_centroid_frontier)
+                    print()
+                    end_point_x, end_point_y = next_point_free(MAP_inflated,closest_centroid_frontier[0],closest_centroid_frontier[1],Max_inflation-x+ 3) # initial cell already in grid coordinates.
+                    world_end_pose = self.grid._conv_grid_to_world(end_point_x,end_point_y)
                     path = a_star_search(MAP_inflated,(start_point_x,start_point_y),(end_point_x,end_point_y))
+                    self.finished_path = False
                     
                     if len(path) > 0:
                         #print( f"inflation : {Max_inflation-(x)}")
@@ -278,11 +281,10 @@ class MyDroneMappingCommunication(DroneAbstract):
                 self.path = [self.grid._conv_grid_to_world(x,y) for x,y in self.path_grid]
                 self.indice_current_waypoint = 0
                 #print("Path calculated")
-                len_current_path = len(self.path)
                 self.reached_frontier = False
-                
             command = self.follow_path(self.path)
-            self.reached_frontier = np.linalg.norm(self.estimated_pose-np.array([end_point_x,end_point_y]))<10 or self.indice_current_waypoint == len_current_path-2
+            if self.finished_path:
+                self.reached_frontier = True
             return command
 
         # STATE NOT FOUND raise error
@@ -445,7 +447,12 @@ class MyDroneMappingCommunication(DroneAbstract):
         # Exploring the map by exploring frontiers
 
         if (self.state is self.State.EXPLORING_FRONTIERS and len(self.grid.frontiers)==0):
-            self.state = self.State.SEARCHING_WALL
+            print("frontiers",self.grid.frontiers)
+            self.grid.frontiers_update()
+            print("frontiers",self.grid.frontiers)
+            self.grid.frontiers_update()
+            print("frontiers",self.grid.frontiers)
+            self.state = self.State.FOLLOWING_WALL
         
         # Getting back to rescue center with a wounded person
 
@@ -453,7 +460,7 @@ class MyDroneMappingCommunication(DroneAbstract):
             self.state = self.State.WAITING
         
         elif (self.state is self.State.WAITING and self.step_waiting_count >= self.step_waiting):
-            self.state = self.State.SEARCHING_WALL
+            self.state = self.State.EXPLORING_FRONTIERS
             self.step_waiting_count = 0
         
         elif (self.state is self.State.WAITING and found_wounded):

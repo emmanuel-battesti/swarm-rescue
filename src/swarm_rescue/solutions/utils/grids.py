@@ -14,6 +14,9 @@ class OccupancyGrid(Grid):
     UNDISCOVERED = -2
 
     class Frontier:
+
+        MIN_FRONTIER_SIZE = 5
+
         def __init__(self, cells):
             """
             Initialize a frontier with a list of grid cells.
@@ -28,7 +31,7 @@ class OccupancyGrid(Grid):
             if self.cells.size == 0:
                 return None
             x_coords, y_coords = zip(*self.cells)
-            return np.array([sum(x_coords) / len(x_coords), sum(y_coords) / len(y_coords)])
+            return np.array([sum(x_coords) / len(x_coords), sum(y_coords) / len(y_coords)], dtype=int)
 
         def size(self):
             """
@@ -59,6 +62,7 @@ class OccupancyGrid(Grid):
         self.grid = np.zeros((self.x_max_grid, self.y_max_grid))
         self.zoomed_grid = np.empty((self.x_max_grid, self.y_max_grid))
 
+        self.frontier_connectivity_structure = np.ones((3, 3), dtype=int)  # Connects points that are adjacent (even diagonally)
         self.frontiers = []
 
     def set_initial_cell(self, world_x, world_y):
@@ -209,20 +213,19 @@ class OccupancyGrid(Grid):
         boundaries_map = np.pad(boundaries_x, ((0, 0), (0, 1))) | np.pad(boundaries_y, ((0, 1), (0, 0)))
         boundaries_map = boundaries_map * (binary_map==self.UNDISCOVERED)    # Frontier with width one
 
-        structure = [[1,1,1]]*3 # Two boundary points are in the same frontier if they are adjacent (even diagonally)
-        labeled_array, num_features = label(boundaries_map, structure)
+        labeled_array, num_features = label(boundaries_map, self.frontier_connectivity_structure)
 
         # Extraction des points de chaque frontière
         frontiers = [np.argwhere(labeled_array == i) for i in range(1, num_features + 1)]
-        self.frontiers = [self.Frontier(cells) for cells in frontiers]
+        self.frontiers = [self.Frontier(cells) for cells in frontiers if len(cells) >= self.Frontier.MIN_FRONTIER_SIZE]
     
     def closest_centroid_frontier(self, pose: Pose):
         """
         Return the centroid of the frontier that is closest to pose
+        IN GRID COORDINATES
         """
         x_world,y_world = pose.position[0],pose.position[1]
         pos_drone_grid = np.array(self._conv_world_to_grid(x_world,y_world))
-        centroid_closest_frontier_grid = min( (frontier.compute_centroid() for frontier in self.frontiers),
+        centroid_closest_frontier = min( (frontier.compute_centroid() for frontier in self.frontiers),
                                         key=lambda c: np.linalg.norm(c - pos_drone_grid) )
-        centroid_closest_frontier_world = self._conv_grid_to_world(*centroid_closest_frontier_grid)
-        return centroid_closest_frontier_world
+        return centroid_closest_frontier

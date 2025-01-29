@@ -242,6 +242,7 @@ def next_point_free(grid, x, y, dmax):
     cols = len(grid[0])
 
     # Vérifie si le point initial est libre
+    print("x y",x,y)
     if 0 <= x < rows and 0 <= y < cols and grid[x][y] == 0:
         return (x, y)
 
