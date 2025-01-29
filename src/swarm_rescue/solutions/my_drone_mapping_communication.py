@@ -6,7 +6,7 @@ a récoltés à chaque timestep. Tous les drones mettent à jour leur
 occupancy grid en conséquence.
 """
 
-from enum import Enum
+from enum import Enum, auto
 from collections import deque
 import math
 from typing import Optional
@@ -24,198 +24,27 @@ from spg_overlay.utils.utils import circular_mean, normalize_angle
 from solutions.utils.pose import Pose
 from spg_overlay.utils.grid import Grid
 from solutions.utils.astar import *
-
-class OccupancyGrid(Grid):
-    """Simple occupancy grid"""
-
-    def __init__(self,
-                 size_area_world,
-                 resolution: float,
-                 lidar):
-        super().__init__(size_area_world=size_area_world,
-                         resolution=resolution)
-
-        self.size_area_world = size_area_world
-        self.resolution = resolution
-
-        self.lidar = lidar
-
-        self.x_max_grid: int = int(self.size_area_world[0] / self.resolution
-                                   + 0.5)
-        self.y_max_grid: int = int(self.size_area_world[1] / self.resolution
-                                   + 0.5)
-
-        self.initial_cell = None
-        self.initial_cell_value = None
-
-        self.grid = np.zeros((self.x_max_grid, self.y_max_grid))
-        self.zoomed_grid = np.empty((self.x_max_grid, self.y_max_grid))
-
-    def set_initial_cell(self, world_x, world_y):
-        """
-        Store the cell that corresponds to the initial drone position 
-        This should be called once the drone initial position is known.
-        """
-        cell_x, cell_y = self._conv_world_to_grid(world_x, world_y)
-        
-        if 0 <= cell_x < self.x_max_grid and 0 <= cell_y < self.y_max_grid:
-            self.initial_cell = (cell_x, cell_y)
-    
-    def to_binary_map(self):
-        """
-        Convert the probabilistic occupancy grid into a binary grid.
-        1 = obstacle
-        0 = free
-        Cells with value >= 0 are considered obstacles.
-        Cells with value < 0 are considered free.
-        """
-        #print(np.count_nonzero(self.grid < 0))
-        binary_map = np.zeros_like(self.grid, dtype=int)
-        binary_map[self.grid >= 0] = 1
-        return binary_map
-    
-    def to_update(self, pose: Pose):
-        """
-        Returns the list of things to update on the grid
-        """
-        to_update = []
-
-        EVERY_N = 3
-        LIDAR_DIST_CLIP = 40.0
-        EMPTY_ZONE_VALUE = -0.602
-        OBSTACLE_ZONE_VALUE = 2.0
-        FREE_ZONE_VALUE = -4.0
-
-        lidar_dist = self.lidar.get_sensor_values()[::EVERY_N].copy()
-        lidar_angles = self.lidar.ray_angles[::EVERY_N].copy()
-
-        # Compute cos and sin of the absolute angle of the lidar
-        cos_rays = np.cos(lidar_angles + pose.orientation)
-        sin_rays = np.sin(lidar_angles + pose.orientation)
-
-        max_range = MAX_RANGE_LIDAR_SENSOR * 0.9 # pk ? 
-
-        # For empty zones
-        # points_x and point_y contains the border of detected empty zone
-        # We use a value a little bit less than LIDAR_DIST_CLIP because of the
-        # noise in lidar
-        lidar_dist_empty = np.maximum(lidar_dist - LIDAR_DIST_CLIP, 0.0)
-        # All values of lidar_dist_empty_clip are now <= max_range
-        lidar_dist_empty_clip = np.minimum(lidar_dist_empty, max_range)
-        points_x = pose.position[0] + np.multiply(lidar_dist_empty_clip,
-                                                  cos_rays)
-        points_y = pose.position[1] + np.multiply(lidar_dist_empty_clip,
-                                                  sin_rays)
-
-        for pt_x, pt_y in zip(points_x, points_y):
-            to_update.append(DroneMessage(
-                            subject=DroneMessage.Subject.MAPPING,
-                            code=DroneMessage.Code.LINE,
-                            arg=(pose.position[0], pose.position[1], pt_x, pt_y, EMPTY_ZONE_VALUE))
-                            )
-
-        # For obstacle zones, all values of lidar_dist are < max_range
-        select_collision = lidar_dist < max_range
-
-        points_x = pose.position[0] + np.multiply(lidar_dist, cos_rays)
-        points_y = pose.position[1] + np.multiply(lidar_dist, sin_rays)
-
-        points_x = points_x[select_collision]
-        points_y = points_y[select_collision]
-
-        
-        to_update.append(DroneMessage(
-                        subject=DroneMessage.Subject.MAPPING,
-                        code=DroneMessage.Code.POINTS,
-                        arg=(points_x, points_y, OBSTACLE_ZONE_VALUE))
-                        )
-
-        # the current position of the drone is free !
-        to_update.append(DroneMessage(
-                        subject=DroneMessage.Subject.MAPPING,
-                        code=DroneMessage.Code.POINTS,
-                        arg=(pose.position[0], pose.position[1], FREE_ZONE_VALUE))
-                        )
-
-        return to_update
-
-    def update(self, to_update):
-        """
-        Bayesian map update with new observation
-        lidar : lidar data
-        pose : corrected pose in world coordinates
-        """
-        THRESHOLD_MIN = -40
-        THRESHOLD_MAX = 40
-
-        for message in to_update:
-            # Ensure the message is a valid DroneMessage instance
-            if not isinstance(message, DroneMessage):
-                raise ValueError("Invalid message type. Expected a DroneMessage instance.")
-
-            code = message.code
-            arg = message.arg
-
-            if code == DroneMessage.Code.LINE:
-                self.add_value_along_line(*arg)
-            elif code == DroneMessage.Code.POINTS:
-                self.add_points(*arg)
-            else:
-                raise ValueError(f"Unknown code in DroneMessage: {code}")
-
-        # Threshold values in the grid
-        self.grid = np.clip(self.grid, THRESHOLD_MIN, THRESHOLD_MAX)
-
-
-        # # Restore the initial cell value # That could have been set to free or empty
-        # if self.initial_cell and self.initial_cell_value is not None:
-        #     cell_x, cell_y = self.initial_cell
-        #     if 0 <= cell_x < self.x_max_grid and 0 <= cell_y < self.y_max_grid:
-        #         self.grid[cell_x, cell_y] = self.initial_cell_value
-
-        # compute zoomed grid for displaying
-        self.zoomed_grid = self.grid.copy()
-        
-        new_zoomed_size = (int(self.size_area_world[1] * 0.5),
-                           int(self.size_area_world[0] * 0.5))
-        self.zoomed_grid = cv2.resize(self.zoomed_grid, new_zoomed_size,
-                                      interpolation=cv2.INTER_NEAREST)
-
-class DroneMessage:
-    class Subject:
-        MAPPING = "MAPPING"
-        COMMUNICATION = "COMMUNICATION"
-        CONTROL = "CONTROL"
-        ALERT = "ALERT"
-    
-    class Code:
-        LINE = "LINE"
-        POINTS = "POINTS"
-
-    def __init__(self, subject: str, code: str, arg, drone_id=None):
-        if subject not in vars(DroneMessage.Subject).values():
-            raise ValueError(f"Invalid subject: {subject}")
-        if code not in vars(DroneMessage.Code).values():
-            raise ValueError(f"Invalid code: {code}")
-
-        self.subject = subject
-        self.code = code
-        self.arg = arg
-        self.drone_id = drone_id
+from solutions.utils.messages import DroneMessage
+from solutions.utils.grids import OccupancyGrid
 
 class MyDroneMappingCommunication(DroneAbstract):
     class State(Enum):
         """
         All the states of the drone as a state machine
         """
-        WAITING = 1
-        SEARCHING_WALL = 2
-        FOLLOWING_WALL = 3
-        GRASPING_WOUNDED = 4
-        SEARCHING_RESCUE_CENTER = 5
-        GOING_RESCUE_CENTER = 6
-        SEARCHING_RETURN_AREA = 7
-        GOING_RETURN_AREA = 8
+        WAITING = auto()    # Assigns 1
+
+        SEARCHING_WALL = auto()     # Assigns 2 etc ... This allows to easily add new states
+        FOLLOWING_WALL = auto()
+
+        EXPLORING_FRONTIERS = auto()
+
+        GRASPING_WOUNDED = auto()
+        SEARCHING_RESCUE_CENTER = auto()
+        GOING_RESCUE_CENTER = auto()
+
+        SEARCHING_RETURN_AREA = auto()
+        GOING_RETURN_AREA = auto()
 
     def __init__(self,
                  identifier: Optional[int] = None,
@@ -244,8 +73,9 @@ class MyDroneMappingCommunication(DroneAbstract):
         self.previous_orientation.append(0) 
 
         # Initialisation du state
-        self.state  = self.State.SEARCHING_WALL
+        self.state  = self.State.EXPLORING_FRONTIERS
         self.previous_state = self.State.WAITING # Utile pour vérfier que c'est la première fois que l'on rentre dans un état
+        self.reached_frontier = True
         
         # WAITING STATE
         self.step_waiting = 50 # step waiting without mooving when loosing the sight of wounded
@@ -305,6 +135,9 @@ class MyDroneMappingCommunication(DroneAbstract):
         
         # MAPPING
         self.mapping(display = self.display_map)
+        self.grid.frontiers_update()
+        for frontier in self.grid.frontiers:
+            print(frontier.compute_centroid())
         
         # RECUPÈRATION INFORMATIONS SENSORS (LIDAR, SEMANTIC)
         found_wall,epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
@@ -407,6 +240,51 @@ class MyDroneMappingCommunication(DroneAbstract):
             
             return command_going_rescue_center
         
+        elif self.state is self.State.EXPLORING_FRONTIERS:
+            # Calculate path at the beginning of the state
+            if self.reached_frontier:
+                # CREATION DU PATH : 
+                
+                # enregistre la position lorsque l'on rentre dans LE STATE. -> use to make l'asservissement lateral
+                self.inital_point_path = self.estimated_pose.position[0],self.estimated_pose.position[1]
+                MAP = self.grid.to_binary_map() # Convertit la MAP de proba en MAP binaire
+                grid_initial_point_path = self.grid._conv_world_to_grid(self.inital_point_path[0],self.inital_point_path[1]) # initial point in grid coordinates
+
+                # On élargie les mur au plus large possible pour trouver un chemin qui passe le plus loin des murs/obstacles possibles.
+                Max_inflation =  7
+                for x in range(Max_inflation+1):
+                    #print("inflation : ",Max_inflation - x)
+                    MAP_inflated = inflate_obstacles(MAP,Max_inflation-x)
+                    # redefinir le start comme le point libre le plus proche de la position actuelle à distance max d'inflation pour pas que le point soit inacessible.
+                    # SUREMENT UNE MEILLEUR MANIERE DE FAIRE.
+                    start_point_x, start_point_y = next_point_free(MAP_inflated,grid_initial_point_path[0],grid_initial_point_path[1],Max_inflation-x + 3)
+                    closest_frontier = self.grid.closest_centroid_frontier(self.estimated_pose)
+                    end_point_x, end_point_y = next_point_free(MAP_inflated,closest_frontier[0],closest_frontier[1],Max_inflation-x+ 3) # initial cell already in grid coordinates.
+                    path = a_star_search(MAP_inflated,(start_point_x,start_point_y),(end_point_x,end_point_y))
+                    
+                    if len(path) > 0:
+                        #print( f"inflation : {Max_inflation-(x)}")
+                        break
+                
+                # Remove colinear points
+                path_simplified = simplify_collinear_points(path)
+
+                # Simplification par ligne de vue
+                path_line_of_sight = simplify_by_line_of_sight(path_simplified, MAP_inflated)
+               
+                # Simplification par Ramer-Douglas-Peucker avec epsilon = 0.5 par exemple
+                path_rdp = ramer_douglas_peucker(path_line_of_sight, 0.5)
+                self.path_grid = path_rdp
+                self.path = [self.grid._conv_grid_to_world(x,y) for x,y in self.path_grid]
+                self.indice_current_waypoint = 0
+                #print("Path calculated")
+                len_current_path = len(self.path)
+                self.reached_frontier = False
+                
+            command = self.follow_path(self.path)
+            self.reached_frontier = np.linalg.norm(self.estimated_pose-np.array([end_point_x,end_point_y]))<10 or self.indice_current_waypoint == len_current_path-2
+            return command
+
         # STATE NOT FOUND raise error
         raise ValueError("State not found")
     
@@ -552,6 +430,9 @@ class MyDroneMappingCommunication(DroneAbstract):
         
         self.previous_state = self.state
         #print(f"Previous state : {self.previous_state}")
+        
+        # Exploring the map by following walls
+
         if ((self.state in (self.State.SEARCHING_WALL,self.State.FOLLOWING_WALL)) and (found_wounded)):
             self.state = self.State.GRASPING_WOUNDED
         
@@ -560,7 +441,14 @@ class MyDroneMappingCommunication(DroneAbstract):
         
         elif (self.state is self.State.FOLLOWING_WALL and not found_wall):
             self.state = self.State.SEARCHING_WALL
+
+        # Exploring the map by exploring frontiers
+
+        if (self.state is self.State.EXPLORING_FRONTIERS and len(self.grid.frontiers)==0):
+            self.state = self.State.SEARCHING_WALL
         
+        # Getting back to rescue center with a wounded person
+
         elif (self.state is self.State.GRASPING_WOUNDED and not found_wounded and not self.base.grasper.grasped_entities):
             self.state = self.State.WAITING
         
@@ -580,7 +468,6 @@ class MyDroneMappingCommunication(DroneAbstract):
         
         elif (self.state is self.State.SEARCHING_RESCUE_CENTER and found_rescue_center):
             self.state = self.State.GOING_RESCUE_CENTER
-
         #print(f"State : {self.state}")
     
     def mapping(self, display = False):
