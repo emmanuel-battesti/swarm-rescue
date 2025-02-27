@@ -126,6 +126,8 @@ class MyDroneFrontex(DroneAbstract):
             self.State.EXPLORING_FRONTIERS: self.handle_exploring_frontiers,
         }
 
+        print(self.state)
+
         return state_handlers.get(self.state, self.handle_unknown_state)()
 
     def handle_waiting(self):

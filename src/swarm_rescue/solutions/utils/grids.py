@@ -15,7 +15,7 @@ class OccupancyGrid(Grid):
 
     class Frontier:
 
-        MIN_FRONTIER_SIZE = 2
+        MIN_FRONTIER_SIZE = 6
 
         def __init__(self, cells):
             """
