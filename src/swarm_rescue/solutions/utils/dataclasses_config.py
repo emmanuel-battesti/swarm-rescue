@@ -50,3 +50,8 @@ class LogParams:
     log_file: str = "logs/log.txt"
     log_initialized: bool = False
     flush_interval: int = 50
+
+@dataclass
+class VisualisationParams:
+    draw_path: bool = True
+    draw_frontier: bool = True

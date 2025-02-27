@@ -80,6 +80,7 @@ class MyDroneFrontex(DroneAbstract):
 
         # FRONTIER EXPLORATION
         self.explored_all_frontiers = False
+        self.next_frontier = None
 
         # PID PARAMS
         self.pid_params = PIDParams()
@@ -96,7 +97,10 @@ class MyDroneFrontex(DroneAbstract):
 
         # LOG PARAMS
         self.log_params = LogParams()   
-        self.timestep_count = 0  
+        self.timestep_count = 0
+
+        # GRAPHICAL INTERFACE
+        self.visualisation_params = VisualisationParams()
       
     def define_message_for_all(self):
         message = self.grid.to_update(pose=self.estimated_pose)
@@ -127,6 +131,8 @@ class MyDroneFrontex(DroneAbstract):
         }
 
         print(self.state)
+
+        self.visualise_actions()
 
         return state_handlers.get(self.state, self.handle_unknown_state)()
 
@@ -185,10 +191,9 @@ class MyDroneFrontex(DroneAbstract):
             return self.follow_path(self.path)
 
     def plan_path_to_frontier(self):
-        next_frontier = self.grid.closest_largest_centroid_frontier(self.estimated_pose)
-        print(next_frontier)
-        if next_frontier is not None:
-            self.path = self.compute_safest_path(next_frontier)
+        self.next_frontier = self.grid.closest_largest_centroid_frontier(self.estimated_pose)
+        if self.next_frontier is not None:
+            self.path = self.compute_safest_path(self.next_frontier)
             self.indice_current_waypoint = 0
         else:
             self.explored_all_frontiers = True
@@ -480,25 +485,12 @@ class MyDroneFrontex(DroneAbstract):
 
             # Clear the buffer
             self.log_buffer.clear()
-        
-    def draw_top_layer(self):
-        #self.draw_setpoint()
-        self.draw_path(self.path)
 
-    def draw_setpoint(self):
-        half_width = self._half_size_array[0]
-        half_height = self._half_size_array[1]
-        pt1 = np.array([half_width, 0])
-        pt2 =  np.array([half_width, 2 * half_height])
-        arcade.draw_line(float(pt2[0]),
-                         float(pt2[1]),
-                         float(pt1[0]),
-                         float(pt1[1]),
-                         color=arcade.color.GRAY)
+    def draw_point(self,point):
+        arcade.draw_circle_filled(point[0], point[1], 5, arcade.color.GO_GREEN)
 
     def draw_path(self, path):
         length = len(path)
-        # print(length)
         pt2 = None
         for ind_pt in range(length):
             pose = path[ind_pt]
@@ -510,3 +502,17 @@ class MyDroneFrontex(DroneAbstract):
                                  float(pt1[0]),
                                  float(pt1[1]), [125,125,125])
             pt2 = pt1
+
+    def draw_top_layer(self):
+        if self.visualisation_params.draw_path:
+            self.draw_path(self.path)
+
+        if self.visualisation_params.draw_frontier and self.next_frontier is not None:
+            if self.state == self.State.EXPLORING_FRONTIERS:
+                self.draw_point(self.grid._conv_grid_to_world(*self.next_frontier) + self._half_size_array)
+
+    def visualise_actions(self):
+        """
+        It's mandatory to use draw_top_layer to draw anything on the interface
+        """
+        self.draw_top_layer()

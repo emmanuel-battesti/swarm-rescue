@@ -23,6 +23,7 @@ from maps.map_medium_02 import MyMapMedium02
 # Test map_editor
 from map_editor.map_test import MyMaptest
 from map_editor.map_test2 import MyMaptest2
+from map_editor.map_test3 import MyMaptest3
 
 from solutions.my_drone_random import MyDroneRandom
 from solutions.my_drone_frontier_exploration import MyDroneFrontex
@@ -71,7 +72,7 @@ class Launcher:
         self.team_info = TeamInfo()
         self.eval_plan = EvalPlan()
 
-        eval_config = EvalConfig(map_type=MyMapIntermediate01, nb_rounds=1)
+        eval_config = EvalConfig(map_type=MyMaptest3, nb_rounds=1)
         self.eval_plan.add(eval_config=eval_config)
 
         # eval_config = EvalConfig(map_type=MyMapIntermediate02)
@@ -155,7 +156,7 @@ class Launcher:
                        the_map=my_map,
                        use_keyboard=True,
                        draw_interactive=False,
-                       enable_visu_noises=True,
+                       enable_visu_noises=False,
                        filename_video_capture=filename_video_capture)
 
         window_title = (f"Team: {self.team_info.team_number_str}   -   "
