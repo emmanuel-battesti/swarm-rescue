@@ -53,7 +53,7 @@ class MyDroneFrontex(DroneAbstract):
         
         # MAPPING
         self.mapping_params = MappingParams()
-        self.estimated_pose = Pose() # Fonctionne commant sans le GPS ?  erreur ou qu'est ce que cela retourne ? 
+        self.estimated_pose = Pose()
         self.grid = OccupancyGrid(size_area_world=self.size_area,
                                   resolution=self.mapping_params.resolution,
                                   lidar=self.lidar())
@@ -68,17 +68,19 @@ class MyDroneFrontex(DroneAbstract):
         self.state  = self.State.WAITING
         self.previous_state = self.State.WAITING # Utile pour vérfier que c'est la première fois que l'on rentre dans un état
         
-        # WAITING STATE
+        # PARAMS FOR DIFFERENT STATES 
+
+            # WAITING STATE
         self.waiting_params = WaitingStateParams()
         self.step_waiting_count = 0
 
-        # GRASPING 
+            # GRASPING 
         self.grasping_params = GraspingParams()
 
-        # WALL FOLLOWING
+            # WALL FOLLOWING
         self.wall_following_params = WallFollowingParams()
 
-        # FRONTIER EXPLORATION
+            # FRONTIER EXPLORATION
         self.explored_all_frontiers = False
         self.next_frontier = None
 
@@ -367,6 +369,9 @@ class MyDroneFrontex(DroneAbstract):
         return command_path
 
     def state_update(self, found_wall, found_wounded, found_rescue_center):
+        """
+        A visualisation of the state machine is available at doc/Drone states
+        """
         self.previous_state = self.state
         
         conditions = {
@@ -509,7 +514,7 @@ class MyDroneFrontex(DroneAbstract):
 
         if self.visualisation_params.draw_frontier and self.next_frontier is not None:
             if self.state == self.State.EXPLORING_FRONTIERS:
-                self.draw_point(self.grid._conv_grid_to_world(*self.next_frontier) + self._half_size_array)
+                self.draw_point(self.grid._conv_grid_to_world(*self.next_frontier) + self._half_size_array)     # frame of reference change
 
     def visualise_actions(self):
         """
