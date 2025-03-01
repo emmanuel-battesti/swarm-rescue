@@ -5,6 +5,7 @@ from spg_overlay.utils.constants import MAX_RANGE_LIDAR_SENSOR
 from solutions.utils.pose import Pose
 from spg_overlay.utils.grid import Grid
 from solutions.utils.messages import DroneMessage
+from solutions.utils.astar import *
 
 class OccupancyGrid(Grid):
     """Self updating occupancy grid"""
@@ -241,3 +242,27 @@ class OccupancyGrid(Grid):
         closest_centroid, _ = min(centroids_with_size, key=interest_measure, default=(None, None))
         return closest_centroid
 
+    def compute_safest_path(self, start_cell, target_cell, max_inflation):
+        """
+        Returns the path, if it exists, that joins drone's position to target_cell
+        while approaching the least possible any wall
+        """
+        MAP = self.to_binary_map()
+
+        for inflation in range(max_inflation, 0, -1):   # Decreasing inflation to find the safest path
+            MAP_inflated = inflate_obstacles(MAP, inflation)
+            start_x, start_y = next_point_free(MAP_inflated, *start_cell, max_inflation - inflation + 3)
+            end_x, end_y = next_point_free(MAP_inflated, *target_cell, max_inflation - inflation + 3)
+
+            path = a_star_search(MAP_inflated, (start_x, start_y), (end_x, end_y))
+
+            if path:
+                path_simplified = self.simplify_path(path, MAP_inflated) or [start_cell]
+                return [self._conv_grid_to_world(x, y) for x, y in path_simplified]
+        
+        return [self._conv_grid_to_world(*start_cell)]*2
+
+    def simplify_path(self, path, MAP):
+        path_simplified = simplify_collinear_points(path)
+        path_line_of_sight = simplify_by_line_of_sight(path_simplified, MAP)
+        return ramer_douglas_peucker(path_line_of_sight, 0.5)

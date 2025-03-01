@@ -42,7 +42,7 @@ class PIDParams:
 @dataclass
 class PathParams:
     distance_close_waypoint: int = 20
-    max_inflation_obstacle: int = 7
+    max_inflation_obstacle: int = 3
 
 @dataclass
 class LogParams:

@@ -1,5 +1,5 @@
 """
-Le drone explore la map grâce aux frontières entre zones explorées et zones non explorées
+The drone explores the map following frontiers between explored an unexplored areas.
 """
 
 from enum import Enum, auto
@@ -21,7 +21,7 @@ from solutions.utils.pose import Pose
 from spg_overlay.utils.grid import Grid
 from solutions.utils.astar import *
 from solutions.utils.messages import DroneMessage
-from solutions.utils.grids import OccupancyGrid
+from solutions.utils.grids import *
 from solutions.utils.dataclasses_config import *
 
 class MyDroneFrontex(DroneAbstract):
@@ -168,7 +168,10 @@ class MyDroneFrontex(DroneAbstract):
         return self.follow_path(self.path)
 
     def plan_path_to_rescue_center(self):
-        self.path = self.compute_safest_path(self.grid.initial_cell)
+        start_cell = self.grid._conv_world_to_grid(*self.estimated_pose.position)
+        target_cell = self.grid.initial_cell
+        max_inflation = self.path_params.max_inflation_obstacle
+        self.path = self.grid.compute_safest_path(start_cell, target_cell, max_inflation)
         self.indice_current_waypoint = 0
 
     def handle_going_rescue_center(self, epsilon_rescue_center, is_near_rescue_center):
@@ -195,37 +198,14 @@ class MyDroneFrontex(DroneAbstract):
     def plan_path_to_frontier(self):
         self.next_frontier = self.grid.closest_largest_centroid_frontier(self.estimated_pose)
         if self.next_frontier is not None:
-            self.path = self.compute_safest_path(self.next_frontier)
+            start_cell = self.grid._conv_world_to_grid(*self.estimated_pose.position)
+            target_cell = self.next_frontier
+            max_inflation = self.path_params.max_inflation_obstacle
+
+            self.path = self.grid.compute_safest_path(start_cell, target_cell, max_inflation)
             self.indice_current_waypoint = 0
         else:
             self.explored_all_frontiers = True
-
-    def compute_safest_path(self, target_cell):
-        """
-        Returns the path, if it exists, that joins drone's position to target_cell
-        while approaching the least possible any wall
-        """
-        start_cell = self.grid._conv_world_to_grid(*self.estimated_pose.position)
-        MAP = self.grid.to_binary_map()
-
-        max_inflation = self.path_params.max_inflation_obstacle
-        for inflation in range(max_inflation):
-            MAP_inflated = inflate_obstacles(MAP,max_inflation-inflation)
-            start_x, start_y = next_point_free(MAP_inflated, *start_cell, max_inflation - inflation + 3)
-            end_x, end_y = next_point_free(MAP_inflated, *target_cell, max_inflation - inflation + 3)
-
-            path = a_star_search(MAP_inflated, (start_x, start_y), (end_x, end_y))
-
-            if path:
-                path_simplified = self.simplify_path(path, MAP_inflated) or [start_cell]
-                return [self.grid._conv_grid_to_world(x, y) for x, y in path_simplified]
-            else:
-                return [self.grid._conv_grid_to_world(*start_cell)]*2
-
-    def simplify_path(self, path, MAP):
-        path_simplified = simplify_collinear_points(path)
-        path_line_of_sight = simplify_by_line_of_sight(path_simplified, MAP)
-        return ramer_douglas_peucker(path_line_of_sight, 0.5)
     
     def handle_unknown_state(self):
         raise ValueError("State not found")
