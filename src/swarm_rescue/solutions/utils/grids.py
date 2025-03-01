@@ -246,6 +246,7 @@ class OccupancyGrid(Grid):
         """
         Returns the path, if it exists, that joins drone's position to target_cell
         while approaching the least possible any wall
+        start_cell, target_cell : GRID COORDINATES
         """
         MAP = self.to_binary_map()
 

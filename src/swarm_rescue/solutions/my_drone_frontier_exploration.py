@@ -103,7 +103,15 @@ class MyDroneFrontex(DroneAbstract):
 
         # GRAPHICAL INTERFACE
         self.visualisation_params = VisualisationParams()
-      
+    
+    def reset_exploration_path_params(self):
+        """
+        Resets the parameters related to the exploration path.
+        """
+        self.next_frontier = None
+        self.finished_path = True
+        self.path = []
+
     def define_message_for_all(self):
         message = self.grid.to_update(pose=self.estimated_pose)
         return message
@@ -139,6 +147,7 @@ class MyDroneFrontex(DroneAbstract):
         return state_handlers.get(self.state, self.handle_unknown_state)()
 
     def handle_waiting(self):
+        self.reset_exploration_path_params()
         self.step_waiting_count += 1
         return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
 
