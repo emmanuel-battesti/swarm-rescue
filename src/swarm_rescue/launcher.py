@@ -24,6 +24,7 @@ from maps.map_medium_02 import MyMapMedium02
 from map_editor.map_test import MyMaptest
 from map_editor.map_test2 import MyMaptest2
 from map_editor.map_test3 import MyMaptest3
+from map_editor.map_box import MyMapbox
 
 from solutions.my_drone_random import MyDroneRandom
 from solutions.my_drone_frontier_exploration import MyDroneFrontex
@@ -72,7 +73,7 @@ class Launcher:
         self.team_info = TeamInfo()
         self.eval_plan = EvalPlan()
 
-        eval_config = EvalConfig(map_type=MyMaptest3, nb_rounds=1)
+        eval_config = EvalConfig(map_type=MyMapbox, nb_rounds=1)
         self.eval_plan.add(eval_config=eval_config)
 
         # eval_config = EvalConfig(map_type=MyMapIntermediate02)

@@ -212,7 +212,6 @@ class OccupancyGrid(Grid):
 
         # Combinaison des résultats
         boundaries_map = np.pad(boundaries_x, ((0, 0), (0, 1))) | np.pad(boundaries_y, ((0, 1), (0, 0)))
-        boundaries_map = boundaries_map
 
         labeled_array, num_features = label(boundaries_map, self.frontier_connectivity_structure)
 
