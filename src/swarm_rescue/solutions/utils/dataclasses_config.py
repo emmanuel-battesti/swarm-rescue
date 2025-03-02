@@ -55,3 +55,25 @@ class LogParams:
 class VisualisationParams:
     draw_path: bool = True
     draw_frontier: bool = True
+
+@dataclass  # Relative to grids.py
+class GridParams:
+    OBSTACLE: int = 1
+    FREE: int = 0
+    UNDISCOVERED: int = -2
+
+    MIN_FRONTIER_SIZE: int = 6
+
+    EVERY_N: int = 3
+    LIDAR_DIST_CLIP: float = 40.0
+    EMPTY_ZONE_VALUE: float = -0.602
+    OBSTACLE_ZONE_VALUE: float = 2.0
+    FREE_ZONE_VALUE: float = -4.0
+
+    THRESHOLD_MIN: float = -40.0
+    THRESHOLD_MAX: float = 40.0
+    WORLD_BORDERS_VALUE: float = THRESHOLD_MAX
+
+    # Used for the ternary map conversion
+    FREE_THRESHOLD: float = 0
+    OBSTACLE_THRESHOLD: float = 0

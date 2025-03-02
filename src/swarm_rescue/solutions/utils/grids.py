@@ -6,17 +6,18 @@ from solutions.utils.pose import Pose
 from spg_overlay.utils.grid import Grid
 from solutions.utils.messages import DroneMessage
 from solutions.utils.astar import *
+from solutions.utils.dataclasses_config import GridParams
 
 class OccupancyGrid(Grid):
     """Self updating occupancy grid"""
 
-    OBSTACLE = 1
-    FREE = 0
-    UNDISCOVERED = -2
+    OBSTACLE = GridParams.OBSTACLE
+    FREE = GridParams.FREE
+    UNDISCOVERED = GridParams.UNDISCOVERED
 
     class Frontier:
 
-        MIN_FRONTIER_SIZE = 6
+        MIN_FRONTIER_SIZE = GridParams.MIN_FRONTIER_SIZE
 
         def __init__(self, cells):
             """
@@ -60,7 +61,12 @@ class OccupancyGrid(Grid):
         self.initial_cell = None
         self.initial_cell_value = None
 
+        WORLD_BORDERS_VALUE = GridParams.WORLD_BORDERS_VALUE
         self.grid = np.zeros((self.x_max_grid, self.y_max_grid))
+        # Set the value of all border cells to WORLD_BORDERS_VALUE so they are considered as obstacles
+        self.grid[[0, -1], :] = WORLD_BORDERS_VALUE
+        self.grid[:, [0, -1]] = WORLD_BORDERS_VALUE
+
         self.zoomed_grid = np.empty((self.x_max_grid, self.y_max_grid))
 
         self.frontier_connectivity_structure = np.ones((3, 3), dtype=int)  # Connects points that are adjacent (even diagonally)
@@ -82,13 +88,16 @@ class OccupancyGrid(Grid):
         OBSTACLE = 1
         FREE = 0
         UNDISCOVERED = -2
-        Cells with value > 0 are considered obstacles.
-        Cells with value < 0 are considered free.
+        Cells with value > OBSTACLE_THRESHOLD are considered obstacles.
+        Cells with value < FREE_THRESHOLD are considered free.
         Cells with value = 0 are considered undiscovered
         """
-        #print(np.count_nonzero(self.grid < 0))
+        OBSTACLE_THRESHOLD = GridParams.OBSTACLE_THRESHOLD
+        FREE_THRESHOLD = GridParams.FREE_THRESHOLD
+
         ternary_map = np.zeros_like(self.grid, dtype=int)
-        ternary_map[self.grid > 0] = self.OBSTACLE
+        ternary_map[self.grid > OBSTACLE_THRESHOLD] = self.OBSTACLE
+        ternary_map[self.grid < FREE_THRESHOLD] = self.FREE
         ternary_map[self.grid == 0] = self.UNDISCOVERED
         return ternary_map
     
@@ -98,11 +107,11 @@ class OccupancyGrid(Grid):
         """
         to_update = []
 
-        EVERY_N = 3
-        LIDAR_DIST_CLIP = 40.0
-        EMPTY_ZONE_VALUE = -0.602
-        OBSTACLE_ZONE_VALUE = 2.0
-        FREE_ZONE_VALUE = -4.0
+        EVERY_N = GridParams.EVERY_N
+        LIDAR_DIST_CLIP = GridParams.LIDAR_DIST_CLIP
+        EMPTY_ZONE_VALUE = GridParams.EMPTY_ZONE_VALUE
+        OBSTACLE_ZONE_VALUE = GridParams.OBSTACLE_ZONE_VALUE
+        FREE_ZONE_VALUE = GridParams.FREE_ZONE_VALUE
 
         lidar_dist = self.lidar.get_sensor_values()[::EVERY_N].copy()
         lidar_angles = self.lidar.ray_angles[::EVERY_N].copy()
@@ -111,7 +120,7 @@ class OccupancyGrid(Grid):
         cos_rays = np.cos(lidar_angles + pose.orientation)
         sin_rays = np.sin(lidar_angles + pose.orientation)
 
-        max_range = MAX_RANGE_LIDAR_SENSOR * 0.9 # pk ? 
+        max_range = MAX_RANGE_LIDAR_SENSOR * 0.9
 
         # For empty zones
         # points_x and point_y contains the border of detected empty zone
@@ -163,8 +172,8 @@ class OccupancyGrid(Grid):
         lidar : lidar data
         pose : corrected pose in world coordinates
         """
-        THRESHOLD_MIN = -40
-        THRESHOLD_MAX = 40
+        THRESHOLD_MIN = GridParams.THRESHOLD_MIN
+        THRESHOLD_MAX = GridParams.THRESHOLD_MAX
 
         for message in to_update:
             # Ensure the message is a valid DroneMessage instance
