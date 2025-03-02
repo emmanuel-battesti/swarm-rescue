@@ -62,6 +62,7 @@ class OccupancyGrid(Grid):
 
         self.grid = np.zeros((self.x_max_grid, self.y_max_grid))
         self.zoomed_grid = np.empty((self.x_max_grid, self.y_max_grid))
+        self.
 
         self.frontier_connectivity_structure = np.ones((3, 3), dtype=int)  # Connects points that are adjacent (even diagonally)
         self.frontiers = []
@@ -76,7 +77,7 @@ class OccupancyGrid(Grid):
         if 0 <= cell_x < self.x_max_grid and 0 <= cell_y < self.y_max_grid:
             self.initial_cell = (cell_x, cell_y)
     
-    def to_binary_map(self):
+    def to_ternary_map(self):
         """
         Convert the probabilistic occupancy grid into a binary grid.
         OBSTACLE = 1
@@ -87,10 +88,10 @@ class OccupancyGrid(Grid):
         Cells with value = 0 are considered undiscovered
         """
         #print(np.count_nonzero(self.grid < 0))
-        binary_map = np.zeros_like(self.grid, dtype=int)
-        binary_map[self.grid > 0] = self.OBSTACLE
-        binary_map[self.grid == 0] = self.UNDISCOVERED
-        return binary_map
+        ternary_map = np.zeros_like(self.grid, dtype=int)
+        ternary_map[self.grid > 0] = self.OBSTACLE
+        ternary_map[self.grid == 0] = self.UNDISCOVERED
+        return ternary_map
     
     def to_update(self, pose: Pose):
         """
@@ -200,11 +201,11 @@ class OccupancyGrid(Grid):
                                       interpolation=cv2.INTER_NEAREST)
     
     def frontiers_update(self):
-        binary_map = self.to_binary_map()
+        ternary_map = self.to_ternary_map()
 
         # Différences sur les axes X et Y
-        diff_x = np.diff(binary_map, axis=1)
-        diff_y = np.diff(binary_map, axis=0)
+        diff_x = np.diff(ternary_map, axis=1)
+        diff_y = np.diff(ternary_map, axis=0)
 
         # Détection des frontières entre FREE et UNDISCOVERED
         boundaries_x = np.abs(diff_x) == 2
@@ -247,7 +248,7 @@ class OccupancyGrid(Grid):
         while approaching the least possible any wall
         start_cell, target_cell : GRID COORDINATES
         """
-        MAP = self.to_binary_map()
+        MAP = self.to_ternary_map()
 
         for inflation in range(max_inflation, 0, -1):   # Decreasing inflation to find the safest path
             MAP_inflated = inflate_obstacles(MAP, inflation)
