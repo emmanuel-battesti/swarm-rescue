@@ -62,7 +62,6 @@ class OccupancyGrid(Grid):
 
         self.grid = np.zeros((self.x_max_grid, self.y_max_grid))
         self.zoomed_grid = np.empty((self.x_max_grid, self.y_max_grid))
-        self.
 
         self.frontier_connectivity_structure = np.ones((3, 3), dtype=int)  # Connects points that are adjacent (even diagonally)
         self.frontiers = []
@@ -79,7 +78,7 @@ class OccupancyGrid(Grid):
     
     def to_ternary_map(self):
         """
-        Convert the probabilistic occupancy grid into a binary grid.
+        Convert the probabilistic occupancy grid into a ternary grid.
         OBSTACLE = 1
         FREE = 0
         UNDISCOVERED = -2
