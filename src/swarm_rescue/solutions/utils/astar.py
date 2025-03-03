@@ -242,7 +242,7 @@ def next_point_free(grid, x, y, dmax):
     cols = len(grid[0])
 
     # Vérifie si le point initial est libre
-    print("x y",x,y)
+    #print("x y",x,y)
     if 0 <= x < rows and 0 <= y < cols and grid[x][y] == 0:
         return (x, y)
 
@@ -266,7 +266,7 @@ def next_point_free(grid, x, y, dmax):
         # (Déjà couvert par les boucles ci-dessus)
 
     # Si aucun point libre n'a été trouvé
-    print("NO FREE POINT")
+    # print("NO FREE POINT")
     return None,None
 
 def compute_relative_distance_to_droite(x0, y0, x1, y1, x, y):

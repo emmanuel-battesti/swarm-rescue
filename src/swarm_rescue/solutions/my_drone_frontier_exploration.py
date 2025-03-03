@@ -53,10 +53,10 @@ class MyDroneFrontex(DroneAbstract):
         
         # MAPPING
         self.mapping_params = MappingParams()
-        self.estimated_pose = Pose()
+        self.estimated_pose = Pose() 
         self.grid = OccupancyGrid(size_area_world=self.size_area,
                                   resolution=self.mapping_params.resolution,
-                                  lidar=self.lidar())
+                                  lidar=self.lidar(),semantic=self.semantic())
 
         # POSITION
         self.previous_position = deque(maxlen=1) 
@@ -113,13 +113,14 @@ class MyDroneFrontex(DroneAbstract):
         self.path = []
 
     def define_message_for_all(self):
+        if self.timestep_count<=1: 
+            return None
         message = self.grid.to_update(pose=self.estimated_pose)
         return message
 
     def control(self):
         self.timestep_count += 1
-
-        # Update Mapping
+        
         self.mapping(display=self.mapping_params.display_map)
 
         # Retrieve Sensor Data
@@ -140,7 +141,7 @@ class MyDroneFrontex(DroneAbstract):
             self.State.EXPLORING_FRONTIERS: self.handle_exploring_frontiers,
         }
 
-        print(self.state)
+        # print(self.state)
 
         self.visualise_actions()
 
@@ -353,7 +354,7 @@ class MyDroneFrontex(DroneAbstract):
         
         # ASSERVISSENT EN DISTANCE 
         epsilon_distance_to_waypoint = np.linalg.norm(np.array([x,y]) - self.estimated_pose.position)
-        #command_path = self.pid_controller(command_path,epsilon_distance_to_waypoint,self.Kp_distance,self.Kd_distance,self.Ki_distance,self.past_ten_errors_distance,"forward",1)
+        # command_path = self.pid_controller(command_path,epsilon_distance_to_waypoint,self.pid_params.Kp_distance_2,self.pid_params.Kp_distance_2,self.pid_params.Ki_distance_1,self.past_ten_errors_distance,"forward",1)
 
         return command_path
 
@@ -416,7 +417,7 @@ class MyDroneFrontex(DroneAbstract):
     
     def mapping(self, display = False):
         
-        if self.timestep_count == 1: # first iteration
+        if self.timestep_count == 1: # first iterations
             print("Starting control")
             start_x, start_y = self.measured_gps_position() # never none ? 
             print(f"Initial position: {start_x}, {start_y}")
@@ -441,6 +442,7 @@ class MyDroneFrontex(DroneAbstract):
              self.grid.display(self.grid.zoomed_grid,
                                self.estimated_pose,
                                title=f"Drone {self.identifier} zoomed occupancy grid")
+
 
     # Use this function only at one place in the control method. Not handled othewise.
     # params : variables_to_log : dict of variables to log with keys as variable names and values as variable values.

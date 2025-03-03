@@ -8,10 +8,12 @@ import math
 class MappingParams:
     resolution: int = 8     # 8 to 1 factor from simulation pixels to grid (efficiency)
     display_map: bool = True
+    display_binary_map = True
+    TryNotCountingDroneAsObstacle: bool = True
 
 @dataclass
 class WaitingStateParams:
-    step_waiting: int = 50
+    step_waiting: int = 20
 
 @dataclass
 class GraspingParams:
@@ -38,6 +40,9 @@ class PIDParams:
     Ki_distance_1: float = 1 / abs(10) * 1 / 20 * 1 / 10
     Kd_distance: float = 2 * Kp_distance
     Kd_distance_1: float = 2 * Kp_distance_1
+
+    Kp_distance_2: float = 10
+    Kd_distance_2: float = 0.01
 
 @dataclass
 class PathParams:

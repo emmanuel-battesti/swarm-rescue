@@ -7,6 +7,11 @@ from spg_overlay.utils.grid import Grid
 from solutions.utils.messages import DroneMessage
 from solutions.utils.astar import *
 from solutions.utils.dataclasses_config import GridParams
+from spg_overlay.entities.drone_distance_sensors import DroneSemanticSensor
+from solutions.utils.dataclasses_config import *
+
+
+
 
 class OccupancyGrid(Grid):
     """Self updating occupancy grid"""
@@ -44,7 +49,7 @@ class OccupancyGrid(Grid):
     def __init__(self,
                  size_area_world,
                  resolution: float,
-                 lidar):
+                 lidar,semantic):
         super().__init__(size_area_world=size_area_world,
                          resolution=resolution)
 
@@ -52,6 +57,8 @@ class OccupancyGrid(Grid):
         self.resolution = resolution
 
         self.lidar = lidar
+
+        self.semantic = semantic
 
         self.x_max_grid: int = int(self.size_area_world[0] / self.resolution
                                    + 0.5)
@@ -83,6 +90,28 @@ class OccupancyGrid(Grid):
             self.initial_cell = (cell_x, cell_y)
     
     def to_ternary_map(self):
+        OBSTACLE_THRESHOLD = GridParams.OBSTACLE_THRESHOLD
+        FREE_THRESHOLD = GridParams.FREE_THRESHOLD
+
+        ternary_map = np.zeros_like(self.grid, dtype=int)
+        ternary_map[self.grid > OBSTACLE_THRESHOLD] = self.OBSTACLE
+        ternary_map[self.grid < FREE_THRESHOLD] = self.FREE
+        ternary_map[self.grid == 0] = self.UNDISCOVERED
+        return ternary_map
+
+    def to_median_map(self):
+        median_map = np.zeros_like(self.grid,dtype=int)
+        copy = np.float32(self.grid)
+        filtered = cv2.medianBlur(copy,3,)
+        seuil = 2
+        median_map[filtered > seuil] = self.OBSTACLE
+        median_map[abs(filtered) <= 0] = self.UNDISCOVERED 
+        return median_map
+        
+
+
+
+    def to_binary_map(self):
         """
         Convert the probabilistic occupancy grid into a ternary grid.
         OBSTACLE = 1
@@ -92,14 +121,11 @@ class OccupancyGrid(Grid):
         Cells with value < FREE_THRESHOLD are considered free.
         Cells with value = 0 are considered undiscovered
         """
-        OBSTACLE_THRESHOLD = GridParams.OBSTACLE_THRESHOLD
-        FREE_THRESHOLD = GridParams.FREE_THRESHOLD
-
-        ternary_map = np.zeros_like(self.grid, dtype=int)
-        ternary_map[self.grid > OBSTACLE_THRESHOLD] = self.OBSTACLE
-        ternary_map[self.grid < FREE_THRESHOLD] = self.FREE
-        ternary_map[self.grid == 0] = self.UNDISCOVERED
-        return ternary_map
+        #print(np.count_nonzero(self.grid < 0))
+        binary_map = np.zeros_like(self.grid, dtype=int)
+        binary_map[self.grid > 2] = self.OBSTACLE
+        binary_map[abs(self.grid) <= 2] = self.UNDISCOVERED
+        return binary_map
     
     def to_update(self, pose: Pose):
         """
@@ -115,6 +141,7 @@ class OccupancyGrid(Grid):
 
         lidar_dist = self.lidar.get_sensor_values()[::EVERY_N].copy()
         lidar_angles = self.lidar.ray_angles[::EVERY_N].copy()
+        
 
         # Compute cos and sin of the absolute angle of the lidar
         cos_rays = np.cos(lidar_angles + pose.orientation)
@@ -142,11 +169,21 @@ class OccupancyGrid(Grid):
                             )
 
         # For obstacle zones, all values of lidar_dist are < max_range
-        select_collision = lidar_dist < max_range
-
+        select_collision = lidar_dist < max_range 
+        
         points_x = pose.position[0] + np.multiply(lidar_dist, cos_rays)
         points_y = pose.position[1] + np.multiply(lidar_dist, sin_rays)
-
+        
+        if MappingParams().TryNotCountingDroneAsObstacle: 
+                # print(len(select_collision))
+                zone_drone_x , zone_drone_y = self.compute_near_drones_zone(pose)
+                epsilon = 3
+                for ind,v in enumerate(select_collision):
+                    if select_collision[ind] == True:
+                        if self.List_any_comparaison_int(abs(zone_drone_x - points_x[ind]),epsilon) and self.List_any_comparaison_int(abs(zone_drone_y - points_y[ind]),epsilon): 
+                            # print("NEAR ZONE DRONE")
+                            select_collision[ind] =  False
+        
         points_x = points_x[select_collision]
         points_y = points_y[select_collision]
 
@@ -275,3 +312,21 @@ class OccupancyGrid(Grid):
         path_simplified = simplify_collinear_points(path)
         path_line_of_sight = simplify_by_line_of_sight(path_simplified, MAP)
         return ramer_douglas_peucker(path_line_of_sight, 0.5)
+    
+    def compute_near_drones_zone(self,pose:Pose):
+        detection_semantic = self.semantic.get_sensor_values().copy()
+        zone_drone_x = []
+        zone_drone_y = []
+        for data in detection_semantic:
+            if (data.entity_type == DroneSemanticSensor.TypeEntity.DRONE):
+                cos_rays = np.cos(data.angle + pose.orientation)
+                sin_rays = np.sin(data.angle + pose.orientation)
+                
+                zone_drone_x.append(pose.position[0] + np.multiply(data.distance, cos_rays))
+                zone_drone_y.append(pose.position[1] + np.multiply(data.distance, sin_rays))
+        return zone_drone_x,zone_drone_y
+    
+    def List_any_comparaison_int(self,L,i):
+        for x in L : 
+            if x < i : return True
+        return False
