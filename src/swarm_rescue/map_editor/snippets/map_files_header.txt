@@ -1,0 +1,25 @@
+import math
+import random
+import sys
+from pathlib import Path
+from typing import List, Type
+
+# Insert the parent directory of the current file's directory into sys.path.
+# This allows Python to locate modules that are one level above the current
+# script, in this case spg_overlay.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from spg.playground import Playground
+
+from spg_overlay.entities.drone_abstract import DroneAbstract
+from spg_overlay.entities.drone_motionless import DroneMotionless
+from spg_overlay.entities.rescue_center import RescueCenter
+from spg_overlay.entities.return_area import ReturnArea
+from spg_overlay.entities.sensor_disablers import ZoneType, NoComZone, NoGpsZone, KillZone
+from spg_overlay.entities.wounded_person import WoundedPerson
+from spg_overlay.gui_map.closed_playground import ClosedPlayground
+from spg_overlay.gui_map.gui_sr import GuiSR
+from spg_overlay.gui_map.map_abstract import MapAbstract
+from spg_overlay.reporting.evaluation import ZonesConfig
+from spg_overlay.utils.misc_data import MiscData
+from spg_overlay.utils.pose import Pose

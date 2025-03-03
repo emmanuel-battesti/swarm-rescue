@@ -126,7 +126,7 @@ class MyDroneMapping(DroneAbstract):
 
         self.estimated_pose = Pose()
 
-        resolution = 8
+        resolution = 40 # pourquoi ? 
         self.grid = OccupancyGrid(size_area_world=self.size_area,
                                   resolution=resolution,
                                   lidar=self.lidar())

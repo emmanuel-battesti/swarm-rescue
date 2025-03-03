@@ -3,6 +3,14 @@ import random
 import cv2
 import numpy as np
 
+
+# Insert the parent directory of the current file's directory into sys.path.
+# This allows Python to locate modules that are one level above the current
+# script, in this case spg_overlay.
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from spg_overlay.utils.utils import circular_kernel
 
 
@@ -448,8 +456,8 @@ class ImageToMap:
 
 # img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/"
 #            "map_data/map_complete_map_2.png"
-img_path = ("/home/battesti/projetCompetDronesDGA/private-swarm-rescue/"
-            "map_data/map_medium_02_color.png")
+img_name = ""
+img_path = Path(__file__).resolve().parent.parent / "my_maps" / "images" / "wall1.png"
 should_auto_resized = False
 # img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
 img = cv2.imread(img_path)

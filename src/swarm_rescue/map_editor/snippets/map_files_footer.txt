@@ -1,0 +1,42 @@
+    def construct_playground(self, drone_type: Type[DroneAbstract]) -> Playground:
+        playground = ClosedPlayground(size=self._size_area)
+
+        playground.add(self._return_area, self._return_area_pos)
+        playground.add(self._rescue_center, self._rescue_center_pos)
+
+        add_walls(playground)
+        add_boxes(playground)
+
+        self._explored_map.initialize_walls(playground)
+
+        # DISABLER ZONES
+        if ZoneType.NO_COM_ZONE in self._zones_config:
+            playground.add(self._no_com_zone, self._no_com_zone_pos)
+
+        if ZoneType.NO_GPS_ZONE in self._zones_config:
+            playground.add(self._no_gps_zone, self._no_gps_zone_pos)
+
+        if ZoneType.KILL_ZONE in self._zones_config:
+            playground.add(self._kill_zone, self._kill_zone_pos)
+
+        # POSITIONS OF THE WOUNDED PERSONS
+        for i in range(self._number_wounded_persons):
+            wounded_person = WoundedPerson(rescue_center=self._rescue_center)
+            self._wounded_persons.append(wounded_person)
+            pos = (self._wounded_persons_pos[i], 0)
+            playground.add(wounded_person, pos)
+
+        # POSITIONS OF THE DRONES
+        misc_data = MiscData(size_area=self._size_area,
+                             number_drones=self._number_drones,
+                             max_timestep_limit=self._max_timestep_limit,
+                             max_walltime_limit=self._max_walltime_limit)
+        for i in range(self._number_drones):
+            drone = drone_type(identifier=i, misc_data=misc_data)
+            self._drones.append(drone)
+            playground.add(drone, self._drones_pos[i])
+
+        return playground
+
+
+if __name__ == '__main__':

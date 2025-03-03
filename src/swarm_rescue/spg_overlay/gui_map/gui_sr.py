@@ -169,8 +169,9 @@ class GuiSR(TopDownView):
             self._drones[i].elapsed_timestep = self._elapsed_timestep
             command = self._drones[i].control()
             if self._use_keyboard and i == 0:
-                command = self._keyboardController.control()
-
+                if self._keyboardController.control() != {'forward': 0.0, 'lateral': 0.0, 'rotation': 0.0, 'grasper': 0}:
+                    command = self._keyboardController.control()
+                pass
             self._drones_commands[self._drones[i]] = command
 
         if self._drones:
