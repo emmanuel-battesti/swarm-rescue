@@ -103,6 +103,8 @@ class MyDroneFrontex(DroneAbstract):
 
         # GRAPHICAL INTERFACE
         self.visualisation_params = VisualisationParams()
+
+
     
     def reset_exploration_path_params(self):
         """
@@ -113,39 +115,48 @@ class MyDroneFrontex(DroneAbstract):
         self.path = []
 
     def define_message_for_all(self):
-        if self.timestep_count<=1: 
+        inKillZone =self.lidar().get_sensor_values() is None 
+        if self.timestep_count<=1 or inKillZone: 
             return None
         message = self.grid.to_update(pose=self.estimated_pose)
         return message
 
     def control(self):
-        self.timestep_count += 1
+        inKillZone =self.lidar().get_sensor_values() is None 
+
+        if not inKillZone : 
+
+            self.timestep_count += 1
+            
+            self.mapping(display=self.mapping_params.display_map)
+
+            # Retrieve Sensor Data
+            found_wall, epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
+            found_wounded, found_rescue_center, epsilon_wounded, epsilon_rescue_center, is_near_rescue_center = self.process_semantic_sensor()
+
+            # TRANSITIONS OF THE STATE
+            self.state_update(found_wall, found_wounded, found_rescue_center)
+
+            # Execute Corresponding Command
+            state_handlers = {
+                self.State.WAITING: self.handle_waiting,
+                self.State.SEARCHING_WALL: self.handle_searching_wall,
+                self.State.FOLLOWING_WALL: lambda: self.handle_following_wall(epsilon_wall_angle, min_dist),
+                self.State.GRASPING_WOUNDED: lambda: self.handle_grasping_wounded(epsilon_wounded),
+                self.State.SEARCHING_RESCUE_CENTER: self.handle_searching_rescue_center,
+                self.State.GOING_RESCUE_CENTER: lambda: self.handle_going_rescue_center(epsilon_rescue_center, is_near_rescue_center),
+                self.State.EXPLORING_FRONTIERS: self.handle_exploring_frontiers,
+            }
+
+            # print(self.state)
+
+            self.visualise_actions()
+
+            return state_handlers.get(self.state, self.handle_unknown_state)()
         
-        self.mapping(display=self.mapping_params.display_map)
-
-        # Retrieve Sensor Data
-        found_wall, epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
-        found_wounded, found_rescue_center, epsilon_wounded, epsilon_rescue_center, is_near_rescue_center = self.process_semantic_sensor()
-
-        # TRANSITIONS OF THE STATE
-        self.state_update(found_wall, found_wounded, found_rescue_center)
-
-        # Execute Corresponding Command
-        state_handlers = {
-            self.State.WAITING: self.handle_waiting,
-            self.State.SEARCHING_WALL: self.handle_searching_wall,
-            self.State.FOLLOWING_WALL: lambda: self.handle_following_wall(epsilon_wall_angle, min_dist),
-            self.State.GRASPING_WOUNDED: lambda: self.handle_grasping_wounded(epsilon_wounded),
-            self.State.SEARCHING_RESCUE_CENTER: self.handle_searching_rescue_center,
-            self.State.GOING_RESCUE_CENTER: lambda: self.handle_going_rescue_center(epsilon_rescue_center, is_near_rescue_center),
-            self.State.EXPLORING_FRONTIERS: self.handle_exploring_frontiers,
-        }
-
-        # print(self.state)
-
-        self.visualise_actions()
-
-        return state_handlers.get(self.state, self.handle_unknown_state)()
+        else : 
+            # Drone in KillZone. Or at least no lidar available
+            return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
 
     def handle_waiting(self):
         self.reset_exploration_path_params()

@@ -25,6 +25,7 @@ from map_editor.map_test import MyMaptest
 from map_editor.map_test2 import MyMaptest2
 from map_editor.map_test3 import MyMaptest3
 from map_editor.map_box import MyMapbox
+from map_editor.map_KillZoneTest import MyMapKillZoneTest
 
 from solutions.my_drone_random import MyDroneRandom
 from solutions.my_drone_frontier_exploration import MyDroneFrontex
