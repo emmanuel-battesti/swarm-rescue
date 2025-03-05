@@ -83,6 +83,7 @@ class MyDroneFrontex(DroneAbstract):
             # FRONTIER EXPLORATION
         self.explored_all_frontiers = False
         self.next_frontier = None
+        self.next_frontier_centroid = None
 
         # PID PARAMS
         self.pid_params = PIDParams()
@@ -111,6 +112,7 @@ class MyDroneFrontex(DroneAbstract):
         Resets the parameters related to the exploration path.
         """
         self.next_frontier = None
+        self.next_frontier_centroid = None
         self.finished_path = True
         self.path = []
 
@@ -217,14 +219,20 @@ class MyDroneFrontex(DroneAbstract):
             return self.follow_path(self.path)
 
     def plan_path_to_frontier(self):
-        self.next_frontier = self.grid.closest_largest_centroid_frontier(self.estimated_pose)
-        if self.next_frontier is not None:
+        self.next_frontier, self.next_frontier_centroid = self.grid.closest_largest_frontier(self.estimated_pose)
+        if self.next_frontier_centroid is not None:
             start_cell = self.grid._conv_world_to_grid(*self.estimated_pose.position)
-            target_cell = self.next_frontier
+            target_cell = self.next_frontier_centroid
             max_inflation = self.path_params.max_inflation_obstacle
 
             self.path = self.grid.compute_safest_path(start_cell, target_cell, max_inflation)
-            self.indice_current_waypoint = 0
+            print(self.path)
+            if self.path is None:   # The frontier is unreachable, probably due to artifacts of FREE zones inside boxes set in the mapping process
+                self.reset_exploration_path_params()
+                self.grid.delete_frontier_artifacts(self.next_frontier)
+            else:
+                self.indice_current_waypoint = 0
+
         else:
             self.explored_all_frontiers = True
     
@@ -493,8 +501,8 @@ class MyDroneFrontex(DroneAbstract):
             # Clear the buffer
             self.log_buffer.clear()
 
-    def draw_point(self,point):
-        arcade.draw_circle_filled(point[0], point[1], 5, arcade.color.GO_GREEN)
+    def draw_point(self,point, color=arcade.color.GO_GREEN):
+        arcade.draw_circle_filled(point[0], point[1], 5, color)
 
     def draw_path(self, path):
         length = len(path)
@@ -514,9 +522,13 @@ class MyDroneFrontex(DroneAbstract):
         if self.visualisation_params.draw_path:
             self.draw_path(self.path)
 
-        if self.visualisation_params.draw_frontier and self.next_frontier is not None:
-            if self.state == self.State.EXPLORING_FRONTIERS:
-                self.draw_point(self.grid._conv_grid_to_world(*self.next_frontier) + self._half_size_array)     # frame of reference change
+        if self.state == self.State.EXPLORING_FRONTIERS:
+            if self.visualisation_params.draw_frontier_centroid and self.next_frontier_centroid is not None:
+                self.draw_point(self.grid._conv_grid_to_world(*self.next_frontier_centroid) + self._half_size_array)     # frame of reference change
+            
+            if self.visualisation_params.draw_frontier_points and self.next_frontier is not None:
+                for point in self.next_frontier.cells:
+                    self.draw_point(self.grid._conv_grid_to_world(*point) + self._half_size_array, color=arcade.color.AIR_FORCE_BLUE)     # frame of reference change
 
     def visualise_actions(self):
         """

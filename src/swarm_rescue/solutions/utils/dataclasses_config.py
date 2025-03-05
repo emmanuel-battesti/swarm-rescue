@@ -58,7 +58,8 @@ class LogParams:
 @dataclass
 class VisualisationParams:
     draw_path: bool = True
-    draw_frontier: bool = True
+    draw_frontier_centroid: bool = True
+    draw_frontier_points: bool = True
 
 @dataclass  # Relative to grids.py
 class GridParams:
@@ -70,6 +71,7 @@ class GridParams:
 
     EVERY_N: int = 3
     LIDAR_DIST_CLIP: float = 40.0
+    MAX_RANGE_LIDAR_SENSOR_FACTOR: float = 0.9
     EMPTY_ZONE_VALUE: float = -0.602
     OBSTACLE_ZONE_VALUE: float = 2.0
     FREE_ZONE_VALUE: float = -4.0
