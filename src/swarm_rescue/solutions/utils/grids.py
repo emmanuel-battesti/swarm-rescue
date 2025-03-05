@@ -263,12 +263,12 @@ class OccupancyGrid(Grid):
 
     def delete_frontier_artifacts(self, frontier):
         """
-        Set to 0 (which relates to UNDISCOVERED) in the grid all cells of frontier
+        Set to THRESHOLD_MAX (which relates to OBSTACLE) in the grid all cells of frontier
         """
         print("Deleting frontier artifacts")
         if frontier is not None:
             for cell in frontier.cells:
-                self.grid[*cell] = 0
+                self.grid[*cell] = GridParams.FRONTIER_ARTIFACT_RESET_VALUE
     
     def closest_largest_frontier(self, pose: Pose):
         """

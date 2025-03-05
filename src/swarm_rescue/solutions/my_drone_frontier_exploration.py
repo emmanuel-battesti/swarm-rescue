@@ -213,25 +213,26 @@ class MyDroneFrontex(DroneAbstract):
             self.plan_path_to_frontier()
             self.finished_path = False
 
-        if self.explored_all_frontiers:
+        if self.explored_all_frontiers or self.path is None:
             return self.handle_waiting()
         else:
             return self.follow_path(self.path)
 
     def plan_path_to_frontier(self):
-        self.next_frontier, self.next_frontier_centroid = self.grid.closest_largest_frontier(self.estimated_pose)
-        if self.next_frontier_centroid is not None:
-            start_cell = self.grid._conv_world_to_grid(*self.estimated_pose.position)
-            target_cell = self.next_frontier_centroid
-            max_inflation = self.path_params.max_inflation_obstacle
+        if self.grid.closest_largest_frontier(self.estimated_pose) is not None:
+            self.next_frontier, self.next_frontier_centroid = self.grid.closest_largest_frontier(self.estimated_pose)
+            if self.next_frontier_centroid is not None:
+                start_cell = self.grid._conv_world_to_grid(*self.estimated_pose.position)
+                target_cell = self.next_frontier_centroid
+                max_inflation = self.path_params.max_inflation_obstacle
 
-            self.path = self.grid.compute_safest_path(start_cell, target_cell, max_inflation)
-            print(self.path)
-            if self.path is None:   # The frontier is unreachable, probably due to artifacts of FREE zones inside boxes set in the mapping process
-                self.reset_exploration_path_params()
-                self.grid.delete_frontier_artifacts(self.next_frontier)
-            else:
-                self.indice_current_waypoint = 0
+                self.path = self.grid.compute_safest_path(start_cell, target_cell, max_inflation)
+                print(self.path)
+                if self.path is None:   # The frontier is unreachable, probably due to artifacts of FREE zones inside boxes set in the mapping process
+                    print(self.next_frontier.cells)
+                    self.grid.delete_frontier_artifacts(self.next_frontier)
+                else:
+                    self.indice_current_waypoint = 0
 
         else:
             self.explored_all_frontiers = True

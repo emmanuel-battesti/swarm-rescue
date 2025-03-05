@@ -79,6 +79,7 @@ class GridParams:
     THRESHOLD_MIN: float = -40.0
     THRESHOLD_MAX: float = 40.0
     WORLD_BORDERS_VALUE: float = THRESHOLD_MAX
+    FRONTIER_ARTIFACT_RESET_VALUE: float = THRESHOLD_MAX
 
     # Used for the ternary map conversion
     FREE_THRESHOLD: float = 0
