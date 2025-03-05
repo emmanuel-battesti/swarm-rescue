@@ -6,7 +6,6 @@ from solutions.utils.pose import Pose
 from spg_overlay.utils.grid import Grid
 from solutions.utils.messages import DroneMessage
 from solutions.utils.astar import *
-from solutions.utils.dataclasses_config import GridParams
 from spg_overlay.entities.drone_distance_sensors import DroneSemanticSensor
 from solutions.utils.dataclasses_config import *
 
@@ -174,13 +173,13 @@ class OccupancyGrid(Grid):
         points_x = pose.position[0] + np.multiply(lidar_dist, cos_rays)
         points_y = pose.position[1] + np.multiply(lidar_dist, sin_rays)
         
-        if MappingParams().TryNotCountingDroneAsObstacle: 
+        if BehaviourParams().try_not_couting_drone_as_obstacle: 
                 # print(len(select_collision))
                 zone_drone_x , zone_drone_y = self.compute_near_drones_zone(pose)
                 epsilon = 3
                 for ind,v in enumerate(select_collision):
                     if select_collision[ind] == True:
-                        if self.List_any_comparaison_int(abs(zone_drone_x - points_x[ind]),epsilon) and self.List_any_comparaison_int(abs(zone_drone_y - points_y[ind]),epsilon): 
+                        if self.list_any_comparaison_int(abs(zone_drone_x - points_x[ind]),epsilon) and self.list_any_comparaison_int(abs(zone_drone_y - points_y[ind]),epsilon): 
                             # print("NEAR ZONE DRONE")
                             select_collision[ind] =  False
         
@@ -326,7 +325,7 @@ class OccupancyGrid(Grid):
                 zone_drone_y.append(pose.position[1] + np.multiply(data.distance, sin_rays))
         return zone_drone_x,zone_drone_y
     
-    def List_any_comparaison_int(self,L,i):
+    def list_any_comparaison_int(self,L,i):
         for x in L : 
             if x < i : return True
         return False

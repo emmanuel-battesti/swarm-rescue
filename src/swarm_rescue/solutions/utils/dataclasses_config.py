@@ -9,7 +9,6 @@ class MappingParams:
     resolution: int = 8     # 8 to 1 factor from simulation pixels to grid (efficiency)
     display_map: bool = True
     display_binary_map = True
-    TryNotCountingDroneAsObstacle: bool = True
 
 @dataclass
 class WaitingStateParams:
@@ -82,3 +81,7 @@ class GridParams:
     # Used for the ternary map conversion
     FREE_THRESHOLD: float = 0
     OBSTACLE_THRESHOLD: float = 0
+
+@dataclass
+class BehaviourParams:
+    try_not_couting_drone_as_obstacle: bool = True
