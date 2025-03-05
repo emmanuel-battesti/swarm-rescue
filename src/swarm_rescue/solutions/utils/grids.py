@@ -129,35 +129,32 @@ class OccupancyGrid(Grid):
     def to_update(self, pose: Pose):
         """
         Returns the list of things to update on the grid
+        Uses a ray casting algorithm with the lidar data
         """
         to_update = []
 
         EVERY_N = GridParams.EVERY_N
         LIDAR_DIST_CLIP = GridParams.LIDAR_DIST_CLIP
+        MAX_RANGE_LIDAR_SENSOR_FACTOR = GridParams.MAX_RANGE_LIDAR_SENSOR_FACTOR
         EMPTY_ZONE_VALUE = GridParams.EMPTY_ZONE_VALUE
         OBSTACLE_ZONE_VALUE = GridParams.OBSTACLE_ZONE_VALUE
         FREE_ZONE_VALUE = GridParams.FREE_ZONE_VALUE
 
-        lidar_dist = self.lidar.get_sensor_values()[::EVERY_N].copy()
-        lidar_angles = self.lidar.ray_angles[::EVERY_N].copy()
+        lidar_dist = self.lidar.get_sensor_values()[::EVERY_N].copy()   # Distance of each ray to the first obstacle it encounters (or max range if it doesn't)
+        lidar_angles = self.lidar.ray_angles[::EVERY_N].copy()  # Angle of each ray
         
-
-        # Compute cos and sin of the absolute angle of the lidar
+        # Used to go from rays to points on the grid
         cos_rays = np.cos(lidar_angles + pose.orientation)
         sin_rays = np.sin(lidar_angles + pose.orientation)
 
-        max_range = MAX_RANGE_LIDAR_SENSOR * 0.9
+        # Any ray that has an associated lidar_dist greater than this threshold is considered to have no obstacle
+        no_obstacle_ray_distance_threshold = MAX_RANGE_LIDAR_SENSOR * MAX_RANGE_LIDAR_SENSOR_FACTOR
 
-        # For empty zones
-        # points_x and point_y contains the border of detected empty zone
-        # We use a value a little bit less than LIDAR_DIST_CLIP because of the
-        # noise in lidar
-        lidar_dist_empty = np.maximum(lidar_dist - LIDAR_DIST_CLIP, 0.0)
-        # All values of lidar_dist_empty_clip are now <= max_range
-        lidar_dist_empty_clip = np.minimum(lidar_dist_empty, max_range)
-        points_x = pose.position[0] + np.multiply(lidar_dist_empty_clip,
+        # Ensure coherent values to balance noise on lidar values
+        processed_lidar_dist = np.clip(lidar_dist - LIDAR_DIST_CLIP, 0, no_obstacle_ray_distance_threshold)
+        points_x = pose.position[0] + np.multiply(processed_lidar_dist,
                                                   cos_rays)
-        points_y = pose.position[1] + np.multiply(lidar_dist_empty_clip,
+        points_y = pose.position[1] + np.multiply(processed_lidar_dist,
                                                   sin_rays)
 
         for pt_x, pt_y in zip(points_x, points_y):
@@ -167,8 +164,8 @@ class OccupancyGrid(Grid):
                             arg=(pose.position[0], pose.position[1], pt_x, pt_y, EMPTY_ZONE_VALUE))
                             )
 
-        # For obstacle zones, all values of lidar_dist are < max_range
-        select_collision = lidar_dist < max_range 
+        # Rays that collide obstacles are those that verify lidar_dist[ray] < max_confidence_range
+        select_collision = lidar_dist < no_obstacle_ray_distance_threshold 
         
         points_x = pose.position[0] + np.multiply(lidar_dist, cos_rays)
         points_y = pose.position[1] + np.multiply(lidar_dist, sin_rays)
@@ -263,8 +260,17 @@ class OccupancyGrid(Grid):
         # Extraction des points de chaque frontière
         frontiers = [np.argwhere(labeled_array == i) for i in range(1, num_features + 1)]
         self.frontiers = [self.Frontier(cells) for cells in frontiers if len(cells) >= self.Frontier.MIN_FRONTIER_SIZE]
+
+    def delete_frontier_artifacts(self, frontier):
+        """
+        Set to THRESHOLD_MAX (which relates to OBSTACLE) in the grid all cells of frontier
+        """
+        print("Deleting frontier artifacts")
+        if frontier is not None:
+            for cell in frontier.cells:
+                self.grid[*cell] = GridParams.FRONTIER_ARTIFACT_RESET_VALUE
     
-    def closest_largest_centroid_frontier(self, pose: Pose):
+    def closest_largest_frontier(self, pose: Pose):
         """
         Returns the centroid of the frontier with best interest considering both distance to pose and size.
         IN GRID COORDINATES.
@@ -274,17 +280,17 @@ class OccupancyGrid(Grid):
             return None
 
         pos_drone_grid = np.array(self._conv_world_to_grid(*pose.position))
-        centroids_with_size = [
-            (frontier.compute_centroid(), frontier.size()) for frontier in self.frontiers
+        frontiers_with_size = [
+            (frontier, frontier.compute_centroid(), frontier.size()) for frontier in self.frontiers
         ]
         
         def interest_measure(frontier_data):
-            centroid, size = frontier_data
+            _, centroid, size = frontier_data
             distance = np.linalg.norm(centroid - pos_drone_grid)
             return distance / (size + 1)**2
         
-        closest_centroid, _ = min(centroids_with_size, key=interest_measure, default=(None, None))
-        return closest_centroid
+        closest_frontier, closest_centroid, _ = min(frontiers_with_size, key=interest_measure, default=(None, None))
+        return (closest_frontier, closest_centroid)
 
     def compute_safest_path(self, start_cell, target_cell, max_inflation):
         """
@@ -296,8 +302,8 @@ class OccupancyGrid(Grid):
 
         for inflation in range(max_inflation, 0, -1):   # Decreasing inflation to find the safest path
             MAP_inflated = inflate_obstacles(MAP, inflation)
-            start_x, start_y = next_point_free(MAP_inflated, *start_cell, max_inflation - inflation + 3)
-            end_x, end_y = next_point_free(MAP_inflated, *target_cell, max_inflation - inflation + 3)
+            start_x, start_y = next_point_free(MAP_inflated, *start_cell, max_inflation - inflation)
+            end_x, end_y = next_point_free(MAP_inflated, *target_cell, max_inflation - inflation)
 
             path = a_star_search(MAP_inflated, (start_x, start_y), (end_x, end_y))
 
@@ -305,7 +311,7 @@ class OccupancyGrid(Grid):
                 path_simplified = self.simplify_path(path, MAP_inflated) or [start_cell]
                 return [self._conv_grid_to_world(x, y) for x, y in path_simplified]
         
-        return [self._conv_grid_to_world(*start_cell)]*2
+        return None
 
     def simplify_path(self, path, MAP):
         path_simplified = simplify_collinear_points(path)
