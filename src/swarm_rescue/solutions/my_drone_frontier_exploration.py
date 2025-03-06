@@ -183,7 +183,7 @@ class MyDroneFrontex(DroneAbstract):
             found_wall, epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
             found_wounded, found_rescue_center, score_wounded, epsilon_wounded, epsilon_rescue_center, is_near_rescue_center = self.process_semantic_sensor()
 
-            is_near_rescuing_drone = self.check_near_rescuing_drone(threshold=20.0)
+            is_near_rescuing_drone = self.check_near_rescuing_drone(threshold=30.0)
             if is_near_rescuing_drone:
                 print("Hampering a rescue, waiting...")
 
@@ -201,7 +201,7 @@ class MyDroneFrontex(DroneAbstract):
                 self.State.EXPLORING_FRONTIERS: self.handle_exploring_frontiers,
             }
 
-            #print(self.identifier, self.state)
+            print(self.identifier, self.state)
 
             self.visualise_actions()
 
@@ -233,7 +233,7 @@ class MyDroneFrontex(DroneAbstract):
 
     def handle_grasping_wounded(self, score_wounded, epsilon_wounded):
         epsilon_wounded = normalize_angle(epsilon_wounded)
-        command = {"forward": self.grasping_params.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1 if score_wounded<20.0 else 0}
+        command = {"forward": self.grasping_params.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1 if score_wounded<10.0 else 0}
         return self.pid_controller(command, epsilon_wounded, self.pid_params.Kp_angle, self.pid_params.Kd_angle, self.pid_params.Ki_angle, self.past_ten_errors_angle, "rotation")
 
     def handle_searching_rescue_center(self):
@@ -345,7 +345,8 @@ class MyDroneFrontex(DroneAbstract):
             self.path = self.grid.compute_safest_path(start_cell, target_cell, max_inflation)
             if self.path is None:
                 print("Assigned frontier unreachable, deleting artifacts.")
-                #self.grid.delete_frontier_artifacts(self.next_frontier)
+                self.grid.delete_frontier_artifacts(self.next_frontier)
+                #self.state = self.State.SEARCHING_WALL
             else:
                 self.indice_current_waypoint = 0
         else:
