@@ -9,6 +9,7 @@ from typing import Optional
 import cv2
 import numpy as np
 import arcade
+from gym.envs.toy_text.blackjack import score
 
 from spg_overlay.utils.constants import MAX_RANGE_LIDAR_SENSOR
 from spg_overlay.entities.drone_abstract import DroneAbstract
@@ -180,7 +181,7 @@ class MyDroneFrontex(DroneAbstract):
 
             # Retrieve Sensor Data
             found_wall, epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
-            found_wounded, found_rescue_center, epsilon_wounded, epsilon_rescue_center, is_near_rescue_center = self.process_semantic_sensor()
+            found_wounded, found_rescue_center, score_wounded, epsilon_wounded, epsilon_rescue_center, is_near_rescue_center = self.process_semantic_sensor()
 
             is_near_rescuing_drone = self.check_near_rescuing_drone(threshold=20.0)
             if is_near_rescuing_drone:
@@ -194,13 +195,13 @@ class MyDroneFrontex(DroneAbstract):
                 self.State.WAITING: self.handle_waiting,
                 self.State.SEARCHING_WALL: self.handle_searching_wall,
                 self.State.FOLLOWING_WALL: lambda: self.handle_following_wall(epsilon_wall_angle, min_dist),
-                self.State.GRASPING_WOUNDED: lambda: self.handle_grasping_wounded(epsilon_wounded),
+                self.State.GRASPING_WOUNDED: lambda: self.handle_grasping_wounded(score_wounded, epsilon_wounded),
                 self.State.SEARCHING_RESCUE_CENTER: self.handle_searching_rescue_center,
                 self.State.GOING_RESCUE_CENTER: lambda: self.handle_going_rescue_center(epsilon_rescue_center, is_near_rescue_center),
                 self.State.EXPLORING_FRONTIERS: self.handle_exploring_frontiers,
             }
 
-            # print(self.state)
+            #print(self.identifier, self.state)
 
             self.visualise_actions()
 
@@ -230,15 +231,15 @@ class MyDroneFrontex(DroneAbstract):
 
         return command
 
-    def handle_grasping_wounded(self, epsilon_wounded):
+    def handle_grasping_wounded(self, score_wounded, epsilon_wounded):
         epsilon_wounded = normalize_angle(epsilon_wounded)
-        command = {"forward": self.grasping_params.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1}
+        command = {"forward": self.grasping_params.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1 if score_wounded else 0}
         return self.pid_controller(command, epsilon_wounded, self.pid_params.Kp_angle, self.pid_params.Kd_angle, self.pid_params.Ki_angle, self.past_ten_errors_angle, "rotation")
 
     def handle_searching_rescue_center(self):
         if self.previous_state is not self.State.SEARCHING_RESCUE_CENTER:
             self.plan_path_to_rescue_center()
-        return self.follow_path(self.path, found_wounded=True)
+        return self.follow_path(self.path, found_and_near_wounded=True)
 
     def plan_path_to_rescue_center(self):
         start_cell = self.grid._conv_world_to_grid(*self.estimated_pose.position)
@@ -266,50 +267,54 @@ class MyDroneFrontex(DroneAbstract):
         if self.explored_all_frontiers or self.path is None:
             return self.handle_waiting()
         else:
-            return self.follow_path(self.path, found_wounded=False)
+            return self.follow_path(self.path, found_and_near_wounded=False)
 
     def assign_frontier_cluster(self):
         """
-        Uses DBSCAN to cluster frontier points and then assigns clusters to drones using the Hungarian algorithm.
-        Returns the cluster assigned to this drone, or None if no cluster is available.
+        Utilise DBSCAN pour regrouper les points frontaliers et assigne
+        les clusters aux drones via l'algorithme hongrois.
+        Si le nombre de clusters est insuffisant, les drones non affectés
+        se voient attribuer le cluster ayant le coût minimal.
+        Retourne le cluster assigné à ce drone, ou None si aucun cluster n'est disponible.
         """
-        # Step 1: Cluster frontier cells
+        # 1. Clusterisation des points frontaliers
         clusters = self.grid.cluster_frontiers_dbscan(eps=2, min_samples=3)
         if not clusters:
             return None
 
-        # Step 2: Gather available drone positions via broadcast messages
+        # 2. Récupérer les positions de tous les drones (via messages broadcast)
         drone_positions = {}
-        # Include self
+        # On ajoute la position du drone courant
         drone_positions[self.identifier] = np.array(self.estimated_pose.position)
-
-        frontier_repart = self.other_drones_pos
-        for drone_id,pos in frontier_repart:
+        for drone_id, pos in self.other_drones_pos:
             drone_positions[drone_id] = np.array(pos)
 
-        # Ensure a consistent order of drone IDs
+        # 3. On s'assure d'un ordre cohérent des IDs
         drone_ids = sorted(drone_positions.keys())
         num_drones = len(drone_ids)
         num_clusters = len(clusters)
 
-        # Step 3: Build cost matrix [num_drones x num_clusters]
+        # 4. Construction de la matrice de coût : [num_drones x num_clusters]
         cost_matrix = np.zeros((num_drones, num_clusters))
         for i, drone_id in enumerate(drone_ids):
             drone_pos = drone_positions[drone_id]
             for j, cluster in enumerate(clusters):
                 centroid = cluster["centroid"]
-                # Compute cost as Euclidean distance divided by (cluster size + 1)
+                # Le coût est la distance euclidienne divisée par (taille du cluster + 1)
                 cost_matrix[i, j] = np.linalg.norm(drone_pos - centroid) / (cluster["size"] + 1)
 
-        # Step 4: Solve assignment problem using Hungarian algorithm
+        # 5. Affectation via l'algorithme hongrois
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
-        assigned_cluster = None
-        for r, c in zip(row_ind, col_ind):
-            if drone_ids[r] == self.identifier:
-                assigned_cluster = clusters[c]
-                break
-        return assigned_cluster
+        assignments = {drone_ids[r]: clusters[col_ind[r]] for r in range(len(row_ind))}
 
+        # 6. Pour les drones non affectés (si num_clusters < num_drones)
+        if self.identifier not in assignments:
+            # On choisit le cluster dont le coût est minimal pour ce drone
+            drone_index = drone_ids.index(self.identifier)
+            min_cluster_index = np.argmin(cost_matrix[drone_index, :])
+            assignments[self.identifier] = clusters[min_cluster_index]
+
+        return assignments[self.identifier]
 
     def plan_path_to_frontier(self):
         if self.grid.closest_largest_frontier(self.estimated_pose) is not None:
@@ -410,7 +415,7 @@ class MyDroneFrontex(DroneAbstract):
                 best_score = score[0]
                 best_angle_wounded = score[1]
 
-        return found_wounded,found_rescue_center,best_angle_wounded,best_angle_rescue_center,is_near_rescue_center
+        return found_wounded,found_rescue_center,best_score,best_angle_wounded,best_angle_rescue_center,is_near_rescue_center
     
     def process_lidar_sensor(self,self_lidar):
         """
@@ -477,7 +482,7 @@ class MyDroneFrontex(DroneAbstract):
             return True
         return False
 
-    def follow_path(self,path,found_wounded):
+    def follow_path(self,path,found_and_near_wounded):
         if self.is_near_waypoint(path[self.indice_current_waypoint]):
             self.indice_current_waypoint += 1 # next point in path
             #print(f"Waypoint reached {self.indice_current_waypoint}")
@@ -488,16 +493,16 @@ class MyDroneFrontex(DroneAbstract):
                 self.path_grid = []
                 return
         
-        return self.go_to_waypoint(path[self.indice_current_waypoint][0],path[self.indice_current_waypoint][1],found_wounded)
+        return self.go_to_waypoint(path[self.indice_current_waypoint][0],path[self.indice_current_waypoint][1],found_and_near_wounded)
 
-    def go_to_waypoint(self,x,y,found_wounded):
+    def go_to_waypoint(self,x,y,found_and_near_wounded):
         
         # ASSERVISSEMENT EN ANGLE
         dx = x - self.estimated_pose.position[0]
         dy = y - self.estimated_pose.position[1]
         epsilon = math.atan2(dy,dx) - self.estimated_pose.orientation
         epsilon = normalize_angle(epsilon)
-        command_path = self.pid_controller({"forward": 1,"lateral": 0.0,"rotation": 0.0,"grasper": 1 if found_wounded else 0},epsilon,self.pid_params.Kp_angle_1,self.pid_params.Kd_angle_1,self.pid_params.Ki_angle,self.past_ten_errors_angle,"rotation",0.5)
+        command_path = self.pid_controller({"forward": 1,"lateral": 0.0,"rotation": 0.0,"grasper": 1 if found_and_near_wounded else 0},epsilon,self.pid_params.Kp_angle_1,self.pid_params.Kd_angle_1,self.pid_params.Ki_angle,self.past_ten_errors_angle,"rotation",0.5)
 
         # ASSERVISSEMENT LATERAL
         if self.indice_current_waypoint == 0:
