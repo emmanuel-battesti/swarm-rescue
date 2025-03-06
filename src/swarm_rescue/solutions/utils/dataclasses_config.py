@@ -88,3 +88,7 @@ class GridParams:
 @dataclass
 class BehaviourParams:
     try_not_couting_drone_as_obstacle: bool = True
+
+@dataclass
+class CommunicationParams:
+    TIME_INTERVAL : int = 5

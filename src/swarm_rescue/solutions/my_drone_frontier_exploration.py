@@ -105,7 +105,7 @@ class MyDroneFrontex(DroneAbstract):
         # GRAPHICAL INTERFACE
         self.visualisation_params = VisualisationParams()
 
-
+        self.wounded_locked = []
     
     def reset_exploration_path_params(self):
         """
@@ -118,18 +118,44 @@ class MyDroneFrontex(DroneAbstract):
 
     def define_message_for_all(self):
         inKillZone =self.lidar().get_sensor_values() is None 
+        message = []
         if self.timestep_count<=1 or inKillZone: 
             return None
-        message = self.grid.to_update(pose=self.estimated_pose)
+        
+        if self.timestep_count % CommunicationParams().TIME_INTERVAL == 0:
+            confiance = self.compute_confidence(self.estimated_pose.gps)
+            message.append(DroneMessage(subject=DroneMessage.Subject.MAPPING, arg={"map": self.grid.grid, "confiance": confiance}))
+        #message = self.grid.to_update(pose=self.estimated_pose)
+        else : 
+            message.append(DroneMessage(subject=DroneMessage.Subject.PASS, arg=None))
+
         if self.state == self.State.GRASPING_WOUNDED or self.state == self.State.SEARCHING_RESCUE_CENTER or self.state == self.State.GOING_RESCUE_CENTER:
             broadcast_msg = DroneMessage(
-                subject=DroneMessage.Subject.MAPPING,
-                code=DroneMessage.Code.BROADCAST,
+                subject=DroneMessage.Subject.LOCK_WOUNDED,
                 arg=(self.identifier, self.estimated_pose.position.tolist())
             )
-            message.append(broadcast_msg)
-        return message
+            message.append(broadcast_msg) 
 
+        return message
+    
+    def communication_management(self):
+        if self.communicator:
+            received_messages = self.communicator.received_messages
+            for msg in received_messages:
+                for drone_msg in msg[1]:
+                    if not isinstance(drone_msg, DroneMessage):
+                        raise ValueError("Invalid message type. Expected a DroneMessage instance.")
+                    if drone_msg.subject == DroneMessage.Subject.MAPPING : 
+                        self.grid.merge_maps(drone_msg.arg["map"],drone_msg.arg["confiance"])
+                    if drone_msg.subject == DroneMessage.Subject.LOCK_WOUNDED:
+                        drone_id, position = drone_msg.arg
+                        self.wounded_locked.append((drone_id, position))
+                        
+    def compute_confidence(self, gps):
+        if gps is None: # Si en zone non gps
+            return 0.1
+        else :
+            return 0.5
     def control(self):
         inKillZone =self.lidar().get_sensor_values() is None 
 
@@ -138,6 +164,7 @@ class MyDroneFrontex(DroneAbstract):
             self.timestep_count += 1
             
             self.mapping(display=self.mapping_params.display_map)
+            self.communication_management()
 
             # Retrieve Sensor Data
             found_wall, epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
@@ -256,19 +283,14 @@ class MyDroneFrontex(DroneAbstract):
         Checks if any received broadcast message indicates a drone (other than self)
         is grasping a wounded and is closer than the given threshold.
         """
-        if messages is None:
-            messages = [msg[1] for msg in self.communicator.received_messages] if self.communicator else []
-
-        if not (messages and messages[0]):
-            return False
-        for raw_msg in messages[0]:
-            if isinstance(raw_msg, DroneMessage) and raw_msg.code == DroneMessage.Code.BROADCAST:
-                broadcast_id, broadcast_loc = raw_msg.arg
-                if broadcast_id != self.identifier:
-                    distance = np.linalg.norm(np.array(self.estimated_pose.position) - np.array(broadcast_loc))
-                    if distance < threshold:
-                        return True
+        
+        for _,broadcast_loc in self.wounded_locked :
+            distance = np.linalg.norm(np.array(self.estimated_pose.position) - np.array(broadcast_loc))
+            if distance < threshold:
+                print("Near a rescuing drone")
+                return True
         return False
+        
 
     def process_semantic_sensor(self):
         semantic_values = self.semantic_values()
@@ -296,40 +318,28 @@ class MyDroneFrontex(DroneAbstract):
                     (data.distance * data.distance / 10 ** 5)
                 scores.append((v, data.angle, data.distance))
 
+
         filtered_scores = []
-        if self.communicator:
-            for score in scores:
+        for score in scores :
+            conflict = False 
+            for wnd_locked in self.wounded_locked :
                 dx = score[2] * math.cos(score[1] + self.estimated_pose.orientation)
                 dy = score[2] * math.sin(score[1] + self.estimated_pose.orientation)
                 detection_position = np.array(self.estimated_pose.position) + np.array([dx, dy])
-                conflict = False
-                raw_msg = [msg[1] for msg in self.communicator.received_messages]
-                if not (raw_msg and raw_msg[0]):
-                    continue
-                for drone_msg in raw_msg:
-                    for raw_msg in drone_msg:
-                        if not isinstance(raw_msg, DroneMessage):
-                            continue
-                        if raw_msg.code != DroneMessage.Code.BROADCAST:
-                            continue
-                        broadcast_loc = np.array(raw_msg.arg[1])
-                        if np.linalg.norm(detection_position - broadcast_loc) < 20.0:  # adjust threshold as needed
-                            conflict = True
-                            print("Conflict of wounded")
-                            break
-                if not conflict:
-                    filtered_scores.append(score)
-        else:
-            filtered_scores = scores
-
-        # Select the best one among wounded persons detected
+                conflict = False 
+                if np.linalg.norm(detection_position - np.array(wnd_locked[1])) < 20.0 : # adjust threshold as needed
+                    conflict = True
+                    print("Conflict of wounded")
+                    break
+            if not conflict :
+                filtered_scores.append(score)
         best_score = 10000
         for score in filtered_scores:
             if score[0] < best_score:
                 best_score = score[0]
                 best_angle_wounded = score[1]
 
-        return found_wounded,found_rescue_center,best_angle_wounded,best_angle_rescue_center,is_near_rescue_center
+        return found_wounded,found_rescue_center,best_angle_wounded,best_angle_rescue_center,is_near_rescue_center 
     
     def process_lidar_sensor(self,self_lidar):
         """
@@ -510,17 +520,8 @@ class MyDroneFrontex(DroneAbstract):
         self.previous_position.append(self.estimated_pose.position)
         self.previous_orientation.append(self.estimated_pose.orientation)
         
-        grid_update_informations = self.grid.to_update(pose=self.estimated_pose)
-        if self.communicator:
-            received_messages = [msg[1] for msg in self.communicator.received_messages]
-            for drone_msg in received_messages:
-                for msg in drone_msg:
-                    if not isinstance(msg, DroneMessage):
-                        continue
-                    if msg.code != DroneMessage.Code.LINE or msg.code != DroneMessage.Code.POINTS:
-                        continue
-                    grid_update_informations += msg
-        self.grid.update(grid_update_informations)
+        
+        self.grid.update(pose=self.estimated_pose)
         
         if display and (self.timestep_count % 5 == 0):
              self.grid.display(self.grid.zoomed_grid,
