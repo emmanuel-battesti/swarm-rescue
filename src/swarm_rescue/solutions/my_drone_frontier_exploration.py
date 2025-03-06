@@ -121,6 +121,13 @@ class MyDroneFrontex(DroneAbstract):
         if self.timestep_count<=1 or inKillZone: 
             return None
         message = self.grid.to_update(pose=self.estimated_pose)
+        if self.state == self.State.GRASPING_WOUNDED or self.state == self.State.SEARCHING_RESCUE_CENTER or self.state == self.State.GOING_RESCUE_CENTER:
+            broadcast_msg = DroneMessage(
+                subject=DroneMessage.Subject.MAPPING,
+                code=DroneMessage.Code.BROADCAST,
+                arg=(self.identifier, self.estimated_pose.position.tolist())
+            )
+            message.append(broadcast_msg)
         return message
 
     def control(self):
@@ -136,8 +143,12 @@ class MyDroneFrontex(DroneAbstract):
             found_wall, epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
             found_wounded, found_rescue_center, epsilon_wounded, epsilon_rescue_center, is_near_rescue_center = self.process_semantic_sensor()
 
+            is_near_rescuing_drone = self.check_near_rescuing_drone(threshold=20.0)
+            if is_near_rescuing_drone:
+                print("Hampering a rescue, waiting...")
+
             # TRANSITIONS OF THE STATE
-            self.state_update(found_wall, found_wounded, found_rescue_center)
+            self.state_update(found_wall, found_wounded, found_rescue_center, is_near_rescuing_drone)
 
             # Execute Corresponding Command
             state_handlers = {
@@ -188,7 +199,7 @@ class MyDroneFrontex(DroneAbstract):
     def handle_searching_rescue_center(self):
         if self.previous_state is not self.State.SEARCHING_RESCUE_CENTER:
             self.plan_path_to_rescue_center()
-        return self.follow_path(self.path)
+        return self.follow_path(self.path, found_wounded=True)
 
     def plan_path_to_rescue_center(self):
         start_cell = self.grid._conv_world_to_grid(*self.estimated_pose.position)
@@ -216,7 +227,7 @@ class MyDroneFrontex(DroneAbstract):
         if self.explored_all_frontiers or self.path is None:
             return self.handle_waiting()
         else:
-            return self.follow_path(self.path)
+            return self.follow_path(self.path, found_wounded=False)
 
     def plan_path_to_frontier(self):
         if self.grid.closest_largest_frontier(self.estimated_pose) is not None:
@@ -239,6 +250,25 @@ class MyDroneFrontex(DroneAbstract):
     
     def handle_unknown_state(self):
         raise ValueError("State not found")
+
+    def check_near_rescuing_drone(self, threshold, messages=None):
+        """
+        Checks if any received broadcast message indicates a drone (other than self)
+        is grasping a wounded and is closer than the given threshold.
+        """
+        if messages is None:
+            messages = [msg[1] for msg in self.communicator.received_messages] if self.communicator else []
+
+        if not (messages and messages[0]):
+            return False
+        for raw_msg in messages[0]:
+            if isinstance(raw_msg, DroneMessage) and raw_msg.code == DroneMessage.Code.BROADCAST:
+                broadcast_id, broadcast_loc = raw_msg.arg
+                if broadcast_id != self.identifier:
+                    distance = np.linalg.norm(np.array(self.estimated_pose.position) - np.array(broadcast_loc))
+                    if distance < threshold:
+                        return True
+        return False
 
     def process_semantic_sensor(self):
         semantic_values = self.semantic_values()
@@ -266,9 +296,35 @@ class MyDroneFrontex(DroneAbstract):
                     (data.distance * data.distance / 10 ** 5)
                 scores.append((v, data.angle, data.distance))
 
+        filtered_scores = []
+        if self.communicator:
+            for score in scores:
+                dx = score[2] * math.cos(score[1] + self.estimated_pose.orientation)
+                dy = score[2] * math.sin(score[1] + self.estimated_pose.orientation)
+                detection_position = np.array(self.estimated_pose.position) + np.array([dx, dy])
+                conflict = False
+                raw_msg = [msg[1] for msg in self.communicator.received_messages]
+                if not (raw_msg and raw_msg[0]):
+                    continue
+                for drone_msg in raw_msg:
+                    for raw_msg in drone_msg:
+                        if not isinstance(raw_msg, DroneMessage):
+                            continue
+                        if raw_msg.code != DroneMessage.Code.BROADCAST:
+                            continue
+                        broadcast_loc = np.array(raw_msg.arg[1])
+                        if np.linalg.norm(detection_position - broadcast_loc) < 20.0:  # adjust threshold as needed
+                            conflict = True
+                            print("Conflict of wounded")
+                            break
+                if not conflict:
+                    filtered_scores.append(score)
+        else:
+            filtered_scores = scores
+
         # Select the best one among wounded persons detected
         best_score = 10000
-        for score in scores:
+        for score in filtered_scores:
             if score[0] < best_score:
                 best_score = score[0]
                 best_angle_wounded = score[1]
@@ -340,7 +396,7 @@ class MyDroneFrontex(DroneAbstract):
             return True
         return False
 
-    def follow_path(self,path):
+    def follow_path(self,path,found_wounded):
         if self.is_near_waypoint(path[self.indice_current_waypoint]):
             self.indice_current_waypoint += 1 # next point in path
             #print(f"Waypoint reached {self.indice_current_waypoint}")
@@ -351,16 +407,16 @@ class MyDroneFrontex(DroneAbstract):
                 self.path_grid = []
                 return
         
-        return self.go_to_waypoint(path[self.indice_current_waypoint][0],path[self.indice_current_waypoint][1])
+        return self.go_to_waypoint(path[self.indice_current_waypoint][0],path[self.indice_current_waypoint][1],found_wounded)
 
-    def go_to_waypoint(self,x,y):
+    def go_to_waypoint(self,x,y,found_wounded):
         
         # ASSERVISSEMENT EN ANGLE
         dx = x - self.estimated_pose.position[0]
         dy = y - self.estimated_pose.position[1]
         epsilon = math.atan2(dy,dx) - self.estimated_pose.orientation
         epsilon = normalize_angle(epsilon)
-        command_path = self.pid_controller({"forward": 1,"lateral": 0.0,"rotation": 0.0,"grasper": 1},epsilon,self.pid_params.Kp_angle_1,self.pid_params.Kd_angle_1,self.pid_params.Ki_angle,self.past_ten_errors_angle,"rotation",0.5)
+        command_path = self.pid_controller({"forward": 1,"lateral": 0.0,"rotation": 0.0,"grasper": 1 if found_wounded else 0},epsilon,self.pid_params.Kp_angle_1,self.pid_params.Kd_angle_1,self.pid_params.Ki_angle,self.past_ten_errors_angle,"rotation",0.5)
 
         # ASSERVISSEMENT LATERAL
         if self.indice_current_waypoint == 0:
@@ -378,7 +434,7 @@ class MyDroneFrontex(DroneAbstract):
 
         return command_path
 
-    def state_update(self, found_wall, found_wounded, found_rescue_center):
+    def state_update(self, found_wall, found_wounded, found_rescue_center, is_near_rescuing_drone):
         """
         A visualisation of the state machine is available at doc/Drone states
         """
@@ -393,7 +449,8 @@ class MyDroneFrontex(DroneAbstract):
             "found_rescue_center": found_rescue_center,
             "lost_rescue_center": not self.base.grasper.grasped_entities,
             "no_frontiers_left": len(self.grid.frontiers) == 0,
-            "waiting_time_over": self.step_waiting_count >= self.waiting_params.step_waiting
+            "waiting_time_over": self.step_waiting_count >= self.waiting_params.step_waiting,
+            "is_near_rescuing_drone": is_near_rescuing_drone
         }
 
         STATE_TRANSITIONS = {
@@ -414,15 +471,18 @@ class MyDroneFrontex(DroneAbstract):
             },
             self.State.EXPLORING_FRONTIERS: {
                 "found_wounded": self.State.GRASPING_WOUNDED,
-                "no_frontiers_left": self.State.FOLLOWING_WALL
+                "no_frontiers_left": self.State.FOLLOWING_WALL,
+                "is_near_rescuing_drone": self.State.WAITING
             },
             self.State.SEARCHING_WALL: {
                 "found_wounded": self.State.GRASPING_WOUNDED,
-                "found_wall": self.State.FOLLOWING_WALL
+                "found_wall": self.State.FOLLOWING_WALL,
+                "is_near_rescuing_drone": self.State.WAITING
             },
             self.State.FOLLOWING_WALL: {
                 "found_wounded": self.State.GRASPING_WOUNDED,
-                "lost_wall": self.State.SEARCHING_WALL
+                "lost_wall": self.State.SEARCHING_WALL,
+                "is_near_rescuing_drone": self.State.WAITING
             }
         }
 
@@ -452,10 +512,14 @@ class MyDroneFrontex(DroneAbstract):
         
         grid_update_informations = self.grid.to_update(pose=self.estimated_pose)
         if self.communicator:
-            received_messages = self.communicator.received_messages
-            for msg in received_messages:
-                message = msg[1]
-                grid_update_informations += message
+            received_messages = [msg[1] for msg in self.communicator.received_messages]
+            for drone_msg in received_messages:
+                for msg in drone_msg:
+                    if not isinstance(msg, DroneMessage):
+                        continue
+                    if msg.code != DroneMessage.Code.LINE or msg.code != DroneMessage.Code.POINTS:
+                        continue
+                    grid_update_informations += msg
         self.grid.update(grid_update_informations)
         
         if display and (self.timestep_count % 5 == 0):
