@@ -10,8 +10,6 @@ from spg_overlay.entities.drone_distance_sensors import DroneSemanticSensor
 from solutions.utils.dataclasses_config import *
 
 
-
-
 class OccupancyGrid(Grid):
     """Self updating occupancy grid"""
 
@@ -126,12 +124,11 @@ class OccupancyGrid(Grid):
         binary_map[abs(self.grid) <= 2] = self.UNDISCOVERED
         return binary_map
     
-    def to_update(self, pose: Pose):
+    def update(self, pose: Pose):
         """
         Returns the list of things to update on the grid
         Uses a ray casting algorithm with the lidar data
         """
-        to_update = []
 
         EVERY_N = GridParams.EVERY_N
         LIDAR_DIST_CLIP = GridParams.LIDAR_DIST_CLIP
@@ -139,6 +136,8 @@ class OccupancyGrid(Grid):
         EMPTY_ZONE_VALUE = GridParams.EMPTY_ZONE_VALUE
         OBSTACLE_ZONE_VALUE = GridParams.OBSTACLE_ZONE_VALUE
         FREE_ZONE_VALUE = GridParams.FREE_ZONE_VALUE
+        THRESHOLD_MIN = GridParams.THRESHOLD_MIN
+        THRESHOLD_MAX = GridParams.THRESHOLD_MAX
 
         lidar_dist = self.lidar.get_sensor_values()[::EVERY_N].copy()   # Distance of each ray to the first obstacle it encounters (or max range if it doesn't)
         lidar_angles = self.lidar.ray_angles[::EVERY_N].copy()  # Angle of each ray
@@ -158,11 +157,9 @@ class OccupancyGrid(Grid):
                                                   sin_rays)
 
         for pt_x, pt_y in zip(points_x, points_y):
-            to_update.append(DroneMessage(
-                            subject=DroneMessage.Subject.MAPPING,
-                            code=DroneMessage.Code.LINE,
-                            arg=(pose.position[0], pose.position[1], pt_x, pt_y, EMPTY_ZONE_VALUE))
-                            )
+            self.add_value_along_line(pose.position[0], pose.position[1], pt_x, pt_y, EMPTY_ZONE_VALUE)
+            
+            
 
         # Rays that collide obstacles are those that verify lidar_dist[ray] < max_confidence_range
         select_collision = lidar_dist < no_obstacle_ray_distance_threshold 
@@ -183,67 +180,57 @@ class OccupancyGrid(Grid):
         points_x = points_x[select_collision]
         points_y = points_y[select_collision]
 
-        
-        to_update.append(DroneMessage(
-                        subject=DroneMessage.Subject.MAPPING,
-                        code=DroneMessage.Code.POINTS,
-                        arg=(points_x, points_y, OBSTACLE_ZONE_VALUE))
-                        )
-
-        # the current position of the drone is free !
-        to_update.append(DroneMessage(
-                        subject=DroneMessage.Subject.MAPPING,
-                        code=DroneMessage.Code.POINTS,
-                        arg=(pose.position[0], pose.position[1], FREE_ZONE_VALUE))
-                        )
-
-        return to_update
-
-    def update(self, to_update):
-        """
-        Bayesian map update with new observation
-        lidar : lidar data
-        pose : corrected pose in world coordinates
-        """
-        THRESHOLD_MIN = GridParams.THRESHOLD_MIN
-        THRESHOLD_MAX = GridParams.THRESHOLD_MAX
-
-        for message in to_update:
-            # Ensure the message is a valid DroneMessage instance
-            if not isinstance(message, DroneMessage):
-                raise ValueError("Invalid message type. Expected a DroneMessage instance.")
-
-            if message.code == DroneMessage.Code.BROADCAST:
-                # Skip broadcast in the mapping update
-                continue
-
-            code = message.code
-            arg = message.arg
-
-            if code == DroneMessage.Code.LINE:
-                self.add_value_along_line(*arg)
-            elif code == DroneMessage.Code.POINTS:
-                self.add_points(*arg)
-            else:
-                raise ValueError(f"Unknown code in DroneMessage: {code}")
-
-        # Threshold values in the grid
+        self.add_points(points_x, points_y, OBSTACLE_ZONE_VALUE)
+        self.add_points(pose.position[0], pose.position[1], FREE_ZONE_VALUE)
         self.grid = np.clip(self.grid, THRESHOLD_MIN, THRESHOLD_MAX)
-
-
-        # # Restore the initial cell value # That could have been set to free or empty
-        # if self.initial_cell and self.initial_cell_value is not None:
-        #     cell_x, cell_y = self.initial_cell
-        #     if 0 <= cell_x < self.x_max_grid and 0 <= cell_y < self.y_max_grid:
-        #         self.grid[cell_x, cell_y] = self.initial_cell_value
-
-        # compute zoomed grid for displaying
         self.zoomed_grid = self.grid.copy()
         
         new_zoomed_size = (int(self.size_area_world[1] * 0.5),
                            int(self.size_area_world[0] * 0.5))
         self.zoomed_grid = cv2.resize(self.zoomed_grid, new_zoomed_size,
                                       interpolation=cv2.INTER_NEAREST)
+        #return to_update
+
+    # def update(self, to_update):
+    #     """
+    #     Bayesian map update with new observation
+    #     lidar : lidar data
+    #     pose : corrected pose in world coordinates
+    #     """
+    #     THRESHOLD_MIN = GridParams.THRESHOLD_MIN
+    #     THRESHOLD_MAX = GridParams.THRESHOLD_MAX
+
+    #     for message in to_update:
+    #         # Ensure the message is a valid DroneMessage instance
+    #         if not isinstance(message, DroneMessage):
+    #             raise ValueError("Invalid message type. Expected a DroneMessage instance.")
+
+    #         code = message.code
+    #         arg = message.arg
+
+    #         if code == DroneMessage.Code.LINE:
+    #             self.add_value_along_line(*arg)
+    #         elif code == DroneMessage.Code.POINTS:
+    #             self.add_points(*arg)
+    #         else:
+    #             raise ValueError(f"Unknown code in DroneMessage: {code}")
+
+    #     # Threshold values in the grid
+
+
+    #     # # Restore the initial cell value # That could have been set to free or empty
+    #     # if self.initial_cell and self.initial_cell_value is not None:
+    #     #     cell_x, cell_y = self.initial_cell
+    #     #     if 0 <= cell_x < self.x_max_grid and 0 <= cell_y < self.y_max_grid:
+    #     #         self.grid[cell_x, cell_y] = self.initial_cell_value
+
+    #     # compute zoomed grid for displaying
+    #     self.zoomed_grid = self.grid.copy()
+        
+    #     new_zoomed_size = (int(self.size_area_world[1] * 0.5),
+    #                        int(self.size_area_world[0] * 0.5))
+    #     self.zoomed_grid = cv2.resize(self.zoomed_grid, new_zoomed_size,
+    #                                   interpolation=cv2.INTER_NEAREST)
     
     def frontiers_update(self):
         ternary_map = self.to_ternary_map()
@@ -339,3 +326,10 @@ class OccupancyGrid(Grid):
         for x in L : 
             if x < i : return True
         return False
+
+
+    def merge_maps(self, other_map,confiance): # other_map is not a class but just the grid.
+        """
+        Merge the other map into the current map
+        """
+        self.grid = self.grid*(1-confiance) + other_map*(confiance)
