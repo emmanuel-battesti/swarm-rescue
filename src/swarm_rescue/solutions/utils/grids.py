@@ -213,6 +213,10 @@ class OccupancyGrid(Grid):
             if not isinstance(message, DroneMessage):
                 raise ValueError("Invalid message type. Expected a DroneMessage instance.")
 
+            if message.code == DroneMessage.Code.BROADCAST:
+                # Skip broadcast in the mapping update
+                continue
+
             code = message.code
             arg = message.arg
 
@@ -268,7 +272,7 @@ class OccupancyGrid(Grid):
         print("Deleting frontier artifacts")
         if frontier is not None:
             for cell in frontier.cells:
-                self.grid[*cell] = GridParams.FRONTIER_ARTIFACT_RESET_VALUE
+                self.grid[cell] = GridParams.FRONTIER_ARTIFACT_RESET_VALUE
     
     def closest_largest_frontier(self, pose: Pose):
         """

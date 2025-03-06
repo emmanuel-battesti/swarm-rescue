@@ -8,6 +8,7 @@ class DroneMessage:
     class Code:
         LINE = "LINE"
         POINTS = "POINTS"
+        BROADCAST = "BROADCAST"
 
     def __init__(self, subject: str, code: str, arg, drone_id=None):
         if subject not in vars(DroneMessage.Subject).values():

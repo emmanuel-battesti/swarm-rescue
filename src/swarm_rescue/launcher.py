@@ -80,7 +80,7 @@ class Launcher:
         eval_config = EvalConfig(map_type=MyMapFinal2022_23,zones_config=zones_config, nb_rounds=1)
 
         """IF YOU WANT NO SPECIAL ZONES"""
-        eval_config = EvalConfig(map_type=MyMapbox, nb_rounds=1)
+        #eval_config = EvalConfig(map_type=MyMapbox, nb_rounds=1)
 
         self.eval_plan.add(eval_config=eval_config)
 
