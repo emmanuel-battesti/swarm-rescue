@@ -181,7 +181,7 @@ class MyDroneFrontex(DroneAbstract):
 
             # Retrieve Sensor Data
             found_wall, epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
-            found_wounded, found_rescue_center, score_wounded, epsilon_wounded, epsilon_rescue_center, is_near_rescue_center = self.process_semantic_sensor()
+            found_wounded, found_rescue_center, score_wounded, epsilon_wounded, epsilon_rescue_center, is_near_rescue_center,min_dist_wnd = self.process_semantic_sensor()
 
             is_near_rescuing_drone = self.check_near_rescuing_drone(threshold=30.0)
             if is_near_rescuing_drone:
@@ -195,7 +195,7 @@ class MyDroneFrontex(DroneAbstract):
                 self.State.WAITING: self.handle_waiting,
                 self.State.SEARCHING_WALL: self.handle_searching_wall,
                 self.State.FOLLOWING_WALL: lambda: self.handle_following_wall(epsilon_wall_angle, min_dist),
-                self.State.GRASPING_WOUNDED: lambda: self.handle_grasping_wounded(score_wounded, epsilon_wounded),
+                self.State.GRASPING_WOUNDED: lambda: self.handle_grasping_wounded(min_dist_wnd, epsilon_wounded),
                 self.State.SEARCHING_RESCUE_CENTER: self.handle_searching_rescue_center,
                 self.State.GOING_RESCUE_CENTER: lambda: self.handle_going_rescue_center(epsilon_rescue_center, is_near_rescue_center),
                 self.State.EXPLORING_FRONTIERS: self.handle_exploring_frontiers,
@@ -233,7 +233,8 @@ class MyDroneFrontex(DroneAbstract):
 
     def handle_grasping_wounded(self, score_wounded, epsilon_wounded):
         epsilon_wounded = normalize_angle(epsilon_wounded)
-        command = {"forward": self.grasping_params.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1 if score_wounded<10.0 else 0}
+        print(self.identifier,score_wounded)
+        command = {"forward": self.grasping_params.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1 if score_wounded<30.0 else 0}
         return self.pid_controller(command, epsilon_wounded, self.pid_params.Kp_angle, self.pid_params.Kd_angle, self.pid_params.Ki_angle, self.past_ten_errors_angle, "rotation")
 
     def handle_searching_rescue_center(self):
@@ -374,6 +375,7 @@ class MyDroneFrontex(DroneAbstract):
         
         best_angle_wounded = 0
         best_angle_rescue_center = 0
+        mindist = 1000
         found_wounded = False
         found_rescue_center = False
         is_near_rescue_center = False
@@ -415,8 +417,9 @@ class MyDroneFrontex(DroneAbstract):
             if score[0] < best_score:
                 best_score = score[0]
                 best_angle_wounded = score[1]
+                mindist = score[2]
 
-        return found_wounded,found_rescue_center,best_score,best_angle_wounded,best_angle_rescue_center,is_near_rescue_center
+        return found_wounded,found_rescue_center,best_score,best_angle_wounded,best_angle_rescue_center,is_near_rescue_center,mindist
     
     def process_lidar_sensor(self,self_lidar):
         """
