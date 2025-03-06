@@ -142,15 +142,15 @@ class MyDroneFrontex(DroneAbstract):
         if self.communicator:
             received_messages = self.communicator.received_messages
             for msg in received_messages:
-                msg = msg[1]
-                if not isinstance(msg, DroneMessage):
-                    raise ValueError("Invalid message type. Expected a DroneMessage instance.")
-                if msg.subject == DroneMessage.Subject.MAPPING : 
-                    self.grid.merge_maps(msg.arg["map"],msg.arg["confiance"])
-                if msg.subject == DroneMessage.Subject.LOCK_WOUNDED:
-                    drone_id, position = msg.arg
-                    self.wounded_locked.append((drone_id, position))
-                    
+                for drone_msg in msg[1]:
+                    if not isinstance(drone_msg, DroneMessage):
+                        raise ValueError("Invalid message type. Expected a DroneMessage instance.")
+                    if drone_msg.subject == DroneMessage.Subject.MAPPING : 
+                        self.grid.merge_maps(drone_msg.arg["map"],drone_msg.arg["confiance"])
+                    if drone_msg.subject == DroneMessage.Subject.LOCK_WOUNDED:
+                        drone_id, position = drone_msg.arg
+                        self.wounded_locked.append((drone_id, position))
+                        
     def compute_confidence(self, gps):
         if gps is None: # Si en zone non gps
             return 0.1
@@ -283,19 +283,14 @@ class MyDroneFrontex(DroneAbstract):
         Checks if any received broadcast message indicates a drone (other than self)
         is grasping a wounded and is closer than the given threshold.
         """
-        if messages is None:
-            messages = [msg[1] for msg in self.communicator.received_messages] if self.communicator else []
-
-        if not (messages and messages[0]):
-            return False
-        for raw_msg in messages[0]:
-            if isinstance(raw_msg, DroneMessage) and raw_msg.code == DroneMessage.Code.BROADCAST:
-                broadcast_id, broadcast_loc = raw_msg.arg
-                if broadcast_id != self.identifier:
-                    distance = np.linalg.norm(np.array(self.estimated_pose.position) - np.array(broadcast_loc))
-                    if distance < threshold:
-                        return True
+        
+        for _,broadcast_loc in self.wounded_locked :
+            distance = np.linalg.norm(np.array(self.estimated_pose.position) - np.array(broadcast_loc))
+            if distance < threshold:
+                print("Near a rescuing drone")
+                return True
         return False
+        
 
     def process_semantic_sensor(self):
         semantic_values = self.semantic_values()
@@ -325,7 +320,8 @@ class MyDroneFrontex(DroneAbstract):
 
 
         filtered_scores = []
-        for score in scores : 
+        for score in scores :
+            conflict = False 
             for wnd_locked in self.wounded_locked :
                 dx = score[2] * math.cos(score[1] + self.estimated_pose.orientation)
                 dy = score[2] * math.sin(score[1] + self.estimated_pose.orientation)
