@@ -9,6 +9,7 @@ from typing import Optional
 import cv2
 import numpy as np
 import arcade
+from gym.envs.toy_text.blackjack import score
 
 from spg_overlay.utils.constants import MAX_RANGE_LIDAR_SENSOR
 from spg_overlay.entities.drone_abstract import DroneAbstract
@@ -23,6 +24,9 @@ from solutions.utils.astar import *
 from solutions.utils.messages import DroneMessage
 from solutions.utils.grids import *
 from solutions.utils.dataclasses_config import *
+
+from scipy.optimize import linear_sum_assignment
+
 
 class MyDroneFrontex(DroneAbstract):
     class State(Enum):
@@ -106,6 +110,7 @@ class MyDroneFrontex(DroneAbstract):
         self.visualisation_params = VisualisationParams()
 
         self.wounded_locked = []
+        self.other_drones_pos = []
     
     def reset_exploration_path_params(self):
         """
@@ -119,14 +124,14 @@ class MyDroneFrontex(DroneAbstract):
     def define_message_for_all(self):
         inKillZone =self.lidar().get_sensor_values() is None 
         message = []
-        if self.timestep_count<=1 or inKillZone: 
+        if self.timestep_count<=1 or inKillZone:
             return None
-        
+
         if self.timestep_count % CommunicationParams().TIME_INTERVAL == 0:
             confiance = self.compute_confidence(self.estimated_pose.gps)
             message.append(DroneMessage(subject=DroneMessage.Subject.MAPPING, arg={"map": self.grid.grid, "confiance": confiance}))
         #message = self.grid.to_update(pose=self.estimated_pose)
-        else : 
+        else :
             message.append(DroneMessage(subject=DroneMessage.Subject.PASS, arg=None))
 
         if self.state == self.State.GRASPING_WOUNDED or self.state == self.State.SEARCHING_RESCUE_CENTER or self.state == self.State.GOING_RESCUE_CENTER:
@@ -134,23 +139,31 @@ class MyDroneFrontex(DroneAbstract):
                 subject=DroneMessage.Subject.LOCK_WOUNDED,
                 arg=(self.identifier, self.estimated_pose.position.tolist())
             )
-            message.append(broadcast_msg) 
-
+            message.append(broadcast_msg)
+        loc_msg = DroneMessage(
+            subject=DroneMessage.Subject.FRONTIER_PRIO,
+            arg=(self.identifier, self.estimated_pose.position.tolist()))
+        message.append(loc_msg)
         return message
-    
+
     def communication_management(self):
+        self.wounded_locked = []
+        self.other_drones_pos = []
         if self.communicator:
             received_messages = self.communicator.received_messages
             for msg in received_messages:
                 for drone_msg in msg[1]:
                     if not isinstance(drone_msg, DroneMessage):
                         raise ValueError("Invalid message type. Expected a DroneMessage instance.")
-                    if drone_msg.subject == DroneMessage.Subject.MAPPING : 
+                    if drone_msg.subject == DroneMessage.Subject.MAPPING :
                         self.grid.merge_maps(drone_msg.arg["map"],drone_msg.arg["confiance"])
                     if drone_msg.subject == DroneMessage.Subject.LOCK_WOUNDED:
                         drone_id, position = drone_msg.arg
                         self.wounded_locked.append((drone_id, position))
-                        
+                    if drone_msg.subject == DroneMessage.Subject.FRONTIER_PRIO:
+                        drone_id, position = drone_msg.arg
+                        self.other_drones_pos.append((drone_id,position))
+
     def compute_confidence(self, gps):
         if gps is None: # Si en zone non gps
             return 0.1
@@ -168,9 +181,9 @@ class MyDroneFrontex(DroneAbstract):
 
             # Retrieve Sensor Data
             found_wall, epsilon_wall_angle, min_dist = self.process_lidar_sensor(self.lidar())
-            found_wounded, found_rescue_center, epsilon_wounded, epsilon_rescue_center, is_near_rescue_center = self.process_semantic_sensor()
+            found_wounded, found_rescue_center, score_wounded, epsilon_wounded, epsilon_rescue_center, is_near_rescue_center = self.process_semantic_sensor()
 
-            is_near_rescuing_drone = self.check_near_rescuing_drone(threshold=20.0)
+            is_near_rescuing_drone = self.check_near_rescuing_drone(threshold=30.0)
             if is_near_rescuing_drone:
                 print("Hampering a rescue, waiting...")
 
@@ -182,13 +195,13 @@ class MyDroneFrontex(DroneAbstract):
                 self.State.WAITING: self.handle_waiting,
                 self.State.SEARCHING_WALL: self.handle_searching_wall,
                 self.State.FOLLOWING_WALL: lambda: self.handle_following_wall(epsilon_wall_angle, min_dist),
-                self.State.GRASPING_WOUNDED: lambda: self.handle_grasping_wounded(epsilon_wounded),
+                self.State.GRASPING_WOUNDED: lambda: self.handle_grasping_wounded(score_wounded, epsilon_wounded),
                 self.State.SEARCHING_RESCUE_CENTER: self.handle_searching_rescue_center,
                 self.State.GOING_RESCUE_CENTER: lambda: self.handle_going_rescue_center(epsilon_rescue_center, is_near_rescue_center),
                 self.State.EXPLORING_FRONTIERS: self.handle_exploring_frontiers,
             }
 
-            # print(self.state)
+            print(self.identifier, self.state)
 
             self.visualise_actions()
 
@@ -218,15 +231,15 @@ class MyDroneFrontex(DroneAbstract):
 
         return command
 
-    def handle_grasping_wounded(self, epsilon_wounded):
+    def handle_grasping_wounded(self, score_wounded, epsilon_wounded):
         epsilon_wounded = normalize_angle(epsilon_wounded)
-        command = {"forward": self.grasping_params.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1}
+        command = {"forward": self.grasping_params.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1 if score_wounded<10.0 else 0}
         return self.pid_controller(command, epsilon_wounded, self.pid_params.Kp_angle, self.pid_params.Kd_angle, self.pid_params.Ki_angle, self.past_ten_errors_angle, "rotation")
 
     def handle_searching_rescue_center(self):
         if self.previous_state is not self.State.SEARCHING_RESCUE_CENTER:
             self.plan_path_to_rescue_center()
-        return self.follow_path(self.path, found_wounded=True)
+        return self.follow_path(self.path, found_and_near_wounded=True)
 
     def plan_path_to_rescue_center(self):
         start_cell = self.grid._conv_world_to_grid(*self.estimated_pose.position)
@@ -254,7 +267,54 @@ class MyDroneFrontex(DroneAbstract):
         if self.explored_all_frontiers or self.path is None:
             return self.handle_waiting()
         else:
-            return self.follow_path(self.path, found_wounded=False)
+            return self.follow_path(self.path, found_and_near_wounded=False)
+
+    def assign_frontier_cluster(self):
+        """
+        Utilise DBSCAN pour regrouper les points frontaliers et assigne
+        les clusters aux drones via l'algorithme hongrois.
+        Si le nombre de clusters est insuffisant, les drones non affectés
+        se voient attribuer le cluster ayant le coût minimal.
+        Retourne le cluster assigné à ce drone, ou None si aucun cluster n'est disponible.
+        """
+        # 1. Clusterisation des points frontaliers
+        clusters = self.grid.cluster_frontiers_dbscan(eps=2, min_samples=3)
+        if not clusters:
+            return None
+
+        # 2. Récupérer les positions de tous les drones (via messages broadcast)
+        drone_positions = {}
+        # On ajoute la position du drone courant
+        drone_positions[self.identifier] = np.array(self.estimated_pose.position)
+        for drone_id, pos in self.other_drones_pos:
+            drone_positions[drone_id] = np.array(pos)
+
+        # 3. On s'assure d'un ordre cohérent des IDs
+        drone_ids = sorted(drone_positions.keys())
+        num_drones = len(drone_ids)
+        num_clusters = len(clusters)
+
+        # 4. Construction de la matrice de coût : [num_drones x num_clusters]
+        cost_matrix = np.zeros((num_drones, num_clusters))
+        for i, drone_id in enumerate(drone_ids):
+            drone_pos = drone_positions[drone_id]
+            for j, cluster in enumerate(clusters):
+                centroid = cluster["centroid"]
+                # Le coût est la distance euclidienne divisée par (taille du cluster + 1)
+                cost_matrix[i, j] = np.linalg.norm(drone_pos - centroid) / (cluster["size"] + 1)
+
+        # 5. Affectation via l'algorithme hongrois
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        assignments = {drone_ids[r]: clusters[col_ind[r]] for r in range(len(row_ind))}
+
+        # 6. Pour les drones non affectés (si num_clusters < num_drones)
+        if self.identifier not in assignments:
+            # On choisit le cluster dont le coût est minimal pour ce drone
+            drone_index = drone_ids.index(self.identifier)
+            min_cluster_index = np.argmin(cost_matrix[drone_index, :])
+            assignments[self.identifier] = clusters[min_cluster_index]
+
+        return assignments[self.identifier]
 
     def plan_path_to_frontier(self):
         if self.grid.closest_largest_frontier(self.estimated_pose) is not None:
@@ -268,10 +328,27 @@ class MyDroneFrontex(DroneAbstract):
                 print(self.path)
                 if self.path is None:   # The frontier is unreachable, probably due to artifacts of FREE zones inside boxes set in the mapping process
                     print(self.next_frontier.cells)
-                    self.grid.delete_frontier_artifacts(self.next_frontier)
+                    #self.grid.delete_frontier_artifacts(self.next_frontier)
                 else:
                     self.indice_current_waypoint = 0
 
+        else:
+            self.explored_all_frontiers = True
+
+    def plan_path_to_frontier(self):
+        assigned_cluster = self.assign_frontier_cluster()
+        if assigned_cluster is not None:
+            self.next_frontier_centroid = assigned_cluster["centroid"]
+            start_cell = self.grid._conv_world_to_grid(*self.estimated_pose.position)
+            target_cell = self.next_frontier_centroid
+            max_inflation = self.path_params.max_inflation_obstacle
+            self.path = self.grid.compute_safest_path(start_cell, target_cell, max_inflation)
+            if self.path is None:
+                print("Assigned frontier unreachable, deleting artifacts.")
+                self.grid.delete_frontier_artifacts(self.next_frontier)
+                #self.state = self.State.SEARCHING_WALL
+            else:
+                self.indice_current_waypoint = 0
         else:
             self.explored_all_frontiers = True
     
@@ -283,14 +360,14 @@ class MyDroneFrontex(DroneAbstract):
         Checks if any received broadcast message indicates a drone (other than self)
         is grasping a wounded and is closer than the given threshold.
         """
-        
+
         for _,broadcast_loc in self.wounded_locked :
             distance = np.linalg.norm(np.array(self.estimated_pose.position) - np.array(broadcast_loc))
             if distance < threshold:
                 print("Near a rescuing drone")
                 return True
         return False
-        
+
 
     def process_semantic_sensor(self):
         semantic_values = self.semantic_values()
@@ -321,12 +398,12 @@ class MyDroneFrontex(DroneAbstract):
 
         filtered_scores = []
         for score in scores :
-            conflict = False 
+            conflict = False
             for wnd_locked in self.wounded_locked :
                 dx = score[2] * math.cos(score[1] + self.estimated_pose.orientation)
                 dy = score[2] * math.sin(score[1] + self.estimated_pose.orientation)
                 detection_position = np.array(self.estimated_pose.position) + np.array([dx, dy])
-                conflict = False 
+                conflict = False
                 if np.linalg.norm(detection_position - np.array(wnd_locked[1])) < 20.0 : # adjust threshold as needed
                     conflict = True
                     print("Conflict of wounded")
@@ -339,7 +416,7 @@ class MyDroneFrontex(DroneAbstract):
                 best_score = score[0]
                 best_angle_wounded = score[1]
 
-        return found_wounded,found_rescue_center,best_angle_wounded,best_angle_rescue_center,is_near_rescue_center 
+        return found_wounded,found_rescue_center,best_score,best_angle_wounded,best_angle_rescue_center,is_near_rescue_center
     
     def process_lidar_sensor(self,self_lidar):
         """
@@ -406,7 +483,7 @@ class MyDroneFrontex(DroneAbstract):
             return True
         return False
 
-    def follow_path(self,path,found_wounded):
+    def follow_path(self,path,found_and_near_wounded):
         if self.is_near_waypoint(path[self.indice_current_waypoint]):
             self.indice_current_waypoint += 1 # next point in path
             #print(f"Waypoint reached {self.indice_current_waypoint}")
@@ -417,16 +494,16 @@ class MyDroneFrontex(DroneAbstract):
                 self.path_grid = []
                 return
         
-        return self.go_to_waypoint(path[self.indice_current_waypoint][0],path[self.indice_current_waypoint][1],found_wounded)
+        return self.go_to_waypoint(path[self.indice_current_waypoint][0],path[self.indice_current_waypoint][1],found_and_near_wounded)
 
-    def go_to_waypoint(self,x,y,found_wounded):
+    def go_to_waypoint(self,x,y,found_and_near_wounded):
         
         # ASSERVISSEMENT EN ANGLE
         dx = x - self.estimated_pose.position[0]
         dy = y - self.estimated_pose.position[1]
         epsilon = math.atan2(dy,dx) - self.estimated_pose.orientation
         epsilon = normalize_angle(epsilon)
-        command_path = self.pid_controller({"forward": 1,"lateral": 0.0,"rotation": 0.0,"grasper": 1 if found_wounded else 0},epsilon,self.pid_params.Kp_angle_1,self.pid_params.Kd_angle_1,self.pid_params.Ki_angle,self.past_ten_errors_angle,"rotation",0.5)
+        command_path = self.pid_controller({"forward": 1,"lateral": 0.0,"rotation": 0.0,"grasper": 1 if found_and_near_wounded else 0},epsilon,self.pid_params.Kp_angle_1,self.pid_params.Kd_angle_1,self.pid_params.Ki_angle,self.past_ten_errors_angle,"rotation",0.5)
 
         # ASSERVISSEMENT LATERAL
         if self.indice_current_waypoint == 0:
@@ -520,7 +597,7 @@ class MyDroneFrontex(DroneAbstract):
         self.previous_position.append(self.estimated_pose.position)
         self.previous_orientation.append(self.estimated_pose.orientation)
         
-        
+
         self.grid.update(pose=self.estimated_pose)
         
         if display and (self.timestep_count % 5 == 0):

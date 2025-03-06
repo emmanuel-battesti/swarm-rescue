@@ -9,6 +9,8 @@ from solutions.utils.astar import *
 from spg_overlay.entities.drone_distance_sensors import DroneSemanticSensor
 from solutions.utils.dataclasses_config import *
 
+from sklearn.cluster import DBSCAN
+
 
 class OccupancyGrid(Grid):
     """Self updating occupancy grid"""
@@ -158,8 +160,8 @@ class OccupancyGrid(Grid):
 
         for pt_x, pt_y in zip(points_x, points_y):
             self.add_value_along_line(pose.position[0], pose.position[1], pt_x, pt_y, EMPTY_ZONE_VALUE)
-            
-            
+
+
 
         # Rays that collide obstacles are those that verify lidar_dist[ray] < max_confidence_range
         select_collision = lidar_dist < no_obstacle_ray_distance_threshold 
@@ -226,12 +228,12 @@ class OccupancyGrid(Grid):
 
     #     # compute zoomed grid for displaying
     #     self.zoomed_grid = self.grid.copy()
-        
+
     #     new_zoomed_size = (int(self.size_area_world[1] * 0.5),
     #                        int(self.size_area_world[0] * 0.5))
     #     self.zoomed_grid = cv2.resize(self.zoomed_grid, new_zoomed_size,
     #                                   interpolation=cv2.INTER_NEAREST)
-    
+
     def frontiers_update(self):
         ternary_map = self.to_ternary_map()
 
@@ -251,6 +253,36 @@ class OccupancyGrid(Grid):
         # Extraction des points de chaque frontière
         frontiers = [np.argwhere(labeled_array == i) for i in range(1, num_features + 1)]
         self.frontiers = [self.Frontier(cells) for cells in frontiers if len(cells) >= self.Frontier.MIN_FRONTIER_SIZE]
+
+    def cluster_frontiers_dbscan(self, eps=2, min_samples=3):
+        """
+        Clusters all frontier cells using DBSCAN and returns a list of clusters.
+        Each cluster is represented as a dictionary with a centroid, the points, and cluster size.
+        """
+        self.frontiers_update()
+        # Gather all frontier cells from the frontier objects
+        all_frontier_cells = []
+        for frontier in self.frontiers:
+            for cell in frontier.cells:
+                all_frontier_cells.append(cell)
+        all_frontier_cells = np.array(all_frontier_cells)
+        if len(all_frontier_cells) == 0:
+            return []
+        # Apply DBSCAN clustering
+        db = DBSCAN(eps=eps, min_samples=min_samples).fit(all_frontier_cells)
+        labels = db.labels_
+        clusters = []
+        for label_val in set(labels):
+            if label_val == -1:  # Noise
+                continue
+            cluster_points = all_frontier_cells[labels == label_val]
+            centroid = np.mean(cluster_points, axis=0).astype(int)
+            clusters.append({
+                "centroid": centroid,
+                "points": cluster_points,
+                "size": len(cluster_points)
+            })
+        return clusters
 
     def delete_frontier_artifacts(self, frontier):
         """
