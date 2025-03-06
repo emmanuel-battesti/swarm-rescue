@@ -234,7 +234,7 @@ class MyDroneFrontex(DroneAbstract):
     def handle_grasping_wounded(self, score_wounded, epsilon_wounded):
         epsilon_wounded = normalize_angle(epsilon_wounded)
         print(self.identifier,score_wounded)
-        command = {"forward": self.grasping_params.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1 if score_wounded<30.0 else 0}
+        command = {"forward": self.grasping_params.grasping_speed, "lateral": 0.0, "rotation": 0.0, "grasper": 1 if score_wounded<GraspingParams().grasping_dist else 0}
         return self.pid_controller(command, epsilon_wounded, self.pid_params.Kp_angle, self.pid_params.Kd_angle, self.pid_params.Ki_angle, self.past_ten_errors_angle, "rotation")
 
     def handle_searching_rescue_center(self):
