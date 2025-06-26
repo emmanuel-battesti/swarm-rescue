@@ -1,3 +1,7 @@
+switch_solutions.sh
+all_launch.sh
+solutions_mine
+data_website.txt
 /env
 /docs
 src/swarm_rescue/tools/generated_code.py

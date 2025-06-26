@@ -1,6 +1,8 @@
 import platform
 from typing import Tuple
 
+from spg.agent import Agent
+from spg.entity import EmbodiedEntity
 from spg.playground import Playground
 from spg.utils.definitions import CollisionTypes
 
@@ -88,3 +90,6 @@ class ClosedPlayground(Playground):
         self.add_interaction(CollisionTypes.ACTIVATOR,
                                    CollisionTypes.PART,
                                    return_area_collision)
+
+    def get_closest_drone(self, entity: EmbodiedEntity) -> Agent:
+        return min(self.agents, key=lambda a: entity.position.get_dist_sqrd(a.true_position()))

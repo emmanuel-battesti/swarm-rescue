@@ -72,11 +72,15 @@ class ImageToMap:
         # Set up the detector with default parameters.
         detector = cv2.SimpleBlobDetector_create(params)
 
-        scaled_mask_people = (255 -
-                              (mask_people.astype(np.float32) * 255 /
-                               np.max(mask_people)).astype(np.uint8))
-        # Detect blobs.
-        keypoints = detector.detect(scaled_mask_people)
+        if np.max(mask_people) != 0:
+            scaled_mask_people = (255 -
+                                  (mask_people.astype(np.float32) * 255 /
+                                   np.max(mask_people)).astype(np.uint8))
+            # Détection des blobs.
+            keypoints = detector.detect(scaled_mask_people)
+        else:
+            scaled_mask_people = mask_people
+            keypoints = []
 
         print("Code to add in map_xxx.py:")
         txt_people_position = "\tself._wounded_persons_pos = ["
@@ -135,51 +139,52 @@ class ImageToMap:
                                        cv2.CHAIN_APPROX_SIMPLE)
 
         # take the first contour
-        cnt = contours[0]
+        if contours:
+            cnt = contours[0]
 
-        # compute the bounding rectangle of the contour
-        x_rec, y_rec, w_rec, h_rec = cv2.boundingRect(cnt)
-        # x_rec -= 2
-        # y_rec -= 2
-        # w_rec += 1
-        # h_rec += 1
-        # print(x_rec, y_rec, w_rec, h_rec)
+            # compute the bounding rectangle of the contour
+            x_rec, y_rec, w_rec, h_rec = cv2.boundingRect(cnt)
+            # x_rec -= 2
+            # y_rec -= 2
+            # w_rec += 1
+            # h_rec += 1
+            # print(x_rec, y_rec, w_rec, h_rec)
 
-        # draw contour
-        mask_rescue_center_rbg = cv2.cvtColor(mask_rescue_center,
-                                              cv2.COLOR_GRAY2RGB)
-        mask_rescue_center_rbg = cv2.drawContours(mask_rescue_center_rbg,
-                                                  [cnt],
-                                                  0,
-                                                  (0, 255, 255),
-                                                  2)
+            # draw contour
+            mask_rescue_center_rbg = cv2.cvtColor(mask_rescue_center,
+                                                  cv2.COLOR_GRAY2RGB)
+            mask_rescue_center_rbg = cv2.drawContours(mask_rescue_center_rbg,
+                                                      [cnt],
+                                                      0,
+                                                      (0, 255, 255),
+                                                      2)
 
-        # draw the bounding rectangle
-        mask_rescue_center_rbg = cv2.rectangle(mask_rescue_center_rbg,
-                                               (x_rec, y_rec),
-                                               (x_rec + w_rec, y_rec + h_rec),
-                                               (0, 255, 0), 2)
+            # draw the bounding rectangle
+            mask_rescue_center_rbg = cv2.rectangle(mask_rescue_center_rbg,
+                                                   (x_rec, y_rec),
+                                                   (x_rec + w_rec, y_rec + h_rec),
+                                                   (0, 255, 0), 2)
 
-        # display the image with bounding rectangle drawn on it
-        cv2.imshow("Bounding Rectangle", mask_rescue_center_rbg)
-        cv2.waitKey(0)
+            # display the image with bounding rectangle drawn on it
+            cv2.imshow("Bounding Rectangle", mask_rescue_center_rbg)
+            cv2.waitKey(0)
 
-        # self._rescue_center = RescueCenter(size=(90, 170))
-        # self._rescue_center_pos = ((-505, -285), 0)
+            # self._rescue_center = RescueCenter(size=(90, 170))
+            # self._rescue_center_pos = ((-505, -285), 0)
 
-        print("Code to add in map_xxx.py:")
-        x_rec *= self.factor
-        y_rec *= self.factor
-        h_rec *= self.factor
-        w_rec *= self.factor
-        x = x_rec + w_rec * 0.5 - self.width_map * 0.5
-        y = self.height_map * 0.5 - (y_rec + h_rec * 0.5)
-        txt_rescue1 = ("\tself._rescue_center = RescueCenter(size=({0:.0f}, "
-                       "{1:.0f}))").format(w_rec, h_rec)
-        txt_rescue2 = ("\tself._rescue_center_pos = (({0:.0f}, "
-                       "{1:.0f}), 0)").format(x, y)
-        print(txt_rescue1)
-        print(txt_rescue2)
+            print("Code to add in map_xxx.py:")
+            x_rec *= self.factor
+            y_rec *= self.factor
+            h_rec *= self.factor
+            w_rec *= self.factor
+            x = x_rec + w_rec * 0.5 - self.width_map * 0.5
+            y = self.height_map * 0.5 - (y_rec + h_rec * 0.5)
+            txt_rescue1 = ("\tself._rescue_center = RescueCenter(size=({0:.0f}, "
+                           "{1:.0f}))").format(w_rec, h_rec)
+            txt_rescue2 = ("\tself._rescue_center_pos = (({0:.0f}, "
+                           "{1:.0f}), 0)").format(x, y)
+            print(txt_rescue1)
+            print(txt_rescue2)
 
     def compute_dim(self):
         self.height_map = 750
@@ -206,18 +211,27 @@ class ImageToMap:
                                                   do_merge=True)
         # size_kernel = 9
         # kernel = np.ones((size_kernel, size_kernel), np.uint8)
-        radius_kernel = 5
+        radius_kernel = 4
         kernel = circular_kernel(radius_kernel)
         img_erode = cv2.erode(self._img_src_walls, kernel, iterations=1)
         cv2.imshow("img_erode", img_erode)
 
         self.lines = fld.detect(img_erode)
+        self.lines_corrected = self.align_segments(self.lines)
         result_img = fld.drawSegments(self._img_src_walls, self.lines)
         cv2.imshow("result_img", result_img)
 
         only_lines_image = np.zeros((self._img_src_walls.shape[0],
                                      self._img_src_walls.shape[1], 3),
                                     dtype=np.uint8)
+
+        for line in self.lines_corrected:
+            x0 = int(round(line[0][0]))
+            y0 = int(round(line[0][1]))
+            x1 = int(round(line[0][2]))
+            y1 = int(round(line[0][3]))
+            cv2.line(only_lines_image, (x0, y0), (x1, y1),
+                     (0,255,0  ), 1, cv2.LINE_4)
 
         for line in self.lines:
             x0 = int(round(line[0][0]))
@@ -226,6 +240,7 @@ class ImageToMap:
             y1 = int(round(line[0][3]))
             cv2.line(only_lines_image, (x0, y0), (x1, y1),
                      (0, 0, 255), 1, cv2.LINE_4)
+
 
         # Compute min and max
         # for line in self.lines:
@@ -240,6 +255,69 @@ class ImageToMap:
         cv2.imshow("only_lines_image", only_lines_image)
 
         cv2.waitKey(0)
+
+        self.lines = self.lines_corrected
+
+    def align_segments(self, segments, distance_threshold=5, endpoint_threshold=10):
+        """
+        Fonction pour aligner les segments horizontaux et verticaux presque identiques.
+        Args:
+        - segments: Liste des segments à aligner.
+        - distance_threshold: Distance maximale en pixels pour considérer les segments comme presque identiques.
+        - endpoint_threshold: Distance maximale en pixels pour les erreurs en bout de segment.
+
+        Returns:
+        - Segments alignés.
+        """
+
+        oriented_segments = []
+
+        for segment in segments:
+            x1, y1, x2, y2 = segment[0]
+
+            if abs(y1 - y2) < abs(x1 - x2) and x1 > x2: # horizontal
+                x1, x2 = x2, x1
+                y1, y2 = y2, y1
+            elif abs(y1 - y2) > abs(x1 - x2) and y1 > y2: # vertical
+                x1, x2 = x2, x1
+                y1, y2 = y2, y1
+
+            oriented_segments.append([[x1, y1, x2, y2]])
+
+        segments = oriented_segments
+        aligned_segments = []
+
+        for i in range(len(segments)):
+            # print("segments[i]=",segments[i])
+            segment = segments[i][0]
+            # print("segment=", segment)
+            x1, y1, x2, y2 = segment
+
+            for j in range(len(segments)):
+
+                if i==j:
+                    continue
+
+                other_segment = segments[j][0]
+                ox1, oy1, ox2, oy2 = other_segment
+
+                # Vérifie si les segments sont horizontaux et presque identiques
+                if abs(y1 - y2) <= 2 and  abs(y1 - oy1) <= distance_threshold and abs(y2 - oy2) <= distance_threshold:
+                    if abs(x1 - ox1) <= endpoint_threshold:
+                        x1 = min(x1, ox1) #(x1 + ox1) // 2
+                    if abs(x2 - ox2) <= endpoint_threshold:
+                        x2 = max(x2, ox2) #((x2 + ox2) // 2
+
+                # Vérifie si les segments sont verticaux et presque identiques
+                elif abs(x1 - x2) <= 2 and abs(x1 - ox1) <= distance_threshold and abs(x2 - ox2) <= distance_threshold:
+                    if abs(y1 - oy1) <= endpoint_threshold:
+                        y1 = min(y1, oy1) #((y1 + oy1) // 2
+                    if abs(y2 - oy2) <= endpoint_threshold:
+                        y2 = max(y2, oy2) #(y2 + oy2) // 2
+
+            aligned_segments.append([[x1, y1, x2, y2]])
+
+        return np.array(aligned_segments)
 
     def img_to_boxes(self):
         size_kernel = 50
@@ -326,7 +404,15 @@ class ImageToMap:
             "an image of the\n")
         f.write(
             "map we want to create.\n")
-        f.write("\"\"\"\n\n")
+        f.write("\"\"\"\n")
+
+        f.write("import sys\n")
+        f.write("from pathlib import Path\n\n")
+
+        f.write("# Insert the parent directory of the current file's directory into sys.path.\n")
+        f.write("# This allows Python to locate modules that are one level above the current\n")
+        f.write("# script, in this case spg_overlay.\n")
+        f.write("sys.path.insert(0, str(Path(__file__).resolve().parent.parent))\n\n")
 
         f.write("from spg_overlay.entities.normal_wall import NormalWall, "
                 "NormalBox\n\n\n")

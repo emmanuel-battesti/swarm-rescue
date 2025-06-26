@@ -445,5 +445,5 @@ For example, you can draw the identifier of a drone near it as follows:
 # Contact
 
 If you have questions about the code, you can contact:
-emmanuel . battesti at ensta-paris . fr
+emmanuel . battesti at ensta . fr
 

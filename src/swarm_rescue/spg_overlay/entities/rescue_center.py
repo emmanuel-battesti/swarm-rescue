@@ -67,12 +67,13 @@ class RescueCenter(PhysicalElement):
         grasped_by_list = entity.grasped_by.copy()
         grasped_by_size = len(entity.grasped_by)
 
-        for part in grasped_by_list:
-            agent = part.agent
-            agent.reward += entity.reward / grasped_by_size
-            agent.base.grasper.reset()
-
-        # if not entity.grasped_by:
-        #     agent = self._playground.get_closest_agent(self)
+        if grasped_by_list:
+            for part in grasped_by_list:
+                agent = part.agent
+                agent.reward += entity.reward / grasped_by_size
+                agent.base.grasper.reset()
+        else:
+            agent = self._playground.get_closest_drone(self)
+            agent.reward += entity.reward
 
         self._playground.remove(entity)

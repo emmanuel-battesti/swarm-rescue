@@ -8,3 +8,4 @@ opencv-contrib-python>=4.10.0.84
 pandas>=2.0.3
 pathlib2>=2.3.7.post1
 python-statemachine>=2.3.6
+arcade==2.6.17

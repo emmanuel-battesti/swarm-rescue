@@ -46,7 +46,7 @@ Do not include the following:
 
 1. Compress the teamXX_evalstep directory (e.g., teamXX_intermediate01, teamXX_intermediate02, or teamXX_final) into a .zip file.
 2. Ensure the resulting file is **lightweight** (a few KB).
-3. Send the **zipped file** to your evaluator (emmanuel.battesti@ensta-paris.fr for french participants)
+3. Send the **zipped file** to your evaluator (emmanuel.battesti@ensta.fr for french participants)
 4. Use the following format in the **email subject**: *teamXX_evalstep* (replace XX with your team number and *evalstep* with the evaluation step name).
 
 ## ZIP File Generation Script for Submissions

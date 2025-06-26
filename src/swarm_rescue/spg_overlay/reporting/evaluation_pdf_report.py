@@ -87,8 +87,9 @@ class EvaluationPdfReport:
                            x=self.pdf.l_margin + offset_from_left_margin,
                            w=self.epw - 2 * offset_from_left_margin)
         except FileNotFoundError as error:
+            file_name = os.path.basename(img_filename)
             print(f"File {img_filename} was not found for the PDF.")
-            self.pdf.cell(txt=f"Error: File {img_filename} was not found...")
+            self.pdf.cell(txt=f"Error: File {file_name} was not found...")
 
     def _header(self):
         # Title
@@ -355,7 +356,7 @@ class EvaluationPdfReport:
         plt.xlabel('Criteria')
         plt.legend(legend, loc=1)
         filename_graph = (self._images_path +
-                          f'/team{self._team_info.team_number_str}_'
+                          f'team{self._team_info.team_number_str}_'
                           f'graph_performance.png')
         plt.savefig(filename_graph, format='png',
                     bbox_inches='tight', dpi=200)
@@ -429,7 +430,7 @@ class EvaluationPdfReport:
                 self.pdf.cell(txt="Last image of the simulation:")
 
                 self._empty_line(height=0.5)
-                filename_last_img = (f"{self._images_path}/"
+                filename_last_img = (f"{self._images_path}"
                                      f"team{self._team_info.team_number_str}_"
                                      f"{map_name}_{zones_name}_rd{best_rd_str}_"
                                      f"screen.png")
@@ -441,7 +442,7 @@ class EvaluationPdfReport:
                 self.pdf.cell(txt="Exploration map: ")
 
                 self._empty_line(height=0.5)
-                filename_explo = (f"{self._images_path}/"
+                filename_explo = (f"{self._images_path}"
                                   f"team{self._team_info.team_number_str}_"
                                   f"{map_name}_{zones_name}_rd{best_rd_str}_"
                                   f"screen_explo.png")
@@ -453,7 +454,7 @@ class EvaluationPdfReport:
                 self.pdf.cell(txt="Map of drone routes: ")
 
                 self._empty_line(height=0.5)
-                filename_routes = (f"{self._images_path}/"
+                filename_routes = (f"{self._images_path}"
                                    f"team{self._team_info.team_number_str}_"
                                    f"{map_name}_{zones_name}_rd{best_rd_str}_"
                                    f"screen_path.png")
@@ -487,6 +488,35 @@ class EvaluationPdfReport:
                       f"{crashed_percent}%,"
                       f"{config_score}")
 
+    def _write_data_website_to_file(self):
+        df_data_website = self.stats_computation.df_data_website
+        date_str = datetime.now().strftime("%d/%m/%Y - %H:%M")
+        #file_path = os.path.abspath("data_website.txt")
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../data_website.txt")
+
+        with open(file_path, "a") as file:
+            file.write(f"\nData for the website (generated on {date_str}):\n")
+            for index, row in df_data_website.iterrows():
+                if not row.empty:
+                    configuration = row["Configuration"]
+                    rescued_percent = row["Rescued Percent"]
+                    exploration_score = row["Exploration Score"]
+                    health_return_score = row["Health Return Score"]
+                    time_score = row["Time Score"]
+                    crashed_percent = row["Crashed"]
+                    config_score = row["Config Score"]
+
+                    file.write(f"{self._team_info.team_number},"
+                               f"{configuration},"
+                               f"{rescued_percent},"
+                               f"{exploration_score},"
+                               f"{health_return_score},"
+                               f"{time_score},"
+                               f"{crashed_percent}%,"
+                               f"{config_score}\n")
+
+        print(f"The file has been updated: {os.path.normpath(file_path)}")
+
     def generate_pdf(self, stats_computation: StatsComputation):
         self.stats_computation = stats_computation
 
@@ -507,5 +537,6 @@ class EvaluationPdfReport:
             print(f"A new evaluation report is available here: {filename_pdf}")
 
             self._print_data_website()
+            #self._write_data_website_to_file()
         else:
             print("self.stats_computation is None !!")

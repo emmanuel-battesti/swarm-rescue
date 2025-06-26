@@ -19,8 +19,8 @@ class MouseMeasure:
         y_mouse_prev: Previous y-coordinate of the mouse.
         draw_line: Flag indicating whether to draw a line or not.
         _playground_size: Size of the playground.
-
     """
+
     def __init__(self, playground_size: Tuple[int, int]):
         self.x_mouse = 0
         self.y_mouse = 0
@@ -81,8 +81,8 @@ class MouseMeasure:
             if distance > 5:
                 print("---------------------------------------------")
                 print("distance = {} pixels".format(distance))
-                print("delta_x = {}, delta_y = {}"
-                      .format(abs(dx), abs(dy)))
+                print("delta_x = {}, delta_y = {}   OR   size=({}, {})"
+                      .format(abs(dx), abs(dy), abs(dx), abs(dy)))
                 c_x = 0.5 * (self.x_mouse + self.x_mouse_prev)
                 c_y = 0.5 * (self.y_mouse + self.y_mouse_prev)
                 center_x = round(c_x - self._playground_size[0] / 2)
@@ -95,12 +95,12 @@ class MouseMeasure:
                 br_y = min(self.y_mouse, self.y_mouse_prev)
                 bottom_right_x = round(br_x - self._playground_size[0] / 2)
                 bottom_right_y = round(br_y - self._playground_size[1] / 2)
-                print("center_x = {}, center_y = {}"
-                      .format(center_x, center_y))
-                print("top_left_x = {}, top_left_y = {}"
-                      .format(top_left_x, top_left_y))
-                print("bottom_right_x = {}, bottom_right_y = {}"
-                      .format(bottom_right_x, bottom_right_y))
+                print("center_x = {}, center_y = {}  OR   center=({}, {})"
+                      .format(center_x, center_y, center_x, center_y))
+                print("top_left_x = {}, top_left_y = {}  OR   top_left=({}, {})"
+                      .format(top_left_x, top_left_y, top_left_x, top_left_y))
+                print("bottom_right_x = {}, bottom_right_y = {}  OR   bottom_right=({}, {})"
+                      .format(bottom_right_x, bottom_right_y, bottom_right_x, bottom_right_y))
 
             self.x_mouse_prev = self.x_mouse
             self.y_mouse_prev = self.y_mouse

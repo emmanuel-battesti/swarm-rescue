@@ -280,7 +280,7 @@ For example, you can use the free *community* version of [*PyCharm*](https://www
 
 If you have questions about the code and installation, you can contact:
 
-emmanuel . battesti at ensta-paris . fr
+emmanuel . battesti at ensta . fr
 
 Or use the discord server.
 
