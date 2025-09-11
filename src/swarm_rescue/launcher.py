@@ -2,28 +2,29 @@ import argparse
 import gc
 import os
 import sys
-from typing import Tuple, Optional
 import traceback
+from typing import Tuple, Optional, Any
 
-from spg_overlay.entities.sensor_disablers import ZoneType
-from spg_overlay.reporting.result_path_creator import ResultPathCreator
-from spg_overlay.utils.constants import DRONE_INITIAL_HEALTH
-from spg_overlay.reporting.evaluation import EvalConfig, EvalPlan, ZonesConfig
-from spg_overlay.reporting.score_manager import ScoreManager
-from spg_overlay.reporting.data_saver import DataSaver
-from spg_overlay.reporting.team_info import TeamInfo
-from spg_overlay.gui_map.gui_sr import GuiSR
+from swarm_rescue.simulation.elements.sensor_disablers import ZoneType
+from swarm_rescue.simulation.gui_map.gui_sr import GuiSR
+from swarm_rescue.simulation.reporting.data_saver import DataSaver
+from swarm_rescue.simulation.reporting.evaluation import EvalConfig, EvalPlan, ZonesConfig
+from swarm_rescue.simulation.reporting.result_path_creator import ResultPathCreator
+from swarm_rescue.simulation.reporting.score_manager import ScoreManager
+from swarm_rescue.simulation.reporting.team_info import TeamInfo
+from swarm_rescue.simulation.utils.constants import DRONE_INITIAL_HEALTH
 
-from maps.map_intermediate_01 import MyMapIntermediate01
-from maps.map_intermediate_02 import MyMapIntermediate02
-from maps.map_final_2022_23 import MyMapFinal2022_23
-from maps.map_medium_01 import MyMapMedium01
-from maps.map_medium_02 import MyMapMedium02
+from swarm_rescue.maps.map_intermediate_01 import MyMapIntermediate01
+from swarm_rescue.maps.map_intermediate_02 import MyMapIntermediate02
+from swarm_rescue.maps.map_final_2022_23 import MyMapFinal2022_23
+from swarm_rescue.maps.map_medium_01 import MyMapMedium01
+from swarm_rescue.maps.map_medium_02 import MyMapMedium02
 
 from solutions.my_drone_eval import MyDroneEval
 
 
 class MyDrone(MyDroneEval):
+    """Custom drone class for evaluation."""
     pass
 
 
@@ -37,25 +38,41 @@ class Launcher:
     calculates the score for the exploration of the map and saves the images
     and data related to the round.
 
-    Fields
-        nb_rounds: The number of rounds to run in the simulation.
-        team_info: An instance of the TeamInfo class that stores team
-        information.
-        number_drones: The number of drones in the simulation.
-        max_timestep_limit: The maximum number of time steps in the simulation.
-        max_walltime_limit: The maximum elapsed real time or walltime in the
-        simulation.
-        number_wounded_persons: The number of wounded persons in the simulation.
-        size_area: The size of the simulation area.
-        score_manager: An instance of the ScoreManager class that calculates
-        the final score.
-        data_saver: An instance of the DataSaver class that saves images and
-        data related to the simulation.
-        video_capture_enabled: A boolean indicating whether video capture is
-        enabled or not.
+    Attributes:
+        team_info (TeamInfo): Stores team information.
+        eval_plan (EvalPlan): The evaluation plan.
+        eval_plan_ok (bool): Whether the evaluation plan is valid.
+        number_drones (Optional[int]): Number of drones in the simulation.
+        max_timestep_limit (Optional[int]): Maximum number of time steps.
+        max_walltime_limit (Optional[int]): Maximum wall time.
+        number_wounded_persons (Optional[int]): Number of wounded persons.
+        size_area (Optional[Any]): Size of the simulation area.
+        score_manager (Optional[ScoreManager]): Score manager instance.
+        video_capture_enabled (bool): Whether video capture is enabled.
+        result_path (Optional[str]): Path for results.
+        data_saver (DataSaver): Data saver instance.
     """
 
-    def __init__(self, config_path: Optional[str] = None):
+    team_info: TeamInfo
+    eval_plan: EvalPlan
+    eval_plan_ok: bool
+    number_drones: Optional[int]
+    max_timestep_limit: Optional[int]
+    max_walltime_limit: Optional[int]
+    number_wounded_persons: Optional[int]
+    size_area: Optional[Any]
+    score_manager: Optional[ScoreManager]
+    video_capture_enabled: bool
+    result_path: Optional[str]
+    data_saver: DataSaver
+
+    def __init__(self, config_path: Optional[str] = None) -> None:
+        """
+        Initializes the Launcher.
+
+        Args:
+            config_path (Optional[str]): Path to YAML configuration file for evaluation plan.
+        """
         self.team_info = TeamInfo()
 
         # Create an EvalPlan from YAML configuration if provided
@@ -93,8 +110,10 @@ class Launcher:
                                     result_path=self.result_path,
                                     enabled=stat_saving_enabled)
 
-    def _setup_default_eval_plan(self):
-        """Set up the default evaluation plan configuration"""
+    def _setup_default_eval_plan(self) -> None:
+        """
+        Set up the default evaluation plan configuration.
+        """
         eval_config = EvalConfig(map_name="MyMapIntermediate01", nb_rounds=2)
         self.eval_plan.add(eval_config=eval_config)
 
@@ -113,15 +132,29 @@ class Launcher:
         eval_config = EvalConfig(map_name="MyMapMedium02", zones_config=zones_config, nb_rounds=1, config_weight=1)
         self.eval_plan.add(eval_config=eval_config)
 
-    def one_round(self, eval_config: EvalConfig, num_round: int, hide_solution_output: bool = False):
+    def one_round(
+        self,
+        eval_config: EvalConfig,
+        num_round: int,
+        hide_solution_output: bool = False
+    ) -> Optional[Tuple[float, float, int, int, float, int, float, float, bool, bool]]:
         """
-        The one_round method is responsible for running a single round of the
-        session. It creates an instance of the map class with the specified
+        Runs a single round of the session.
+
+        It creates an instance of the map class with the specified
         eval_config, constructs a playground using the construct_playground
         method of the map class, and initializes a GUI with the playground and
         map. It then runs the GUI, which allows the user to interact with.
         After the GUI finishes, it calculates the score for the exploration of
         the map and saves the images and data related to the round.
+
+        Args:
+            eval_config (EvalConfig): The evaluation configuration.
+            num_round (int): The round number.
+            hide_solution_output (bool): Whether to hide solution output.
+
+        Returns:
+            Optional[Tuple]: Various statistics and results from the round, or None if map class not found.
         """
 
         # Retrieve the class object from the global namespace using its name
@@ -134,7 +167,7 @@ class Launcher:
             return None
 
         # Instantiate the map class with the provided zones configuration
-        my_map = map_class(eval_config.zones_config)
+        my_map = map_class(drone_type=MyDrone, zones_config=eval_config.zones_config)
 
         self.number_drones = my_map.number_drones
         self.max_timestep_limit = my_map.max_timestep_limit
@@ -146,8 +179,6 @@ class Launcher:
                                           max_timestep_limit=self.max_timestep_limit,
                                           max_walltime_limit=self.max_walltime_limit,
                                           total_number_wounded_persons=self.number_wounded_persons)
-
-        my_playground = my_map.construct_playground(drone_type=MyDrone)
 
         num_round_str = str(num_round)
         if self.video_capture_enabled:
@@ -164,8 +195,7 @@ class Launcher:
         else:
             filename_video_capture = None
 
-        my_gui = GuiSR(playground=my_playground,
-                       the_map=my_map,
+        my_gui = GuiSR(the_map=my_map,
                        draw_interactive=False,
                        filename_video_capture=filename_video_capture)
 
@@ -221,10 +251,20 @@ class Launcher:
                 my_gui.is_max_walltime_limit_reached,
                 has_crashed)
 
-    def go(self, stop_at_first_crash: bool = False, hide_solution_output: bool = False):
+    def go(
+        self,
+        stop_at_first_crash: bool = False,
+        hide_solution_output: bool = False
+    ) -> bool:
         """
-        The go method in the Launcher class is responsible for running the simulation for different eval_config,
-         and calculating the score for each one.
+        Runs the simulation for all evaluation configurations and calculates scores.
+
+        Args:
+            stop_at_first_crash (bool): Stop at the first crash if True.
+            hide_solution_output (bool): Hide solution output if True.
+
+        Returns:
+            bool: True if all rounds completed successfully, False if any crashed.
         """
         ok = True
 
@@ -309,6 +349,6 @@ if __name__ == "__main__":
 
     launcher = Launcher(config_path=args.config)
     success = launcher.go(stop_at_first_crash=args.stop_at_first_crash,
-                     hide_solution_output=args.hide_solution_output)
+                          hide_solution_output=args.hide_solution_output)
     if not success:
         exit(1)

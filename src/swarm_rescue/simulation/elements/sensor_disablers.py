@@ -1,0 +1,174 @@
+from enum import IntEnum, auto
+from typing import List, Optional, Type, Union, Tuple
+
+import arcade
+import pymunk
+from PIL import Image
+from PIL import ImageDraw
+
+from swarm_rescue.simulation.drone.communicator import Communicator
+from swarm_rescue.simulation.drone.device import Device
+from swarm_rescue.simulation.drone.drone_sensors import DroneGPS, DroneCompass
+from swarm_rescue.simulation.elements.interactive_zone import InteractiveZone
+from swarm_rescue.simulation.elements.scene_element import SceneElement
+from swarm_rescue.simulation.gui_map.collision_handlers import get_colliding_entities
+from swarm_rescue.simulation.gui_map.playground import Playground
+from swarm_rescue.simulation.utils.definitions import CollisionTypes
+
+
+class ZoneType(IntEnum):
+    """
+    Enumeration of disabling zone types.
+    """
+    NO_COM_ZONE = auto()
+    NO_GPS_ZONE = auto()
+    KILL_ZONE = auto()
+
+
+def srdisabler_disables_device(arbiter: pymunk.Arbiter, _, data) -> bool:
+    """
+    Handles the collision between a device and a disabler zone.
+
+    Args:
+        arbiter (pymunk.Arbiter): The collision arbiter.
+        _ : Unused.
+        data: Dictionary containing the playground.
+
+    Returns:
+        bool: True to continue processing the collision.
+    """
+    playground: Playground = data["playground"]
+    disabler, device = get_colliding_entities(playground, arbiter)
+
+    assert isinstance(device, Device)
+    assert isinstance(disabler, SRDisabler)
+
+    disabler.disable(device)
+
+    return True
+
+
+class SRDisabler(InteractiveZone, SceneElement):
+    """
+    Zone that disables certain devices when they collide with it.
+    Used to create disabling zones for GPS, communication, or all devices.
+    """
+
+    def __init__(
+        self,
+        disable_cls: List[Type[Device]],
+        size: Optional[Tuple[int, int]] = None,
+        color: Union[str, int, Tuple[int, int, int], Tuple[int, int, int, int]] = (0, 0, 0),
+        text_to_draw: Optional[str] = None
+    ):
+        """
+        Initialize the SRDisabler.
+
+        Args:
+            disable_cls (List[Type[Device]]): List of device classes to disable.
+            size (Optional[Tuple[int, int]]): Size of the zone.
+            color: Color of the zone.
+            text_to_draw (Optional[str]): Text to display on the zone.
+        """
+        if size is None:
+            size = (0, 0)
+
+        width, height = size
+
+        img = Image.new("RGBA", (int(width), int(height)), color)
+
+        if text_to_draw is not None:
+            # Call Draw method to add 2D graphics in an image
+            img_draw = ImageDraw.Draw(img)
+            # font = ImageFont.truetype('font.ttf', 25)
+            # Add text to an image
+            img_draw.text((5, 5), text_to_draw, fill=(0, 0, 0))
+
+        texture = arcade.Texture(
+            name=f"Disabler_{width}_{height}_{color}",
+            image=img,
+            hit_box_algorithm="Simple",
+            hit_box_detail=1,
+        )
+        super().__init__(texture=texture)
+
+        self._disable_cls = disable_cls
+
+    @property
+    def _collision_type(self) -> int:
+        """
+        Returns the collision type for the disabler zone.
+        """
+        return CollisionTypes.DISABLER_ZONE
+
+    def disable(self, device: Device) -> None:
+        """
+        Disable the device if it matches any of the specified classes.
+
+        Args:
+            device (Device): The device to disable.
+        """
+        for disabled_device in self._disable_cls:
+            if isinstance(device, disabled_device):
+                device.disable()
+
+
+class NoGpsZone(SRDisabler):
+    """
+    Zone that disables GPS and compass sensors of a drone.
+    """
+
+    def __init__(self, size: Optional[Tuple[int, int]]):
+        """
+        Initialize the NoGpsZone.
+
+        Args:
+            size (Optional[Tuple[int, int]]): Size of the zone.
+        """
+        super().__init__(
+            disable_cls=[DroneGPS, DroneCompass],
+            size=size,
+            color="grey",
+            text_to_draw="No GPS Zone"
+        )
+
+
+class NoComZone(SRDisabler):
+    """
+    Zone that disables the Communicator device.
+    """
+
+    def __init__(self, size: Optional[Tuple[int, int]]):
+        """
+        Initialize the NoComZone.
+
+        Args:
+            size (Optional[Tuple[int, int]]): Size of the zone.
+        """
+        super().__init__(
+            disable_cls=[Communicator],
+            size=size,
+            color="yellow",
+            text_to_draw="No Com Zone"
+        )
+
+
+class KillZone(SRDisabler):
+    """
+    Zone that disables all devices when they collide with it ("kill zone").
+    """
+
+    def __init__(self, size: Optional[Tuple[int, int]]):
+        """
+        Initialize the KillZone.
+
+        Args:
+            size (Optional[Tuple[int, int]]): Size of the zone.
+        """
+        super().__init__(
+            disable_cls=[Device],
+            size=size,
+            color="HotPink",
+            text_to_draw="Kill Zone"
+        )
+

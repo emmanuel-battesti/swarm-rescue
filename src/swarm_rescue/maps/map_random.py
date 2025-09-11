@@ -1,30 +1,28 @@
 import math
+import pathlib
 import random
 import sys
-from pathlib import Path
 from typing import List, Type
 
 # Insert the parent directory of the current file's directory into sys.path.
 # This allows Python to locate modules that are one level above the current
-# script, in this case spg_overlay.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# script, in this case simulation.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from spg.playground import Playground
-
-from spg_overlay.entities.drone_abstract import DroneAbstract
-from spg_overlay.entities.drone_motionless import DroneMotionless
-from spg_overlay.entities.wounded_person import WoundedPerson
-from spg_overlay.gui_map.closed_playground import ClosedPlayground
-from spg_overlay.gui_map.gui_sr import GuiSR
-from spg_overlay.gui_map.map_abstract import MapAbstract
-from spg_overlay.reporting.evaluation import ZonesConfig
-from spg_overlay.utils.misc_data import MiscData
+from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
+from swarm_rescue.simulation.elements.drone_motionless import DroneMotionless
+from swarm_rescue.simulation.elements.wounded_person import WoundedPerson
+from swarm_rescue.simulation.gui_map.closed_playground import ClosedPlayground
+from swarm_rescue.simulation.gui_map.gui_sr import GuiSR
+from swarm_rescue.simulation.gui_map.map_abstract import MapAbstract
+from swarm_rescue.simulation.reporting.evaluation import ZonesConfig
+from swarm_rescue.simulation.utils.misc_data import MiscData
 
 
 class MyMapRandom(MapAbstract):
 
-    def __init__(self, zones_config: ZonesConfig = ()):
-        super().__init__(zones_config)
+    def __init__(self, drone_type: Type[DroneAbstract], zones_config: ZonesConfig = ()):
+        super().__init__(drone_type, zones_config)
         self._number_drones = 10
         self._max_timestep_limit = 480
         self._max_walltime_limit = 22  # In seconds
@@ -32,10 +30,9 @@ class MyMapRandom(MapAbstract):
         self._wounded_persons: List[WoundedPerson] = []
         self._drones: List[DroneAbstract] = []
 
-    def construct_playground(self, drone_type: Type[DroneAbstract]) -> Playground:
-        playground = ClosedPlayground(size=self._size_area)
+        self._playground = ClosedPlayground(size=self._size_area)
 
-        self._explored_map.initialize_walls(playground)
+        self._explored_map.initialize_walls(self._playground)
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
@@ -48,17 +45,13 @@ class MyMapRandom(MapAbstract):
             angle = random.uniform(-math.pi, math.pi)
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
-            playground.add(drone, ((x, y), angle))
-
-        return playground
+            self._playground.add(drone, ((x, y), angle))
 
 
 if __name__ == '__main__':
-    my_map = MyMapRandom()
-    my_playground = my_map.construct_playground(drone_type=DroneMotionless)
+    my_map = MyMapRandom(drone_type=DroneMotionless)
 
-    gui = GuiSR(playground=my_playground,
-                the_map=my_map,
+    gui = GuiSR(the_map=my_map,
                 use_mouse_measure=True,
                 )
     gui.run()

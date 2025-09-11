@@ -1,6 +1,6 @@
 import time
 
-from spg_overlay.utils.timer import Timer
+from swarm_rescue.simulation.utils.timer import Timer
 
 
 def test_start_timer():

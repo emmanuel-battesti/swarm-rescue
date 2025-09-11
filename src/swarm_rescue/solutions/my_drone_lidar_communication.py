@@ -1,43 +1,61 @@
 import math
 from copy import deepcopy
-from typing import Optional
+from typing import Optional, Tuple, Dict, Any
 
 import numpy as np
 
-from spg_overlay.entities.drone_abstract import DroneAbstract
-from spg_overlay.utils.misc_data import MiscData
-from spg_overlay.utils.utils import normalize_angle, sign
-
+from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
+from swarm_rescue.simulation.utils.misc_data import MiscData
+from swarm_rescue.simulation.utils.utils import normalize_angle, sign
+from swarm_rescue.simulation.drone.controller import CommandsDict
 
 class MyDroneLidarCommunication(DroneAbstract):
+    """
+    Drone controller using lidar and communication for swarm-like behavior.
+    """
+
     def __init__(self,
                  identifier: Optional[int] = None,
                  misc_data: Optional[MiscData] = None,
                  **kwargs):
+        """
+        Initialize the drone with optional identifier and misc_data.
+
+        Args:
+            identifier (Optional[int]): Drone identifier.
+            misc_data (Optional[MiscData]): Miscellaneous data.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(identifier=identifier,
                          misc_data=misc_data,
                          display_lidar_graph=False,
                          **kwargs)
 
-    def define_message_for_all(self):
+    def define_message_for_all(self) -> Tuple[Optional[int], Tuple[Any, Any]]:
         """
         Define the message, the drone will send to and receive from other surrounding drones.
+
+        Returns:
+            Tuple[Optional[int], Tuple[Any, Any]]: The message data.
         """
         msg_data = (self.identifier,
                     (self.measured_gps_position(), self.measured_compass_angle()))
         return msg_data
 
-    def control(self):
+    def control(self) -> CommandsDict:
         """
         In this example, we only use the sensors sensor and the communication to move the drone
         The idea is to make the drones move like a school of fish.
         The sensors will help avoid running into walls.
         The communication will allow to know the position of the drones in the vicinity, to then correct its own
         position to stay at a certain distance and have the same orientation.
+
+        Returns:
+            CommandsDict: The control commands for the drone.
         """
-        command = {"forward": 0.0,
-                   "lateral": 0.0,
-                   "rotation": 0.0}
+        command: CommandsDict = {"forward": 0.0,
+                                 "lateral": 0.0,
+                                 "rotation": 0.0}
 
         command_lidar, collision_lidar = self.process_lidar_sensor(self.lidar())
         found, command_comm = self.process_communication_sensor()
@@ -48,7 +66,7 @@ class MyDroneLidarCommunication(DroneAbstract):
         if collision_lidar:
             alpha_rot = 0.1
 
-        # The final command  is a combination of 2 commands
+        # The final command is a combination of 2 commands
         command["forward"] = \
             alpha * command_comm["forward"] \
             + (1 - alpha) * command_lidar["forward"]
@@ -61,7 +79,16 @@ class MyDroneLidarCommunication(DroneAbstract):
 
         return command
 
-    def process_lidar_sensor(self, the_lidar_sensor):
+    def process_lidar_sensor(self, the_lidar_sensor) -> Tuple[Dict[str, float], bool]:
+        """
+        Processes the lidar sensor to avoid obstacles.
+
+        Args:
+            the_lidar_sensor: The lidar sensor object.
+
+        Returns:
+            Tuple[Dict[str, float], bool]: The command and collision status.
+        """
         command = {"forward": 1.0,
                    "lateral": 0.0,
                    "rotation": 0.0}
@@ -113,7 +140,13 @@ class MyDroneLidarCommunication(DroneAbstract):
 
         return command, collision
 
-    def process_communication_sensor(self):
+    def process_communication_sensor(self) -> Tuple[bool, Dict[str, float]]:
+        """
+        Processes communication messages to align and space drones.
+
+        Returns:
+            Tuple[bool, Dict[str, float]]: Whether a drone was found and the command.
+        """
         found_drone = False
         command_comm = {"forward": 0.0,
                         "lateral": 0.0,
@@ -225,3 +258,4 @@ class MyDroneLidarCommunication(DroneAbstract):
                 command_comm["lateral"] = 0.5 * (lat1 + lat2)
 
         return found_drone, command_comm
+

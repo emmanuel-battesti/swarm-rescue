@@ -2,7 +2,7 @@ import numpy as np
 
 import pytest
 
-from spg_overlay.entities.drone_distance_sensors import compute_ray_angles
+from swarm_rescue.simulation.elements.distance_sensor import compute_ray_angles
 
 
 class TestComputeRayAngles:

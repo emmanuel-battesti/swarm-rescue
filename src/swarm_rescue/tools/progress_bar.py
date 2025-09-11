@@ -3,18 +3,22 @@ import sys
 
 def print_progress_bar(index: float, total: float, label: str):
     """
-    The print_progress_bar function is used to display a progress bar in the
-    console. It takes three inputs: index, total, and label. The function
-    calculates the progress percentage based on the current index and total,
+    Displays a progress bar in the console.
+
+    The function calculates the progress percentage based on the current index and total,
     and then prints a progress bar with the corresponding percentage and label.
 
     Example Usage
         print_progress_bar(3, 10, "Processing")  # [====      ] 30%  Processing
 
-    Inputs
+    Args:
         index (float): The current index or position in the progress.
         total (float): The total number of items or steps in the progress.
         label (str): The label or description of the progress.
+
+    Raises:
+        ValueError: If index is less than zero.
+        TypeError: If label is not a string.
     """
 
     if index > total:

@@ -1,10 +1,10 @@
 from typing import List, Type
 
-from spg_overlay.entities.drone_abstract import DroneAbstract
-from spg_overlay.gui_map.closed_playground import ClosedPlayground
-from spg_overlay.gui_map.map_abstract import MapAbstract
-from spg_overlay.reporting.explored_map import ExploredMap
-from spg_overlay.utils.misc_data import MiscData
+from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
+from swarm_rescue.simulation.gui_map.closed_playground import ClosedPlayground
+from swarm_rescue.simulation.gui_map.map_abstract import MapAbstract
+from swarm_rescue.simulation.reporting.explored_map import ExploredMap
+from swarm_rescue.simulation.utils.misc_data import MiscData
 
 
 class MyDrone(DroneAbstract):
@@ -23,8 +23,8 @@ class MyDrone(DroneAbstract):
 
 
 class MyMap(MapAbstract):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, drone_type: Type[DroneAbstract]):
+        super().__init__(drone_type=drone_type)
 
         # PARAMETERS MAP
         self._size_area = (200, 200)
@@ -36,8 +36,7 @@ class MyMap(MapAbstract):
 
         self._drones: List[DroneAbstract] = []
 
-    def construct_playground(self, drone_type: Type[DroneAbstract]):
-        playground = ClosedPlayground(size=self._size_area)
+        self._playground = ClosedPlayground(size=self._size_area)
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
@@ -47,14 +46,11 @@ class MyMap(MapAbstract):
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
-            playground.add(drone, self._drones_pos[i])
-
-        return playground
+            self._playground.add(drone, self._drones_pos[i])
 
 
 def test_initialize_explored_map_with_default_values():
-    my_map = MyMap()
-    playground = my_map.construct_playground(drone_type=MyDrone)
+    my_map = MyMap(drone_type=MyDrone)
     explored_map = ExploredMap()
     assert explored_map.initialized is False
     assert explored_map._img_playground.shape == (0, 0)
@@ -67,21 +63,20 @@ def test_initialize_explored_map_with_default_values():
     # assert explored_map._count_pixel_explored == 0
     assert explored_map._count_pixel_total == 0
 
-    drones = [playground.agents]
+    drones = [my_map.playground.agents]
     explored_map.update_drones(drones)
     assert explored_map.initialized is False
 
 
 def test_reset_explored_map():
-    my_map = MyMap()
-    playground = my_map.construct_playground(drone_type=MyDrone)
+    my_map = MyMap(drone_type=MyDrone)
 
     for _ in range(1):
-        playground.step()
+        my_map.playground.step()
 
     explored_map = ExploredMap()
     drones = my_map.drones
-    explored_map.initialize_walls(playground)
+    explored_map.initialize_walls(my_map.playground)
     explored_map.update_drones(drones)
     explored_map.score()
     assert explored_map._explo_pts != {}

@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from spg_overlay.utils.utils import (normalize_angle, sign,
-                                     circular_mean, bresenham)
+from swarm_rescue.simulation.utils.utils import (normalize_angle, sign,
+                                    circular_mean, bresenham)
 
 
 def test_normalize_angle():

@@ -1,10 +1,19 @@
 import cv2
 import numpy as np
 
-from tools.progress_bar import print_progress_bar
+from swarm_rescue.tools.progress_bar import print_progress_bar
 
 
 def wall_width_correction(image_source: cv2.Mat) -> cv2.Mat:
+    """
+    Corrects the width of wall segments in a binary image to a standard width.
+
+    Args:
+        image_source (cv2.Mat): The input binary image.
+
+    Returns:
+        cv2.Mat: The corrected image with standardized wall widths.
+    """
     img = image_source.copy()
     rows, cols = img.shape
     # imgTarget = np.zeros((rows, cols), np.uint8)
@@ -102,6 +111,15 @@ def wall_width_correction(image_source: cv2.Mat) -> cv2.Mat:
 
 
 def remove_white_patch(image_source: cv2.Mat) -> cv2.Mat:
+    """
+    Removes small white patches from a binary image.
+
+    Args:
+        image_source (cv2.Mat): The input binary image.
+
+    Returns:
+        cv2.Mat: The image with small white patches removed.
+    """
     img = image_source.copy()
     rows, cols = img.shape
 
@@ -176,6 +194,15 @@ def remove_white_patch(image_source: cv2.Mat) -> cv2.Mat:
 
 
 def remove_black_patch(image_source: cv2.Mat) -> cv2.Mat:
+    """
+    Removes small black patches from a binary image.
+
+    Args:
+        image_source (cv2.Mat): The input binary image.
+
+    Returns:
+        cv2.Mat: The image with small black patches removed.
+    """
     img = image_source.copy()
     rows, cols = img.shape
 
@@ -250,6 +277,15 @@ def remove_black_patch(image_source: cv2.Mat) -> cv2.Mat:
 
 
 def remove_noise(image_source: cv2.Mat) -> cv2.Mat:
+    """
+    Removes noise from a binary image using morphological operations.
+
+    Args:
+        image_source (cv2.Mat): The input binary image.
+
+    Returns:
+        cv2.Mat: The denoised image.
+    """
     # Remove white pixels noise
     size_kernel = 10
     kernel = np.ones((size_kernel, size_kernel), np.uint8)
@@ -279,6 +315,15 @@ def remove_noise(image_source: cv2.Mat) -> cv2.Mat:
 
 
 def image_cleaning(image_source: cv2.Mat) -> cv2.Mat:
+    """
+    Cleans the input image by correcting wall widths.
+
+    Args:
+        image_source (cv2.Mat): The input binary image.
+
+    Returns:
+        cv2.Mat: The cleaned image.
+    """
     img_clean = wall_width_correction(image_source)
     return img_clean
 

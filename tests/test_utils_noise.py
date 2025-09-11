@@ -3,7 +3,7 @@ import numpy as np
 
 import pytest
 
-from spg_overlay.utils.utils_noise import vector_gaussian_noise, GaussianNoise
+from swarm_rescue.simulation.utils.utils_noise import vector_gaussian_noise, GaussianNoise
 
 
 class TestVectorGaussianNoise:

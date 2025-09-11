@@ -1,4 +1,4 @@
-from spg_overlay.entities.normal_wall import SrColorWall
+from swarm_rescue.simulation.elements.normal_wall import SrColorWall
 
 
 class TestSrColorWall:

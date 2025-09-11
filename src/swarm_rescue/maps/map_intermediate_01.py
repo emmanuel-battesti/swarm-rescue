@@ -1,38 +1,37 @@
 import gc
 import math
+import pathlib
 import random
 import sys
-from pathlib import Path
 from typing import List, Type
+
 import numpy as np
 
 # Insert the parent directory of the current file's directory into sys.path.
 # This allows Python to locate modules that are one level above the current
-# script, in this case spg_overlay.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# script, in this case simulation.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from spg.playground import Playground
+from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
+from swarm_rescue.simulation.drone.drone_motionless import DroneMotionless
+from swarm_rescue.simulation.elements.rescue_center import RescueCenter
+from swarm_rescue.simulation.elements.return_area import ReturnArea
+from swarm_rescue.simulation.elements.sensor_disablers import ZoneType, NoGpsZone
+from swarm_rescue.simulation.elements.wounded_person import WoundedPerson
+from swarm_rescue.simulation.gui_map.closed_playground import ClosedPlayground
+from swarm_rescue.simulation.gui_map.gui_sr import GuiSR
+from swarm_rescue.simulation.gui_map.map_abstract import MapAbstract
+from swarm_rescue.simulation.reporting.evaluation import ZonesConfig, EvalPlan, EvalConfig
+from swarm_rescue.simulation.utils.misc_data import MiscData
+from swarm_rescue.simulation.utils.pose import Pose
 
-from spg_overlay.entities.drone_abstract import DroneAbstract
-from spg_overlay.entities.drone_motionless import DroneMotionless
-from spg_overlay.entities.rescue_center import RescueCenter
-from spg_overlay.entities.return_area import ReturnArea
-from spg_overlay.entities.sensor_disablers import ZoneType, NoGpsZone
-from spg_overlay.entities.wounded_person import WoundedPerson
-from spg_overlay.gui_map.closed_playground import ClosedPlayground
-from spg_overlay.gui_map.gui_sr import GuiSR
-from spg_overlay.gui_map.map_abstract import MapAbstract
-from spg_overlay.reporting.evaluation import ZonesConfig, EvalPlan, EvalConfig
-from spg_overlay.utils.misc_data import MiscData
-from spg_overlay.utils.pose import Pose
-
-from maps.walls_intermediate_map_1 import add_walls, add_boxes
+from swarm_rescue.maps.walls_intermediate_map_1 import add_walls, add_boxes
 
 
 class MyMapIntermediate01(MapAbstract):
 
-    def __init__(self, zones_config: ZonesConfig = ()):
-        super().__init__(zones_config)
+    def __init__(self, drone_type: Type[DroneAbstract], zones_config: ZonesConfig = ()):
+        super().__init__(drone_type, zones_config)
         self._max_timestep_limit = 2700
         self._max_walltime_limit = 540
 
@@ -58,27 +57,26 @@ class MyMapIntermediate01(MapAbstract):
         self._number_drones = len(self._drones_pos)
         self._drones: List[DroneAbstract] = []
 
-    def construct_playground(self, drone_type: Type[DroneAbstract]) -> Playground:
-        playground = ClosedPlayground(size=self._size_area)
+        self._playground = ClosedPlayground(size=self._size_area)
 
-        playground.add(self._return_area, self._return_area_pos)
-        playground.add(self._rescue_center, self._rescue_center_pos)
+        self._playground.add(self._return_area, self._return_area_pos)
+        self._playground.add(self._rescue_center, self._rescue_center_pos)
 
-        add_walls(playground)
-        add_boxes(playground)
+        add_walls(self._playground)
+        add_boxes(self._playground)
 
-        self._explored_map.initialize_walls(playground)
+        self._explored_map.initialize_walls(self._playground)
 
         # DISABLER ZONES
         if ZoneType.NO_GPS_ZONE in self._zones_config:
-            playground.add(self._no_gps_zone, self._no_gps_zone_pos)
+            self._playground.add(self._no_gps_zone, self._no_gps_zone_pos)
 
         # POSITIONS OF THE WOUNDED PERSONS
         for i in range(self._number_wounded_persons):
             wounded_person = WoundedPerson(rescue_center=self._rescue_center)
             self._wounded_persons.append(wounded_person)
             init_pos = (self._wounded_persons_pos[i], 0)
-            playground.add(wounded_person, init_pos)
+            self._playground.add(wounded_person, init_pos)
 
             list_path = self._wounded_persons_path[i]
             wounded_person.add_pose_to_path(Pose(np.array(init_pos[0])))
@@ -93,9 +91,7 @@ class MyMapIntermediate01(MapAbstract):
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
-            playground.add(drone, self._drones_pos[i])
-
-        return playground
+            self._playground.add(drone, self._drones_pos[i])
 
 
 def main():
@@ -115,12 +111,9 @@ def main():
         # Retrieve the class object from the global namespace using its name
         map_class = globals().get(one_eval.map_name)
         # Instantiate the map class with the provided zones configuration
-        my_map = map_class(one_eval.zones_config)
+        my_map = map_class(drone_type=DroneMotionless, zones_config=one_eval.zones_config)
 
-        my_playground = my_map.construct_playground(drone_type=DroneMotionless)
-
-        gui = GuiSR(playground=my_playground,
-                    the_map=my_map,
+        gui = GuiSR(the_map=my_map,
                     use_mouse_measure=True,
                     )
         gui.run()

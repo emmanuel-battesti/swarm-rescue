@@ -4,10 +4,10 @@ import numpy as np
 
 from typing import List, Type
 
-from spg_overlay.entities.drone_abstract import DroneAbstract
-from spg_overlay.gui_map.closed_playground import ClosedPlayground
-from spg_overlay.gui_map.map_abstract import MapAbstract
-from spg_overlay.utils.misc_data import MiscData
+from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
+from swarm_rescue.simulation.gui_map.closed_playground import ClosedPlayground
+from swarm_rescue.simulation.gui_map.map_abstract import MapAbstract
+from swarm_rescue.simulation.utils.misc_data import MiscData
 
 
 class MyDrone(DroneAbstract):
@@ -26,8 +26,8 @@ class MyDrone(DroneAbstract):
 
 
 class MyMap(MapAbstract):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, drone_type: Type[DroneAbstract]):
+        super().__init__(drone_type=drone_type)
 
         # PARAMETERS MAP
         self._size_area = (200, 200)
@@ -37,8 +37,7 @@ class MyMap(MapAbstract):
         self._drones_pos = [((0, 0), 0)]
         self._drones: List[DroneAbstract] = []
 
-    def construct_playground(self, drone_type: Type[DroneAbstract]):
-        playground = ClosedPlayground(size=self._size_area)
+        self._playground = ClosedPlayground(size=self._size_area)
 
         # POSITIONS OF THE DRONES
         misc_data = MiscData(size_area=self._size_area,
@@ -48,9 +47,7 @@ class MyMap(MapAbstract):
         for i in range(self._number_drones):
             drone = drone_type(identifier=i, misc_data=misc_data)
             self._drones.append(drone)
-            playground.add(drone, self._drones_pos[i])
-
-        return playground
+            self._playground.add(drone, self._drones_pos[i])
 
 
 def test_move():

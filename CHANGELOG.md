@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.0.0] - 2025-09-11
+
+### Changed
+- Big change: we don't use the library simple-playground anymore. His code is now directly integrated in swarm-rescue. So, swarm-rescue is now independent of simple-playground.
+- Simplification of the architecture of the code.
+- Change of some function names
+- Change of some class names
+- Change of some file names
+- Change of some directory names
+
 ## [4.1.0] - 2025-09-11
 
 ### Changed
@@ -298,7 +308,10 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.3...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.0.0...HEAD
+[5.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.1.0...v5.0.0
+[4.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.4...v4.1.0
+[4.0.4]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.3...v4.0.4
 [4.0.3]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.2...v4.0.3
 [4.0.2]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.1...v4.0.2
 [4.0.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.0...v4.0.1
