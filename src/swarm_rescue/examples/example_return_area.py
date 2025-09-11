@@ -38,9 +38,6 @@ class MyDrone(DroneAbstract):
         pass
 
     def control(self):
-        command = {"forward": 0.0,
-                   "rotation": 0.0}
-
         self.counter += 1
         if self.counter % self.counter_change_direction == 0:
             self.to_the_right = not self.to_the_right

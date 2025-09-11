@@ -79,7 +79,6 @@ class VisuNoises:
         self._scr_pos_true.clear()
 
     def draw(self, enable: bool = True):
-
         if not enable:
             return
 

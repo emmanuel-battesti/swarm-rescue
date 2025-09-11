@@ -3,6 +3,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [4.1.0] - 2025-09-11
+
+### Changed
+- Now, some files define the "eval plans" : map name, number of rounds, configuration weight, zones configuration. Those files are in the directory config.
+
+## [4.0.4] - 2025-06-26
+
+### Changed
+- Improve image_to_map tool
+- Improve measurement tool
+
+### Fixed
+- Fixed bug: if the wounded were dropped just before the rescue center, they were not counted when they disappeared inside it
+- Added arcade version 2.6.17 in requirements.txt
+
 ## [4.0.3] - 2024-12-04
 
 ### Added

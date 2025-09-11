@@ -126,7 +126,7 @@ class MyMapFinal2022_23(MapAbstract):
         return playground
 
 
-if __name__ == '__main__':
+def main():
     my_map = MyMapFinal2022_23()
     my_playground = my_map.construct_playground(drone_type=DroneMotionless)
 
@@ -135,3 +135,7 @@ if __name__ == '__main__':
                 use_mouse_measure=True,
                 )
     gui.run()
+
+
+if __name__ == '__main__':
+    main()

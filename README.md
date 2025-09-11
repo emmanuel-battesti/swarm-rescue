@@ -53,7 +53,6 @@ To calculate the score, the following elements will be taken into account:
 
 This program *Swarm-Rescue* is an extension of the *Simple-Playgrounds* (SPG) software library: [https://github.com/mgarciaortiz/simple-playgrounds](https://github.com/mgarciaortiz/simple-playgrounds). However, in the current installation of *Swarm-Rescue*, it is the branch *swarm-rescue-v3* of a fork of *Simple-Playgrounds* that is used: [https://github.com/emmanuel-battesti/simple-playgrounds/tree/swarm-rescue-v3](https://github.com/emmanuel-battesti/simple-playgrounds/tree/swarm-rescue-v3).
 
-
 It is recommended to read the [documentation of *Simple-Playgrounds*](https://github.com/emmanuel-battesti/simple-playgrounds/tree/swarm-rescue-v3).
 
 *Simple-Playgrounds* is an easy-to-use, fast and flexible simulation environment. It bridges the gap between simple and efficient grid environments, and complex and challenging 3D environments. It proposes a large diversity of environments for embodied drones learning through physical interactions. The playgrounds are 2D environments where drones can move around and interact with scene elements.
@@ -66,8 +65,7 @@ In *Simple-Playgrounds*, the game engine used is *Arcade*. Drones enter a Playgr
 
 ## Physics Engine
 
-In *Simple-Playgrounds*, the 2d physics library *Pymunk* is used. The physic engine deals with simple physics, such as collision and friction. This gives a mass and inertia to all objects.
-
+In *Simple-Playgrounds*, the 2D physics library *Pymunk* is used. The physics engine handles simple physics, such as collision and friction. This gives a mass and inertia to all objects.
 
 # Installation
 
@@ -104,7 +102,7 @@ It emulates a lidar.
 - *max range* (maximum range of the sensor): 300 pixels
 
 A gaussian noise has been added to the distance.
-As the *fov* is 360°, the first (at -Pi rad) and the last value (at Pi) should be the same.
+As the *field of view* (fov) is 360°, the first (at -Pi rad) and the last value (at Pi) should be the same.
 
 You can find an example of lidar use in the *solutions/my_drone_lidar_communication.py* file.
 
@@ -288,22 +286,22 @@ For example:
 ```python
 	self.eval_plan = EvalPlan()
 
-	eval_config = EvalConfig(map_type=MyMapIntermediate01, nb_rounds=2)
+	eval_config = EvalConfig(map_name="MyMapIntermediate01", nb_rounds=2)
 	self.eval_plan.add(eval_config=eval_config)
 
-	eval_config = EvalConfig(map_type=MyMapIntermediate02)
+	eval_config = EvalConfig(map_name="MyMapIntermediate02")
 	self.eval_plan.add(eval_config=eval_config)
 
 	zones_config: ZonesConfig = ()
-	eval_config = EvalConfig(map_type=MyMapMedium01, zones_config=zones_config, nb_rounds=1, config_weight=1)
+	eval_config = EvalConfig(map_name="MyMapMedium01", zones_config=zones_config, nb_rounds=1, config_weight=1)
 	self.eval_plan.add(eval_config=eval_config)
 
 	zones_config: ZonesConfig = (ZoneType.NO_COM_ZONE, ZoneType.NO_GPS_ZONE, ZoneType.KILL_ZONE)
-	eval_config = EvalConfig(map_type=MyMapMedium01, zones_config=zones_config, nb_rounds=1, config_weight=1)
+	eval_config = EvalConfig(map_name="MyMapMedium01", zones_config=zones_config, nb_rounds=1, config_weight=1)
 	self.eval_plan.add(eval_config=eval_config)
 
 	zones_config: ZonesConfig = (ZoneType.NO_COM_ZONE, ZoneType.NO_GPS_ZONE, ZoneType.KILL_ZONE)
-	eval_config = EvalConfig(map_type=MyMapMedium02, zones_config=zones_config, nb_rounds=1, config_weight=1)
+	eval_config = EvalConfig(map_name="MyMapMedium02", zones_config=zones_config, nb_rounds=1, config_weight=1)
 	self.eval_plan.add(eval_config=eval_config)
 ```
 

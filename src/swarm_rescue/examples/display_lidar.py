@@ -57,7 +57,7 @@ class MyMapLidar(MapAbstract):
         self._rescue_center_pos = ((440, 315), 0)
 
         self._number_drones = 1
-        self._drones_pos = [((-50, 0), 0)]
+        self._drones_pos = [((-50, 0), 3.1415/2)]
         self._drones = []
 
     def construct_playground(self, drone_type: Type[DroneAbstract]) \

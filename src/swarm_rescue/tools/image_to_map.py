@@ -79,7 +79,6 @@ class ImageToMap:
             # Détection des blobs.
             keypoints = detector.detect(scaled_mask_people)
         else:
-            scaled_mask_people = mask_people
             keypoints = []
 
         print("Code to add in map_xxx.py:")
@@ -217,7 +216,7 @@ class ImageToMap:
         cv2.imshow("img_erode", img_erode)
 
         self.lines = fld.detect(img_erode)
-        self.lines_corrected = self.align_segments(self.lines)
+        lines_corrected = self.align_segments(self.lines)
         result_img = fld.drawSegments(self._img_src_walls, self.lines)
         cv2.imshow("result_img", result_img)
 
@@ -225,7 +224,7 @@ class ImageToMap:
                                      self._img_src_walls.shape[1], 3),
                                     dtype=np.uint8)
 
-        for line in self.lines_corrected:
+        for line in lines_corrected:
             x0 = int(round(line[0][0]))
             y0 = int(round(line[0][1]))
             x1 = int(round(line[0][2]))
@@ -256,7 +255,7 @@ class ImageToMap:
 
         cv2.waitKey(0)
 
-        self.lines = self.lines_corrected
+        self.lines = lines_corrected
 
     def align_segments(self, segments, distance_threshold=5, endpoint_threshold=10):
         """

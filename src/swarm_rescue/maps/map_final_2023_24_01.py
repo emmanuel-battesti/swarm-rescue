@@ -112,21 +112,24 @@ class MyMapFinal_2023_24_01(MapAbstract):
         return playground
 
 
-if __name__ == '__main__':
+def main():
     eval_plan = EvalPlan()
 
     zones_config: ZonesConfig = ()
-    eval_config = EvalConfig(map_type=MyMapFinal_2023_24_01, zones_config=zones_config, nb_rounds=2)
+    eval_config = EvalConfig(map_name="MyMqpFinal_2023_24_01", zones_config=zones_config, nb_rounds=2)
     eval_plan.add(eval_config=eval_config)
 
     zones_config: ZonesConfig = (ZoneType.NO_COM_ZONE,)
-    eval_config = EvalConfig(map_type=MyMapFinal_2023_24_01, zones_config=zones_config, nb_rounds=2)
+    eval_config = EvalConfig(map_name="MyMapFinal_2023_24_01", zones_config=zones_config, nb_rounds=2)
     eval_plan.add(eval_config=eval_config)
 
     for one_eval in eval_plan.list_eval_config:
         gc.collect()
 
-        my_map = one_eval.map_type(one_eval.zones_config)
+        # Retrieve the class object from the global namespace using its name
+        map_class = globals().get(one_eval.map_name)
+        # Instantiate the map class with the provided zones configuration
+        my_map = map_class(one_eval.zones_config)
 
         my_playground = my_map.construct_playground(drone_type=DroneMotionless)
 
@@ -135,3 +138,7 @@ if __name__ == '__main__':
                     use_mouse_measure=True,
                     )
         gui.run()
+
+
+if __name__ == '__main__':
+    main()

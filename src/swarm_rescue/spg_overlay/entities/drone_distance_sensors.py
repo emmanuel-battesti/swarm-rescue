@@ -21,6 +21,7 @@ from spg_overlay.utils.utils_noise import GaussianNoise
 from spg_overlay.entities.wounded_person import WoundedPerson
 
 
+# Helper function that computes the angles of the laser rays of the sensor in radians
 def compute_ray_angles(fov_rad: float, nb_rays: int) -> np.ndarray:
     """
     The compute_ray_angles function calculates the angles of the laser rays of
@@ -57,7 +58,7 @@ class DroneDistanceSensor(DistanceSensor):
     """
     The DroneDistanceSensor class is a subclass of the DistanceSensor class and
     represents a distance sensor for a drone. It emulates a lidar sensor, which
-    measures distances using a laser in different directions. The classprovides
+    measures distances using a laser in different directions. The class provides
     methods to calculate the field of view in radians and degrees, get the
     sensor values, check if the sensor is disabled, apply noise to the sensor
     values, and draw the lidar sensor.
@@ -305,7 +306,9 @@ class DroneSemanticSensor(SemanticSensor):
 
     def draw(self):
         """Draws the lidar sensor rays."""
+        # Check if hitpoints are defined
         hitpoints_ok = not isinstance(self._hitpoints, int)
+        # If hitpoints are defined, call the draw_details method
         if hitpoints_ok:
             self.draw_details()
 

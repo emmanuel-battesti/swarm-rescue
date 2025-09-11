@@ -62,8 +62,8 @@ def drone_collision_drone(arbiter, _, data):
 
 class DroneAbstract(Agent):
     """
-    The DroneAbstract class is a parent class that should be used to create
-    custom Drone classes. It inherits from the Agent class and provides
+    This class should be used as a parent class to create your own Drone classes.
+    It inherits from the Agent class and provides
     functionality for controlling a drone in a simulated environment.
     It is a BaseAgent class with 3 sensors, 1 sensor of position and 2
     mandatory functions define_message() and control()
@@ -410,6 +410,7 @@ class DroneAbstract(Agent):
             plt.axis((-math.pi, math.pi, 0, self.lidar().max_range))
             plt.plot(self.lidar().ray_angles, self.lidar_values(), "g.:")
             plt.grid(True)
+            plt.title("lidar measurements", fontsize=16)
             plt.draw()
             plt.pause(0.001)
 

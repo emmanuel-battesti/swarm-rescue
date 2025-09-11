@@ -2,7 +2,7 @@ import argparse
 import gc
 import os
 import sys
-from typing import Tuple
+from typing import Tuple, Optional
 import traceback
 
 from spg_overlay.entities.sensor_disablers import ZoneType
@@ -55,35 +55,22 @@ class Launcher:
         enabled or not.
     """
 
-    def __init__(self):
-
-        """
-        Here you can fill in the evaluation plan ("evalplan") yourself, adding
-        or removing configurations.
-        A configuration is defined by a map of the environment and whether or
-        not there are zones of difficulty.
-        """
-
+    def __init__(self, config_path: Optional[str] = None):
         self.team_info = TeamInfo()
+
+        # Create an EvalPlan from YAML configuration if provided
         self.eval_plan = EvalPlan()
+        self.eval_plan_ok = True
+        if config_path:
+            self.eval_plan.from_yaml(config_path)
+            if not self.eval_plan.list_eval_config:
+                print(f"\nError: Could not load evaluation plan {config_path} !")
+                self.eval_plan_ok = False
+        else:
+            # Create a default EvalPlan
+            self._setup_default_eval_plan()
 
-        eval_config = EvalConfig(map_type=MyMapIntermediate01, nb_rounds=2)
-        self.eval_plan.add(eval_config=eval_config)
-
-        eval_config = EvalConfig(map_type=MyMapIntermediate02)
-        self.eval_plan.add(eval_config=eval_config)
-
-        zones_config: ZonesConfig = ()
-        eval_config = EvalConfig(map_type=MyMapMedium01, zones_config=zones_config, nb_rounds=1, config_weight=1)
-        self.eval_plan.add(eval_config=eval_config)
-
-        zones_config: ZonesConfig = (ZoneType.NO_COM_ZONE, ZoneType.NO_GPS_ZONE, ZoneType.KILL_ZONE)
-        eval_config = EvalConfig(map_type=MyMapMedium01, zones_config=zones_config, nb_rounds=1, config_weight=1)
-        self.eval_plan.add(eval_config=eval_config)
-
-        zones_config: ZonesConfig = (ZoneType.NO_COM_ZONE, ZoneType.NO_GPS_ZONE, ZoneType.KILL_ZONE)
-        eval_config = EvalConfig(map_type=MyMapMedium02, zones_config=zones_config, nb_rounds=1, config_weight=1)
-        self.eval_plan.add(eval_config=eval_config)
+        self.eval_plan.pretty_print()
 
         self.number_drones = None
         self.max_timestep_limit = None
@@ -106,6 +93,26 @@ class Launcher:
                                     result_path=self.result_path,
                                     enabled=stat_saving_enabled)
 
+    def _setup_default_eval_plan(self):
+        """Set up the default evaluation plan configuration"""
+        eval_config = EvalConfig(map_name="MyMapIntermediate01", nb_rounds=2)
+        self.eval_plan.add(eval_config=eval_config)
+
+        eval_config = EvalConfig(map_name="MyMapIntermediate02")
+        self.eval_plan.add(eval_config=eval_config)
+
+        zones_config: ZonesConfig = ()
+        eval_config = EvalConfig(map_name="MyMapMedium01", zones_config=zones_config, nb_rounds=1, config_weight=1)
+        self.eval_plan.add(eval_config=eval_config)
+
+        zones_config: ZonesConfig = (ZoneType.NO_COM_ZONE, ZoneType.NO_GPS_ZONE, ZoneType.KILL_ZONE)
+        eval_config = EvalConfig(map_name="MyMapMedium01", zones_config=zones_config, nb_rounds=1, config_weight=1)
+        self.eval_plan.add(eval_config=eval_config)
+
+        zones_config: ZonesConfig = (ZoneType.NO_COM_ZONE, ZoneType.NO_GPS_ZONE, ZoneType.KILL_ZONE)
+        eval_config = EvalConfig(map_name="MyMapMedium02", zones_config=zones_config, nb_rounds=1, config_weight=1)
+        self.eval_plan.add(eval_config=eval_config)
+
     def one_round(self, eval_config: EvalConfig, num_round: int, hide_solution_output: bool = False):
         """
         The one_round method is responsible for running a single round of the
@@ -117,7 +124,18 @@ class Launcher:
         the map and saves the images and data related to the round.
         """
 
-        my_map = eval_config.map_type(eval_config.zones_config)
+        # Retrieve the class object from the global namespace using its name
+        map_class = globals().get(eval_config.map_name)
+
+        # Check if the class was found in the global namespace
+        if not map_class:
+            # If the class is not found, print a warning and skip this configuration
+            print(f"Warning: Unknown map type '{eval_config.map_name}', skipping configuration")
+            return None
+
+        # Instantiate the map class with the provided zones configuration
+        my_map = map_class(eval_config.zones_config)
+
         self.number_drones = my_map.number_drones
         self.max_timestep_limit = my_map.max_timestep_limit
         self.max_walltime_limit = my_map.max_walltime_limit
@@ -161,8 +179,8 @@ class Launcher:
         has_crashed = False
         error_msg = ""
 
+        original_stdout = sys.stdout
         if hide_solution_output:
-            original_stdout = sys.stdout
             sys.stdout = open(os.devnull, 'w')
 
         try:
@@ -286,10 +304,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Launcher of a swarm-rescue simulator for the competition")
     parser.add_argument("--stop_at_first_crash", "-s", action="store_true", help="Stop the code at first crash")
     parser.add_argument("--hide_solution_output", "-o", action="store_true", help="Hide print output of the solution")
+    parser.add_argument("--config", "-c", type=str, help="Path to evaluation plan YAML configuration file")
     args = parser.parse_args()
 
-    launcher = Launcher()
-    ok = launcher.go(stop_at_first_crash=args.stop_at_first_crash,
+    launcher = Launcher(config_path=args.config)
+    success = launcher.go(stop_at_first_crash=args.stop_at_first_crash,
                      hide_solution_output=args.hide_solution_output)
-    if not ok:
+    if not success:
         exit(1)

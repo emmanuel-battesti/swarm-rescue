@@ -20,7 +20,7 @@ if __name__ == "__main__":
     eval_plan = EvalPlan()
 
     zones_config: ZonesConfig = ()
-    eval_config = EvalConfig(map_type=MyMapMedium02, zones_config=zones_config)
+    eval_config = EvalConfig(map_name="MyMapMedium02", zones_config=zones_config)
     eval_plan.add(eval_config=eval_config)
 
     for eval_config in eval_plan.list_eval_config:

@@ -1,0 +1,9 @@
+- map_name: MyMapMedium01
+  nb_rounds: 1
+  config_weight: 1
+  zones_config: [NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE]
+
+- map_name: MyMapMedium02
+  nb_rounds: 1
+  config_weight: 1
+  zones_config: [NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE]

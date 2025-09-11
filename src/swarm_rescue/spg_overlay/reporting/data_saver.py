@@ -2,9 +2,9 @@ import csv
 import os
 
 import cv2
-from datetime import datetime
+# from datetime import datetime
 
-from pathlib2 import Path
+# from pathlib2 import Path
 
 from spg_overlay.reporting.evaluation import EvalConfig
 from spg_overlay.reporting.evaluation_pdf_report import EvaluationPdfReport

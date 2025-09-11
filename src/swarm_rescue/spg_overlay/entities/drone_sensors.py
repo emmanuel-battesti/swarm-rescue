@@ -164,6 +164,9 @@ class DroneOdometer(InternalSensor):
         self.prev_position = None
 
     def _compute_raw_sensor(self):
+        """
+        Compute the distance traveled, relative angle, and variation of orientation for the robot.
+        """
         # DIST_TRAVEL
         if self.prev_position is None:
             self.prev_position = self._anchor.position

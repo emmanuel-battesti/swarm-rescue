@@ -394,9 +394,6 @@ class GuiSR(TopDownView):
 
     @property
     def elapsed_timestep(self):
-        """
-
-        """
         return self._elapsed_timestep
 
     @property

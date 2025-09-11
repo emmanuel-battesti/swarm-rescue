@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 
+
 def get_system_info():
     print("\n* Récupération des informations du système d'exploitation...")
     os_name = platform.system()
@@ -33,6 +34,7 @@ def get_system_info():
     print("OS Release:", os_release)
     print("platform_details:", platform_details)
 
+
 def get_windows_version():
     print("\n* Récupération de la version de Windows...")
 
@@ -48,23 +50,25 @@ def get_windows_version():
     except Exception as e:
         print("Erreur lors de la récupération de la version de Windows :", e)
 
+
 def get_opengl_info():
     print("\n* Récupération des informations OpenGL...")
     window = arcade.Window(800, 600, "OpenGL Info")
     try:
 
-	    # Récupérer le contexte
-    	context = window.ctx
+        # Récupérer le contexte
+        context = window.ctx
 
-	    # Afficher des informations sur OpenGL
-    	print("OpenGL Vendor:", context.info.VENDOR)
-    	print("OpenGL Renderer:", context.info.RENDERER)
-    	print("OpenGL Version:", context.gl_version)
-    	#print("GLSL Version:", context.info.glsl_version)
+        # Afficher des informations sur OpenGL
+        print("OpenGL Vendor:", context.info.VENDOR)
+        print("OpenGL Renderer:", context.info.RENDERER)
+        print("OpenGL Version:", context.gl_version)
+    # print("GLSL Version:", context.info.glsl_version)
     except Exception as e:
         print("Erreur lors de la récupération des informations OpenGL:", e)
 
     window.close()
+
 
 def get_mesa_version():
     print("\n* Récupération de la version de Mesa avec glxinfo")
@@ -85,9 +89,11 @@ def get_mesa_version():
     except Exception as e:
         print("Erreur lors de la récupération de la version de Mesa:", e)
 
+
 def get_python_version():
     print("\n* Récupération de la version de Python")
     print("Version de Python :", sys.version.strip())
+
 
 # Exécute la fonction pour obtenir les informations sur l'OS et OpenGL
 get_system_info()

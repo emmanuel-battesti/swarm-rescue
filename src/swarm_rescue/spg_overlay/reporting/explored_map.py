@@ -29,13 +29,13 @@ def fill_empty_blob_of_wall(map_img):
 
     # Find connected components and count pixels
     analysis = cv2.connectedComponentsWithStats(map_img)
-    (totalLabels, label_ids, stats, centroid) = analysis
+    (total_labels, label_ids, stats, centroid) = analysis
 
     # Find the index of the biggest component. Label 0 is the wall
     # (background, here) so we start at 1
     biggest_area_index = np.argmax(stats[1:, cv2.CC_STAT_AREA]) + 1
 
-    filled_wall_map = (label_ids == biggest_area_index).astype("uint8") * 255
+    filled_wall_map = ((label_ids == biggest_area_index).astype("uint8")) * 255
     # cv2.imshow("filled_wall_map", filled_wall_map)
     # cv2.waitKey(0)
     # In filled_wall_map, walls are black and free zone white
