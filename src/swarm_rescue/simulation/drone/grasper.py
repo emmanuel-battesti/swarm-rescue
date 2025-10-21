@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 import pymunk
@@ -14,7 +13,7 @@ if TYPE_CHECKING:
     from swarm_rescue.simulation.drone.drone_part import DronePart
 
 
-class Grasper(Device, ABC):
+class Grasper(Device):
     """
     Device for grasping wounded persons in the simulation.
     """
@@ -34,7 +33,7 @@ class Grasper(Device, ABC):
 
         self.grasp_controller = GrasperController("grasper")
         self._grasped_wounded_persons: List[WoundedPerson] = []
-        self._grasp_joints: Dict[WoundedPerson, List[pymunk.PinJoint]] = {}
+        self._grasp_joints: Dict[WoundedPerson, List[pymunk.Constraint]] = {}
         self._can_grasp = False
         self._max_grasped = max_grasped
 
@@ -99,7 +98,7 @@ class Grasper(Device, ABC):
         # joint_position = (self._anchor.pm_body.position + entity.pm_body.position) * 0.5
         joint_position = 0.3 * self._anchor.pm_body.position + 0.7 * wounded.pm_body.position
 
-        joint = pymunk.PivotJoint(self._anchor.pm_body, wounded.pm_body, tuple(joint_position))
+        joint = pymunk.PivotJoint(self._anchor.pm_body, wounded.pm_body, tuple(joint_position)) # type: ignore[arg-type]
         joint.collide_bodies = False
 
         # grasp_joints = [j_1, j_2, j_3, j_4]
@@ -147,12 +146,9 @@ class Grasper(Device, ABC):
         self._release_grasping()
         super().reset()
 
-    def apply_commands(self, **kwargs) -> None:
+    def apply_commands(self) -> None:
         """
         Apply the current grasp command.
-
-        Args:
-            **kwargs: Additional keyword arguments.
         """
         command_value = self.grasp_controller.command_value
 

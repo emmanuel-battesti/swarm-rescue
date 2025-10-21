@@ -1,5 +1,7 @@
 import time
-from typing import Optional, Tuple, List, Dict, Union, Type
+from typing import Optional, Tuple, List, Dict
+import sys
+import time
 
 import arcade
 import cv2
@@ -11,10 +13,11 @@ from swarm_rescue.simulation.gui_map.map_abstract import MapAbstract
 from swarm_rescue.simulation.gui_map.playground import AllSentMessagesDict
 from swarm_rescue.simulation.gui_map.top_down_view import TopDownView
 from swarm_rescue.simulation.reporting.screen_recorder import ScreenRecorder
-from swarm_rescue.simulation.utils.constants import FRAME_RATE, DRONE_INITIAL_HEALTH
+from swarm_rescue.simulation.utils.constants import FRAME_RATE, DRONE_INITIAL_HEALTH, ENABLE_WINDOW_AUTO_RESIZE
 from swarm_rescue.simulation.utils.fps_display import FpsDisplay
 from swarm_rescue.simulation.utils.mouse_measure import MouseMeasure
 from swarm_rescue.simulation.utils.visu_noises import VisuNoises
+from swarm_rescue.simulation.utils.window_utils import auto_resize_window
 
 
 class GuiSR(TopDownView):
@@ -23,6 +26,49 @@ class GuiSR(TopDownView):
     interface for the simulation. It handles the rendering of the playground,
     drones, and other visual elements, as well as user input and interaction.
     """
+
+
+    def _handle_window_auto_resize(self, the_map: MapAbstract, size: Optional[Tuple[int, int]],
+                                  zoom: float, headless: bool) -> Tuple[Optional[Tuple[int, int]], float]:
+        """
+        Handle automatic window resizing for small screens.
+
+        Args:
+            the_map: The map object containing the playground
+            size: Initial window size
+            zoom: Initial zoom factor
+            headless: Whether running in headless mode
+
+        Returns:
+            Tuple of (adjusted_size, adjusted_zoom)
+        """
+        # Auto-resize window if needed for small screens (before window creation)
+        if not headless and ENABLE_WINDOW_AUTO_RESIZE:
+            # If size is None, use the playground size or a default
+            if size is None:
+                size = the_map.playground.size if the_map.playground.size else (1200, 800)
+
+            # Check if this is a problematic map size that causes rendering issues
+            problematic_sizes = [(1660, 1122)]  # MapMedium01 and similar
+            is_problematic = size in problematic_sizes
+
+            if not is_problematic:
+                # Apply auto-resize with zoom adjustment only for non-problematic maps
+                adjusted_size, calculated_zoom = auto_resize_window(size)
+                if adjusted_size != size:
+                    size = adjusted_size
+                    zoom = zoom * calculated_zoom # Apply the calculated zoom factor
+            else:
+                # For problematic maps, disable auto-resize completely
+                # Let the user handle window size manually or use system defaults
+                print(f"Auto-resize désactivé pour cette carte ({size[0]}x{size[1]})")
+        elif not headless and not ENABLE_WINDOW_AUTO_RESIZE:
+            # Auto-resize is globally disabled
+            if size is None:
+                size = the_map.playground.size if the_map.playground.size else (1200, 800)
+            print("Auto-resize désactivé globalement via ENABLE_WINDOW_AUTO_RESIZE")
+
+        return size, zoom
 
     def __init__(
             self,
@@ -43,7 +89,8 @@ class GuiSR(TopDownView):
             print_messages: bool = False,
             use_mouse_measure: bool = False,
             enable_visu_noises: bool = False,
-            filename_video_capture: str = None
+            filename_video_capture: str = None,
+            headless: bool = False,
     ) -> None:
         """
         Initialize the GuiSR graphical user interface.
@@ -68,6 +115,9 @@ class GuiSR(TopDownView):
             enable_visu_noises (bool): Enable visualization of sensor noises.
             filename_video_capture (str): Output filename for video capture.
         """
+        # Handle automatic window resizing
+        size, zoom = self._handle_window_auto_resize(the_map, size, zoom, headless)
+
         super().__init__(
             the_map.playground,
             size,
@@ -79,13 +129,28 @@ class GuiSR(TopDownView):
             draw_zone,
         )
 
+
+        self._headless = headless
         self._playground.window.set_size(*self._size)
-        self._playground.window.set_visible(True)
+
 
         # image_icon = pyglet.resource.image("resources/drone_v2.png")
         # self._playground.window.set_icon(image_icon)
         # Ok for the first round, crash for the second round ! I dont know
         # why...
+
+        self._playground.window.set_visible(not self._headless)
+        self._playground.window.headless = self._headless
+
+        self._playground.window.on_draw = self.on_draw
+        self._playground.window.on_update = self.on_update
+        self._playground.window.on_key_press = self.on_key_press
+        self._playground.window.on_key_release = self.on_key_release
+        self._playground.window.on_mouse_motion = self.on_mouse_motion
+        self._playground.window.on_mouse_press = self.on_mouse_press
+        self._playground.window.on_mouse_release = self.on_mouse_release
+        self._playground.window.set_update_rate(FRAME_RATE)
+        # self._playground.window.set_location(4500, 0)
 
         self._the_map = the_map
         self._drones = self._the_map.drones
@@ -99,7 +164,7 @@ class GuiSR(TopDownView):
         if self._max_timestep_limit is None:
             self._max_timestep_limit = 100000000
 
-        self._drones_commands: Union[Dict[DroneAbstract, Dict[CommandName, Command]], Type[None]] = None
+        self._drones_commands: Optional[Dict[DroneAbstract, Dict[CommandName, Command]]] = None
         if self._drones:
             self._drones_commands = {}
 
@@ -108,16 +173,6 @@ class GuiSR(TopDownView):
         self._print_messages = print_messages
 
         self._use_keyboard = use_keyboard
-
-        self._playground.window.on_draw = self.on_draw
-        self._playground.window.on_update = self.on_update
-        self._playground.window.on_key_press = self.on_key_press
-        self._playground.window.on_key_release = self.on_key_release
-        self._playground.window.on_mouse_motion = self.on_mouse_motion
-        self._playground.window.on_mouse_press = self.on_mouse_press
-        self._playground.window.on_mouse_release = self.on_mouse_release
-        self._playground.window.set_update_rate(FRAME_RATE)
-        # self._playground.window.set_location(4500, 0)
 
         self._draw_lidar_rays = draw_lidar_rays
         self._draw_semantic_rays = draw_semantic_rays
@@ -172,6 +227,7 @@ class GuiSR(TopDownView):
         Start the simulation event loop.
         """
         self._playground.window.run()
+
 
     def on_draw(self) -> None:
         """
@@ -292,7 +348,7 @@ class GuiSR(TopDownView):
             self._last_image = self.get_playground_image()
             arcade.close_window()
 
-    def get_playground_image(self) -> any:
+    def get_playground_image(self) -> cv2.typing.MatLike:
         """
         Get the image of the playground in the framebuffer.
 
@@ -402,6 +458,11 @@ class GuiSR(TopDownView):
         if key == arcade.key.Q:
             self._terminate = True
 
+        if key == arcade.key.E:
+            print("Touche E pressée - Arrêt complet du programme...")
+            arcade.close_window()
+            sys.exit(0)
+
         if key == arcade.key.R:
             self._playground.reset()
             self._visu_noises.reset()
@@ -433,7 +494,7 @@ class GuiSR(TopDownView):
         self._mouse_measure.on_mouse_motion(x, y, dx, dy)
 
     # Creating function to check the mouse clicks
-    def on_mouse_press(self, x: int, y: int, button: int, modifiers: int) -> None:
+    def on_mouse_press(self, x: int, y: int, button: int, _: int) -> None:
         """
         Called whenever a mouse button is pressed.
 
@@ -441,12 +502,12 @@ class GuiSR(TopDownView):
             x (int): X position.
             y (int): Y position.
             button (int): Mouse button.
-            modifiers (int): Modifier keys pressed.
+            _ (int): Modifier keys pressed.
         """
         self._mouse_measure.on_mouse_press(x, y, button,
                                            enable=self._use_mouse_measure)
 
-    def on_mouse_release(self, x: int, y: int, button: int, modifiers: int) -> None:
+    def on_mouse_release(self, x: int, y: int, button: int, _: int) -> None:
         """
         Called whenever a mouse button is released.
 
@@ -454,7 +515,7 @@ class GuiSR(TopDownView):
             x (int): X position.
             y (int): Y position.
             button (int): Mouse button.
-            modifiers (int): Modifier keys pressed.
+            _ (int): Modifier keys pressed.
         """
         self._mouse_measure.on_mouse_release(x, y, button,
                                              enable=self._use_mouse_measure)

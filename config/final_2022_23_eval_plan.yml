@@ -1,0 +1,34 @@
+# Configuration file for Final 2022-2023 map evaluation
+# This plan includes the final map from the 2022-2023 competition
+#
+# Map included:
+#   - MapFinal2022_23: Final map from 2022-23 competition
+
+stat_saving_enabled: true   # Save statistics and generate PDF report (true/false)
+video_capture_enabled: true # Enable video recording of the mission (true/false)
+
+evaluation_plan:
+  # Final Map 2022-23 - Basic scenario with multiple rounds
+  - map_name: MapFinal2022_23
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: []
+
+  # Final Map 2022-23 - With communication disruption only
+  - map_name: MapFinal2022_23
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: [NO_COM_ZONE]
+
+  # Final Map 2022-23 - With GPS disruption only
+  - map_name: MapFinal2022_23
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: [NO_GPS_ZONE]
+
+  # Final Map 2022-23 - With kill zone only
+  - map_name: MapFinal2022_23
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: [KILL_ZONE]
+

@@ -146,9 +146,9 @@ class MyMap(MapAbstract):
 
 
 def main():
-    my_map = MyMap(drone_type=MyDronePid)
+    the_map = MyMap(drone_type=MyDronePid)
 
-    gui = GuiSR(the_map=my_map,
+    gui = GuiSR(the_map=the_map,
                 use_keyboard=False,
                 use_mouse_measure=True,
                 enable_visu_noises=False,

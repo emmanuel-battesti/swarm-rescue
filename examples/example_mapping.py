@@ -200,9 +200,9 @@ class MyMapMapping(MapAbstract):
 
 
 def main():
-    my_map = MyMapMapping(drone_type=MyDroneMapping)
+    the_map = MyMapMapping(drone_type=MyDroneMapping)
 
-    gui = GuiSR(the_map=my_map,
+    gui = GuiSR(the_map=the_map,
                 use_keyboard=True,
                 )
     gui.run()

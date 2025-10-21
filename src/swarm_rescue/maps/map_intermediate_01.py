@@ -28,12 +28,12 @@ from swarm_rescue.simulation.utils.pose import Pose
 from swarm_rescue.maps.walls_intermediate_map_1 import add_walls, add_boxes
 
 
-class MyMapIntermediate01(MapAbstract):
+class MapIntermediate01(MapAbstract):
 
     def __init__(self, drone_type: Type[DroneAbstract], zones_config: ZonesConfig = ()):
         super().__init__(drone_type, zones_config)
         self._max_timestep_limit = 2700
-        self._max_walltime_limit = 540
+        self._max_walltime_limit = 270  # In seconds
 
         # PARAMETERS MAP
         self._size_area = (800, 500)
@@ -98,11 +98,11 @@ def main():
     eval_plan = EvalPlan()
 
     zones_config: ZonesConfig = ()
-    eval_config = EvalConfig(map_name="MyMapIntermediate01", zones_config=zones_config, nb_rounds=2)
+    eval_config = EvalConfig(map_name="MapIntermediate01", zones_config=zones_config, nb_rounds=2)
     eval_plan.add(eval_config=eval_config)
 
     zones_config: ZonesConfig = (ZoneType.NO_GPS_ZONE,)
-    eval_config = EvalConfig(map_name="MyMapIntermediate01", zones_config=zones_config, nb_rounds=2)
+    eval_config = EvalConfig(map_name="MapIntermediate01", zones_config=zones_config, nb_rounds=2)
     eval_plan.add(eval_config=eval_config)
 
     for one_eval in eval_plan.list_eval_config:
@@ -111,9 +111,9 @@ def main():
         # Retrieve the class object from the global namespace using its name
         map_class = globals().get(one_eval.map_name)
         # Instantiate the map class with the provided zones configuration
-        my_map = map_class(drone_type=DroneMotionless, zones_config=one_eval.zones_config)
+        the_map = map_class(drone_type=DroneMotionless, zones_config=one_eval.zones_config)
 
-        gui = GuiSR(the_map=my_map,
+        gui = GuiSR(the_map=the_map,
                     use_mouse_measure=True,
                     )
         gui.run()

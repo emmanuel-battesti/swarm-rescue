@@ -15,10 +15,14 @@ def normalize_angle(angle: Union[float, np.ndarray], zero_2_2pi: bool = False) -
     Returns:
         float or np.ndarray: Normalized angle(s).
     """
-    if isinstance(angle, float):
+    if isinstance(angle, float) or isinstance(angle, int):
         is_float = True
+        angle = float(angle)
     else:
         is_float = False
+
+    if not isinstance(angle, (float, np.ndarray)):
+        raise TypeError("Input angle must be a float or a numpy.ndarray.")
 
     angle = np.asarray(angle).flatten()
 

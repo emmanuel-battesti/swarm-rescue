@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from typing import Optional
 
 import numpy as np
 
@@ -30,7 +31,7 @@ class RaySensor(ExternalSensor, ABC):
         self._spatial_resolution = spatial_resolution
         self._n_points = int(self._range / self._spatial_resolution)
 
-        self._hitpoints = 0
+        self._hitpoints : Optional[np.ndarray] = None
 
     @property
     def spatial_resolution(self) -> float:

@@ -7,6 +7,9 @@ import arcade
 import matplotlib.pyplot as plt
 import numpy as np
 import pymunk
+import pyqtgraph
+from PySide6.QtCore import QCoreApplication
+from PySide6.QtWidgets import QApplication
 
 from swarm_rescue.simulation.drone.agent import Agent
 from swarm_rescue.simulation.drone.communicator import Communicator
@@ -119,9 +122,8 @@ class DroneAbstract(Agent):
         command = drone.control()
 
      Attributes:
-        SensorType (IntEnum): Enumeration of different sensor types.
         identifier (int): The identifier of the drone.
-        _display_lidar_graph (bool): Whether to display lidar data with matplotlib.
+        _should_display_lidar_graph (bool): Whether to display lidar data with matplotlib.
         size_area (tuple): The size of the area in which the drone operates.
         communicator (Communicator): The communicator object for inter-drone communication.
         _timer_collision_wall_or_drone (Timer): Timer for collision events.
@@ -186,12 +188,23 @@ class DroneAbstract(Agent):
         self.base.add_device(self.communicator)
 
         self.identifier = identifier
-        self._display_lidar_graph = display_lidar_graph
+        self._should_display_lidar_graph = display_lidar_graph
 
-        if self._display_lidar_graph:
-            plt.figure(self.SensorType.LIDAR)
-            plt.axis((-300, 300, 0, 300))
-            plt.ion()
+        if self._should_display_lidar_graph:
+            self._app = QApplication.instance()  # Use QApplication directly
+            if self._app is None:
+                self._app = QApplication([])
+            self._win = pyqtgraph.GraphicsLayoutWidget(title="Lidar Measurements")
+            self._win.resize(600, 400)
+            self._plot = self._win.addPlot(title="Lidar measurements")
+            self._plot.setLabel('left', 'Distance')
+            self._plot.setLabel('bottom', 'Angle (rad)')
+            self._plot.setXRange(-math.pi, math.pi)
+            self._plot.setYRange(0, self.lidar().max_range)
+            angles = [0] * 100  # Exemple : 100 points avec des angles à 0
+            distances = [0] * 100  # Exemple : 100 points avec des distances à 0
+            self._curve = self._plot.plot(angles, distances, pen='g', symbol='o')
+            self._win.show()
 
         self._timer_collision_wall_or_drone = Timer(start_now=True)
         self._drone_health = DRONE_INITIAL_HEALTH
@@ -572,7 +585,7 @@ class DroneAbstract(Agent):
         """
         Display lidar graph if enabled.
         """
-        if self._display_lidar_graph:
+        if self._should_display_lidar_graph:
             self.display_lidar_graph()
 
     def display_lidar_graph(self) -> None:
@@ -580,14 +593,10 @@ class DroneAbstract(Agent):
         Display the lidar sensor data using matplotlib.
         """
         if self.lidar_values() is not None:
-            plt.figure(self.SensorType.LIDAR)
-            plt.cla()
-            plt.axis((-math.pi, math.pi, 0, self.lidar().max_range))
-            plt.plot(self.lidar().ray_angles, self.lidar_values(), "g.:")
-            plt.grid(True)
-            plt.title("lidar measurements", fontsize=16)
-            plt.draw()
-            plt.pause(0.001)
+            angles = self.lidar().ray_angles
+            distances = self.lidar().get_sensor_values()
+            self._curve.setData(angles, distances)
+            QCoreApplication.processEvents()
 
     def draw_gps(self) -> None:
         """
@@ -608,8 +617,8 @@ class DroneAbstract(Agent):
         pt = true_pt + self._half_size_array
 
         # Create Text objects
-        gps_text = arcade.Text(txt_gps, pt[0] + 10, pt[1] + 10, (128, 128, 128), 10)
-        truth_text = arcade.Text(txt_truth, pt[0] + 10, pt[1] + 25, (128, 128, 128), 10)
+        gps_text = arcade.Text(txt_gps, float(pt[0]) + 10, float(pt[1]) + 10, (128, 128, 128), 10)
+        truth_text = arcade.Text(txt_truth, float(pt[0]) + 10, float(pt[1]) + 25, (128, 128, 128), 10)
 
         # Draw the Text objects
         gps_text.draw()
@@ -627,7 +636,7 @@ class DroneAbstract(Agent):
         color = [128, 128, 128]
         if self.communicator_is_disabled():
             color = [200, 200, 200]
-        arcade.draw_circle_outline(pt[0], pt[1],
+        arcade.draw_circle_outline(float(pt[0]), float(pt[1]),
                                    RANGE_COMMUNICATION, color,
                                    1, -1)
 
@@ -636,8 +645,8 @@ class DroneAbstract(Agent):
             for com in self.communicator.comms_in_range:
                 if not com.agent.communicator_is_disabled():
                     pt2 = com.agent.true_position() + self._half_size_array
-                    arcade.draw_line(pt[0], pt[1],
-                                     pt2[0], pt2[1],
+                    arcade.draw_line(float(pt[0]), float(pt[1]),
+                                     float(pt2[0]), float(pt2[1]),
                                      [128, 128, 128],
                                      2)
 

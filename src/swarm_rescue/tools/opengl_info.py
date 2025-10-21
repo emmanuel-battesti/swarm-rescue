@@ -111,10 +111,14 @@ def get_python_version() -> None:
     print("Version de Python :", sys.version.strip())
 
 
+def main():
+    # Exécute la fonction pour obtenir les informations sur l'OS et OpenGL
+    get_system_info()
+    if platform.system() == "Windows":
+        get_windows_version()
+    get_opengl_info()
+    get_mesa_version()
+    get_python_version()
 
-# Exécute la fonction pour obtenir les informations sur l'OS et OpenGL
-get_system_info()
-get_windows_version()
-get_opengl_info()
-get_mesa_version()
-get_python_version()
+if __name__ == '__main__':
+    main()

@@ -25,7 +25,7 @@ class ZoneType(IntEnum):
     KILL_ZONE = auto()
 
 
-def srdisabler_disables_device(arbiter: pymunk.Arbiter, _, data) -> bool:
+def disabler_zone_disables_device(arbiter: pymunk.Arbiter, _, data) -> bool:
     """
     Handles the collision between a device and a disabler zone.
 
@@ -38,17 +38,29 @@ def srdisabler_disables_device(arbiter: pymunk.Arbiter, _, data) -> bool:
         bool: True to continue processing the collision.
     """
     playground: Playground = data["playground"]
-    disabler, device = get_colliding_entities(playground, arbiter)
+    disabler_zone, device = get_colliding_entities(playground, arbiter)
 
     assert isinstance(device, Device)
-    assert isinstance(disabler, SRDisabler)
+    assert isinstance(disabler_zone, DisablerZone)
 
-    disabler.disable(device)
+    disabler_zone.disable(device)
+
+    # If this is a KillZone, update the drone's visual appearance
+    # Check that the device's anchor has an 'agent' attribute (to avoid WoundedPerson)
+    if isinstance(disabler_zone, KillZone) and hasattr(device._anchor, 'agent'):
+        agent = device._anchor.agent
+        if agent is not None:
+            from swarm_rescue.simulation.drone.drone_base import DroneBase
+            if isinstance(agent.base, DroneBase):
+                # Mark that the drone collided with a kill zone this frame
+                agent.base._kill_zone_collision_this_frame = True
+                # Update the visual state if needed
+                agent.base.set_in_kill_zone(True)
 
     return True
 
 
-class SRDisabler(InteractiveZone, SceneElement):
+class DisablerZone(InteractiveZone, SceneElement):
     """
     Zone that disables certain devices when they collide with it.
     Used to create disabling zones for GPS, communication, or all devices.
@@ -62,7 +74,7 @@ class SRDisabler(InteractiveZone, SceneElement):
         text_to_draw: Optional[str] = None
     ):
         """
-        Initialize the SRDisabler.
+        Initialize the DisablerZone.
 
         Args:
             disable_cls (List[Type[Device]]): List of device classes to disable.
@@ -113,7 +125,7 @@ class SRDisabler(InteractiveZone, SceneElement):
                 device.disable()
 
 
-class NoGpsZone(SRDisabler):
+class NoGpsZone(DisablerZone):
     """
     Zone that disables GPS and compass sensors of a drone.
     """
@@ -133,7 +145,7 @@ class NoGpsZone(SRDisabler):
         )
 
 
-class NoComZone(SRDisabler):
+class NoComZone(DisablerZone):
     """
     Zone that disables the Communicator device.
     """
@@ -153,7 +165,7 @@ class NoComZone(SRDisabler):
         )
 
 
-class KillZone(SRDisabler):
+class KillZone(DisablerZone):
     """
     Zone that disables all devices when they collide with it ("kill zone").
     """
@@ -171,4 +183,3 @@ class KillZone(SRDisabler):
             color="HotPink",
             text_to_draw="Kill Zone"
         )
-

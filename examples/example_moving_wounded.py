@@ -102,7 +102,7 @@ class MyMapMovingWounded(MapAbstract):
 
 
 def main():
-    my_map = MyMapMovingWounded(drone_type=MyDroneMovingWounded)
+    the_map = MyMapMovingWounded(drone_type=MyDroneMovingWounded)
 
     # Set this value to True to generate a video of the mission
     video_capture_enabled = False
@@ -116,7 +116,7 @@ def main():
     # enable_visu_noises : to enable the visualization. It will show also a demonstration of the integration
     # of odometer values, by drawing the estimated path in red. The green circle shows the position of drone according
     # to the gps sensor and the compass.
-    gui = GuiSR(the_map=my_map,
+    gui = GuiSR(the_map=the_map,
                 print_messages=True,
                 use_keyboard=True,
                 enable_visu_noises=False,

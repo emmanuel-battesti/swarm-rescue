@@ -327,28 +327,31 @@ def image_cleaning(image_source: cv2.Mat) -> cv2.Mat:
     img_clean = wall_width_correction(image_source)
     return img_clean
 
+def main():
+    img_path = ("/home/battesti/projetCompetDronesDGA/private-swarm-rescue/"
+                "map_data/map_medium_01_color.png")
+    # img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/
+    #            "map_data/map_complete_map_2.png"
+    print("image path : {}".format(img_path))
+    img_source = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    cv2.imshow("img_source", img_source)
 
-img_path = ("/home/battesti/projetCompetDronesDGA/private-swarm-rescue/"
-            "map_data/map_medium_01_color.png")
-# img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/
-#            "map_data/map_complete_map_2.png"
-print("image path : {}".format(img_path))
-img_source = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-cv2.imshow("img_source", img_source)
+    img_clean1 = remove_noise(img_source)
+    cv2.imshow("img_clean1", img_clean1)
 
-img_clean1 = remove_noise(img_source)
-cv2.imshow("img_clean1", img_clean1)
+    img_clean2 = image_cleaning(img_clean1)
+    cv2.imshow("img_clean2", img_clean2)
 
-img_clean2 = image_cleaning(img_clean1)
-cv2.imshow("img_clean2", img_clean2)
+    img_clean3 = remove_noise(img_clean2)
+    cv2.imshow("img_clean3", img_clean3)
 
-img_clean3 = remove_noise(img_clean2)
-cv2.imshow("img_clean3", img_clean3)
+    img_clean4 = remove_white_patch(img_clean3)
+    cv2.imshow("img_clean4", img_clean4)
 
-img_clean4 = remove_white_patch(img_clean3)
-cv2.imshow("img_clean4", img_clean4)
+    cv2.imwrite('/home/battesti/projetCompetDronesDGA/private-swarm-rescue/'
+                'map_data/map_clean.png', img_clean4)
 
-cv2.imwrite('/home/battesti/projetCompetDronesDGA/private-swarm-rescue/'
-            'map_data/map_clean.png', img_clean4)
+    cv2.waitKey(0)
 
-cv2.waitKey(0)
+if __name__ == '__main__':
+    main()

@@ -1,4 +1,4 @@
-            # version 440
+            #version 440
 
             layout(local_size_x=MAX_N_RAYS) in;
 

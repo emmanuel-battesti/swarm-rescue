@@ -1,4 +1,5 @@
 import math
+from typing import Optional
 
 import numpy as np
 
@@ -54,7 +55,7 @@ class DroneDistanceSensor(DistanceSensor):
         """
         return math.degrees(self._fov)
 
-    def get_sensor_values(self) -> np.ndarray | None:
+    def get_sensor_values(self) -> Optional[np.ndarray]:
         """
         Get values of the lidar as a numpy array.
 
@@ -85,8 +86,7 @@ class DroneDistanceSensor(DistanceSensor):
         """
         Draws the rays of lidar sensor.
         """
-        hitpoints_ok = not isinstance(self._hitpoints, int)
-        if hitpoints_ok:
+        if self._hitpoints is not None:
             super().draw()
 
     @property

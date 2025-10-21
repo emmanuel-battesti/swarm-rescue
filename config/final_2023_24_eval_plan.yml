@@ -1,0 +1,47 @@
+# Configuration file for Final 2023-2024 maps evaluation
+# This plan includes all three final maps from the 2023-2024 competition
+#
+# Maps included:
+#   - MapFinal_2023_24_01: First final map 2023-24
+#   - MapFinal_2023_24_02: Second final map 2023-24
+#   - MapFinal_2023_24_03: Third final map 2023-24
+
+stat_saving_enabled: true   # Save statistics and generate PDF report (true/false)
+video_capture_enabled: true # Enable video recording of the mission (true/false)
+
+evaluation_plan:
+  # Final Map 2023-24 #1 - Basic scenario
+  - map_name: MapFinal_2023_24_01
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: []
+
+  # Final Map 2023-24 #1 - With communication disruption
+  - map_name: MapFinal_2023_24_01
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: [NO_COM_ZONE]
+
+  # Final Map 2023-24 #2 - Basic scenario
+  - map_name: MapFinal_2023_24_02
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: []
+
+  # Final Map 2023-24 #2 - With kill zones
+  - map_name: MapFinal_2023_24_02
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: [KILL_ZONE]
+
+  # Final Map 2023-24 #3 - Basic scenario
+  - map_name: MapFinal_2023_24_03
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: []
+
+  # Final Map 2023-24 #3 - With GPS disruption
+  - map_name: MapFinal_2023_24_03
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: [NO_GPS_ZONE]

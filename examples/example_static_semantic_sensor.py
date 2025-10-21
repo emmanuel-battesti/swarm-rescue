@@ -122,9 +122,9 @@ class MyMap(MapAbstract):
 
 
 def main():
-    my_map = MyMap(drone_type=MyDrone)
+    the_map = MyMap(drone_type=MyDrone)
 
-    gui = GuiSR(the_map=my_map,
+    gui = GuiSR(the_map=the_map,
                 draw_semantic_rays=True,
                 use_keyboard=True,
                 use_mouse_measure=True,

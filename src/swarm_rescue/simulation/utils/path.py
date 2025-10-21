@@ -47,7 +47,7 @@ class Path:
             Pose: The pose at the index.
         """
         v = self._poses[index]
-        pose = Pose(v[0:2], v[2])
+        pose = Pose(v[0:2], float(v[2]))
         return pose
 
     def reset(self) -> None:

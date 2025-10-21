@@ -11,7 +11,11 @@ def show_image(img_path: str) -> None:
     cv2.imshow("img1", img1)
     cv2.waitKey(0)
 
-img_path1 = ("/home/battesti/projetCompetDronesDGA/"
-             "private-swarm-rescue/map_data/"
-             "map_medium_01_color.png")
-show_image(img_path1)
+def main():
+    img_path1 = ("/home/battesti/projetCompetDronesDGA/"
+                 "private-swarm-rescue/map_data/"
+                 "map_medium_01_color.png")
+    show_image(img_path1)
+
+if __name__ == '__main__':
+    main()

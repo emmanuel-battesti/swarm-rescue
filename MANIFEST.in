@@ -1,5 +1,3 @@
-# Include requirements:
-include requirements.txt
+# Exclure tout le répertoire "tests"
+prune tests
 
-+# Include configs:
-+recursive-include src/swarm_rescue/resources *.txt *.md *.url *.png *.jpg *.jpeg

@@ -3,6 +3,47 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.1.0] - 2025-01-21
+
+### Added
+- Add headless mode for running simulations without GUI
+- Add key 'E' to exit the program completely
+- Add disappearing walls feature with example implementation
+- Add final maps from 2024-2025 competition
+- Add new evaluation plan configurations
+- Add screen resize and scale functionality (may not work on some maps)
+- Add "Create a new map" explanation in README
+- Add `stat_saving_enabled` and `video_capture_enabled` options in config files
+- Add PyQtGraph dependency for improved visualization
+- Add `drone_v2_dead.png` texture for drones in kill zones
+
+### Changed
+- **Major change**: Replace matplotlib/pyplot visualization with PyQtGraph for better performance
+- Improve drone texture when in kill zone
+- Replace `MyMapxxx` naming convention with `Mapxxx` and `my_map` with `the_map`
+- Change team number padding from 2 to 3 digits and remove padding in some displays
+- Improve implementation with optimizations and caching
+- Clean up pymunk.Vec2d vs Tuple usage
+- Replace `SrColorWall` with `ColorWall` class
+- Replace `SRDisabler` class with `DisablerZone` class
+- Use `math.radians` and `math.degrees` instead of manual conversions
+- Update README with comprehensive improvements
+- Update INSTALL.md documentation
+- Move dependencies to pyproject.toml and remove requirements.txt/setup.py
+- Change `_display_lidar_graph` to `_should_display_lidar_graph`
+
+### Fixed
+- Fix compatibility issues with Ubuntu 20 and Python 3.8
+- Fix test_wall.py functionality
+- Fix bugs in check_map and my_drone_eval.py
+- Improve robustness of explored_map.py to avoid crashes
+- Fix wall rendering and collision detection
+- Fix _hitpoints calculation bug
+- Fix import issues and remove warnings after code inspection
+- Correct image_to_map tool functionality
+- Various crash prevention improvements
+- Remove useless dependencies and clean up project structure
+
 ## [5.0.0] - 2025-09-11
 
 ### Changed
@@ -308,7 +349,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.0.0...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.1.0...HEAD
+[5.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.0.0...v5.1.0
 [5.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.1.0...v5.0.0
 [4.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.4...v4.1.0
 [4.0.4]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.3...v4.0.4

@@ -220,20 +220,20 @@ class Agent(Entity):
     # CONTROL
     ##############
 
-    def pre_step(self, **kwargs) -> None:
+    def pre_step(self) -> None:
         """
         Reset actuators and reward to 0 before a new step of the environment.
         """
         self._reward = 0
-        self.base.pre_step(**kwargs)
+        self.base.pre_step()
 
     def reset(self) -> None:
         """Reset the agent's base."""
         self.base.reset()
 
-    def post_step(self, **kwargs) -> None:
+    def post_step(self) -> None:
         """Call post_step on the agent's base."""
-        self.base.post_step(**kwargs)
+        self.base.post_step()
 
     ###############
     # PLAYGROUND INTERACTIONS

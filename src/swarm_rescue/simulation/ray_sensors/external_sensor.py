@@ -53,7 +53,7 @@ class ExternalSensor(Sensor, ABC):
             self._invisible_elements = invisible_elements
 
         self._range = max_range
-        self._fov = fov * math.pi / 180
+        self._fov = math.radians(fov)
         self._resolution = resolution
 
         if self._resolution < 0:

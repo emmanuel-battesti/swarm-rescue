@@ -3,6 +3,7 @@ import os
 import sys
 from collections import namedtuple
 from enum import Enum, auto
+from typing import Union
 
 import arcade
 import numpy as np
@@ -104,12 +105,9 @@ class DroneSemanticSensor(SemanticSensor):
                 continue
             try:
                 entity = self._playground.get_entity_from_uid(id_detection)
-            except KeyError as error:
-                exc_type, exc_obj, exc_tb = sys.exc_info()
-                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                print(f"KeyError in file {fname} at line {exc_tb.tb_lineno}")
-                print("Wrong Key for detected entity:", error)
-                raise
+            except KeyError:
+                # Skip invalid entity IDs (e.g., background colors in xvfb)
+                continue
 
             if isinstance(entity, NormalWall):
                 entity_type = self.TypeEntity.WALL
@@ -156,9 +154,9 @@ class DroneSemanticSensor(SemanticSensor):
         """
         Returns the field of view in degrees.
         """
-        return self._fov * 180 / math.pi
+        return math.degrees(self._fov)
 
-    def get_sensor_values(self) -> list | None:
+    def get_sensor_values(self) -> Union[list, None]:
         """
         Get values of the semantic sensor.
 
@@ -204,10 +202,8 @@ class DroneSemanticSensor(SemanticSensor):
         """
         Draws the lidar sensor rays.
         """
-        # Check if hitpoints are defined
-        hitpoints_ok = not isinstance(self._hitpoints, int)
         # If hitpoints are defined, call the draw_details method
-        if hitpoints_ok:
+        if self._hitpoints is not None:
             self.draw_details()
 
     def draw_details(self) -> None:

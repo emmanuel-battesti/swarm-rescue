@@ -118,9 +118,9 @@ class MyMapRandom(MapAbstract):
 
 
 def main():
-    my_map = MyMapRandom(drone_type=MyDroneRandom)
+    the_map = MyMapRandom(drone_type=MyDroneRandom)
 
-    gui = GuiSR(the_map=my_map,
+    gui = GuiSR(the_map=the_map,
                 use_keyboard=False,
                 use_mouse_measure=True,
                 enable_visu_noises=False,
@@ -128,7 +128,7 @@ def main():
 
     gui.run()
 
-    score_health_returned = my_map.compute_score_health_returned()
+    score_health_returned = the_map.compute_score_health_returned()
     print("score_health_returned = ", score_health_returned)
 
 

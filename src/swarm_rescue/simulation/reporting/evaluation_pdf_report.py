@@ -154,7 +154,7 @@ class EvaluationPdfReport:
             self.pdf.image(name=img_filename,
                            x=self.pdf.l_margin + offset_from_left_margin,
                            w=self.epw - 2 * offset_from_left_margin)
-        except FileNotFoundError as error:
+        except FileNotFoundError:
             file_name = os.path.basename(img_filename)
             print(f"File {img_filename} was not found for the PDF.")
             self.pdf.cell(txt=f"Error: File {file_name} was not found...")
@@ -443,7 +443,7 @@ class EvaluationPdfReport:
         plt.xlabel('Criteria')
         plt.legend(legend, loc=1)
         filename_graph = (self._images_path +
-                          f'team{self._team_info.team_number_str}_'
+                          f'team{self._team_info.team_number_str_padded}_'
                           f'graph_performance.png')
         plt.savefig(filename_graph, format='png',
                     bbox_inches='tight', dpi=200)
@@ -517,7 +517,7 @@ class EvaluationPdfReport:
 
                 self._empty_line(height=0.5)
                 filename_last_img = (f"{self._images_path}"
-                                     f"team{self._team_info.team_number_str}_"
+                                     f"team{self._team_info.team_number_str_padded}_"
                                      f"{map_name}_{zones_name}_rd{best_rd_str}_"
                                      f"screen.png")
 
@@ -529,7 +529,7 @@ class EvaluationPdfReport:
 
                 self._empty_line(height=0.5)
                 filename_explo = (f"{self._images_path}"
-                                  f"team{self._team_info.team_number_str}_"
+                                  f"team{self._team_info.team_number_str_padded}_"
                                   f"{map_name}_{zones_name}_rd{best_rd_str}_"
                                   f"screen_explo.png")
 
@@ -541,7 +541,7 @@ class EvaluationPdfReport:
 
                 self._empty_line(height=0.5)
                 filename_routes = (f"{self._images_path}"
-                                   f"team{self._team_info.team_number_str}_"
+                                   f"team{self._team_info.team_number_str_padded}_"
                                    f"{map_name}_{zones_name}_rd{best_rd_str}_"
                                    f"screen_path.png")
 
@@ -628,7 +628,7 @@ class EvaluationPdfReport:
             self._add_graph_score()
             self._add_screenshots()
             filename_pdf = (self._result_path +
-                            f'/team{self._team_info.team_number_str}'
+                            f'/team{self._team_info.team_number_str_padded}'
                             f'_report.pdf')
             self.pdf.output(filename_pdf, 'F')
             print("")

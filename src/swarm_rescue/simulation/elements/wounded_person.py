@@ -1,4 +1,5 @@
 import math
+from typing import Tuple
 
 import numpy as np
 import pymunk
@@ -150,7 +151,7 @@ class WoundedPerson(PhysicalElement):
 
         self._pm_body.angular_velocity = -0.02 * (self.true_angle())
 
-    def follow_path(self) -> tuple[float, float]:
+    def follow_path(self) -> Tuple[float, float]:
         """
         The WoundedPerson goes from his position to the end of the path (reverse= False) or to the beginning of
         the path (reverse = True).
@@ -159,7 +160,7 @@ class WoundedPerson(PhysicalElement):
         Compute the next movement command to follow the path.
 
         Returns:
-            tuple[float, float]: (forward_force, lateral_force)
+            Tuple[float, float]: (forward_force, lateral_force)
         """
         if self.path.length() == 0:
             return 0, 0
@@ -189,8 +190,8 @@ class WoundedPerson(PhysicalElement):
         abs_goal_direction = np.arctan2(vector_to_goal[1], vector_to_goal[0])
 
         intensity = 0.5
-        long_force = np.cos(abs_goal_direction)
-        lat_force = np.sin(abs_goal_direction)
+        long_force = float(np.cos(abs_goal_direction))
+        lat_force = float(np.sin(abs_goal_direction))
         if dist_to_goal < 10:
             force_intensity = intensity * math.atan(dist_to_goal / 10) * 2 / np.pi
         else:

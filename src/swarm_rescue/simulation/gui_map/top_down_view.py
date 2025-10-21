@@ -75,7 +75,7 @@ class TopDownView:
         self._fbo = self._ctx.framebuffer(
             color_attachments=[
                 self._ctx.texture(
-                    (size),
+                    size,
                     components=4,
                     wrap_x=self._ctx.CLAMP_TO_BORDER,  # type: ignore
                     wrap_y=self._ctx.CLAMP_TO_BORDER,  # type: ignore
@@ -121,6 +121,16 @@ class TopDownView:
         Returns the center of the view.
         """
         return self._center
+
+    def update_size(self, new_size: Tuple[int, int]) -> None:
+        """
+        Update the view dimensions after window resize.
+
+        Args:
+            new_size: New (width, height) dimensions
+        """
+        self._width, self._height = self._size = new_size
+
 
     @property
     def sprites(self) -> Dict[EmbodiedEntity, arcade.Sprite]:

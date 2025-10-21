@@ -8,6 +8,8 @@ data_website.txt
 src/swarm_rescue/tools/generated_code.py
 src/swarm_rescue/various
 src/swarm_rescue/solutions_off
+req_u18.txt
+req_u24.txt
 __pycache__
 *.profile
 *.calltree

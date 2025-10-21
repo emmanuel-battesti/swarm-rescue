@@ -114,18 +114,18 @@ def print_keyboard_man():
 
 def main():
     print_keyboard_man()
-    my_map = MyMapKeyboard(drone_type=MyDroneKeyboard)
+    the_map = MyMapKeyboard(drone_type=MyDroneKeyboard)
 
     # draw_lidar_rays : enable the visualization of the lidar rays
     # draw_semantic_rays : enable the visualization of the semantic rays
-    gui = GuiSR(the_map=my_map,
+    gui = GuiSR(the_map=the_map,
                 draw_lidar_rays=True,
                 draw_semantic_rays=True,
                 use_keyboard=True,
                 )
     gui.run()
 
-    score_health_returned = my_map.compute_score_health_returned()
+    score_health_returned = the_map.compute_score_health_returned()
     print("score_health_returned = ", score_health_returned)
 
 

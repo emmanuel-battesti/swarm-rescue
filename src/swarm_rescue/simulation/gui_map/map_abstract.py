@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import List, Type, Union
+from typing import List, Type, Union, Optional
 
 from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
 from swarm_rescue.simulation.gui_map.playground import Playground
@@ -22,7 +22,7 @@ class MapAbstract(ABC):
             drone_type (Type[DroneAbstract]): The type of drone to use.
             zones_config (ZonesConfig): Configuration for special zones.
         """
-        self._playground: Union[Playground, Type[None]] = None
+        self._playground: Optional[Playground] = None
         self._drone_type = drone_type
         self._explored_map = ExploredMap()
         self._size_area = None

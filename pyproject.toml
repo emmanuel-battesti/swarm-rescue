@@ -1,0 +1,87 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "swarm-rescue"
+version = "5.1.0"
+description = "Set up a team of drones to rescue wounded people in different locations..."
+readme = "README.md"
+authors = [
+    { name = "Emmanuel Battesti", email = "emmanuel.battesti@ensta.fr" }
+]
+maintainers = [
+    { name = "Emmanuel Battesti", email = "emmanuel.battesti@ensta.fr" }
+]
+license = {file = "LICENSE"}
+requires-python = ">=3.8"
+keywords = ["drones", "rescue", "autonomous", "swarm"]
+dependencies = [
+    "fpdf>=1.7.2",
+    "opencv-contrib-python>=4.10.0.84",
+    "pandas>=2.0.3",
+    "pathlib2>=2.3.7.post1",
+    "arcade==2.6.17",
+    "cerberus>=1.3.4",
+    "scikit-image>=0.21.0",
+    "matplotlib>=3.7.5",
+    "PyYAML>=6.0.2",
+    "numpy>=1.24.4",
+    "pyqtgraph",
+    "PySide6"
+]
+classifiers = [
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Operating System :: OS Independent",
+]
+
+[project.optional-dependencies]
+# To install the package with the 'other_solution' extra, use:
+# pip install swarm-rescue[other_solution]
+# or in editable mode:
+# pip install -e .[other_solution]
+# or for both 'extras':
+# pip install -e .[other_solution,dev]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "coverage",
+    "gprof2dot"
+]
+other_solution = [
+    "python-statemachine>=2.3.6",
+    "numba>=0.58.1",
+    "tqdm>=4.66.5",
+    "tripy>=1.0.0",
+    "pyqtgraph"
+]
+
+[tool.setuptools.package-data]
+"swarm_rescue" = [
+    "resources/drone_v2.png",
+    "resources/drone_v2_dead.png",
+    "resources/character_v2.png",
+    "resources/stone_texture_g_04.png",
+    "resources/rescue_center.png",
+    "solutions/*.yml",
+    "simulation/ray_sensors/shaders/*.glsl"
+]
+
+[project.urls]
+Homepage = "https://emmanuel-battesti.github.io/swarm-rescue-website/"
+Documentation = "https://github.com/emmanuel-battesti/swarm-rescue/blob/main/README.md"
+Repository = "https://github.com/emmanuel-battesti/swarm-rescue.git"
+Changelog = "https://github.com/emmanuel-battesti/swarm-rescue/blob/main/CHANGELOG.md"
+Issues = "https://github.com/emmanuel-battesti/swarm-rescue/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["*"]
+exclude = ["swarm_rescue.solutions_mine*"]

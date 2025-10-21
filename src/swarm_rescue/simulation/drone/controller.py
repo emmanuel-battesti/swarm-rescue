@@ -83,7 +83,7 @@ class Controller(PocketDevice):
         check_passed = self._check(command)
 
         if not check_passed and self._hard_check:
-            raise ValueError(command)
+            raise ValueError(f"Invalid command '{command}' for controller '{self.name}'. Expected type: {type(self.default).__name__}")
 
         # Maybe replace by closest later?
         if not check_passed or self._currently_disabled:

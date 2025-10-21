@@ -1,6 +1,6 @@
 import math
 import random
-from typing import Tuple, Union
+from typing import Tuple
 
 import arcade
 import numpy as np
@@ -12,37 +12,37 @@ from swarm_rescue.simulation.elements.physical_element import PhysicalElement
 from swarm_rescue.simulation.utils.definitions import CollisionTypes
 
 
-class SrColorWall(PhysicalElement):
+class ColorWall(PhysicalElement):
     """
-    The SrColorWall class is a subclass of the PhysicalElement class. It
+    The ColorWall class is a subclass of the PhysicalElement class. It
     represents a colored wall or a wall with a texture. The class is used to
     create walls with different colors or textures in the simulation
     environment.
 
     Example Usage
         # Creating a colored wall
-        wall = SrColorWall(pos_start=(0, 0), pos_end=(10, 0), width=2, color=(255, 0, 0))
+        wall = ColorWall(pos_start=(0, 0), pos_end=(10, 0), width=2, color=(255, 0, 0))
 
         # Creating a textured wall
-        wall = SrColorWall(pos_start=(0, 0), pos_end=(10, 0), width=2, file_name="wall_texture.png")
+        wall = ColorWall(pos_start=(0, 0), pos_end=(10, 0), width=2, file_name="wall_texture.png")
     """
 
     def __init__(
         self,
-        pos_start: Union[Tuple[float, float], pymunk.Vec2d],
-        pos_end: Union[Tuple[float, float], pymunk.Vec2d],
-        wall_thickness: float,
+        pos_start: Tuple[float, float],
+        pos_end: Tuple[float, float],
+        wall_thickness: int = 6,
         color: Tuple[int, int, int] = None,
         file_name: str = None,
         **kwargs
     ):
         """
-        Initialize a SrColorWall.
+        Initialize a ColorWall.
 
         Args:
-            pos_start (Union[Tuple[float, float], pymunk.Vec2d]): Start position of the wall.
-            pos_end (Union[Tuple[float, float], pymunk.Vec2d]): End position of the wall.
-            wall_thickness (float): Thickness of the wall.
+            pos_start (Tuple[float, float]): Start position of the wall.
+            pos_end (Tuple[float, float]): End position of the wall.
+            wall_thickness (int): Thickness of the wall.
             color (Tuple[int, int, int], optional): Color of the wall.
             file_name (str, optional): Texture file for the wall.
             **kwargs: Additional keyword arguments.
@@ -50,15 +50,15 @@ class SrColorWall(PhysicalElement):
         length = (pymunk.Vec2d(*pos_start) - pos_end).length + wall_thickness
 
         position = (pymunk.Vec2d(*pos_start) + pos_end) / 2
-        angle = (pymunk.Vec2d(*pos_end) - pos_start).angle + math.pi / 2
+        angle = (pymunk.Vec2d(*pos_end) - pos_start).angle
 
-        self.wall_coordinates = position, angle
+        self.wall_coordinates = (position.x, position.y), angle
 
         if color is not None:
             img = Image.new("RGBA",
                             (int(wall_thickness), int(length)), color)
             texture = arcade.Texture(
-                name=f"Barrier_{wall_thickness}_{length}_{color}",
+                name=f"Wall_{int(position.x)}_{int(position.y)}_{int(math.degrees(angle))}_{length}",
                 image=img,
                 hit_box_algorithm="Detailed",
                 hit_box_detail=1,
@@ -66,13 +66,13 @@ class SrColorWall(PhysicalElement):
         elif file_name is not None:
             w_img = 2000
             h_img = 2000
-            x = random.randint(0, int(w_img - wall_thickness - 1))
-            y = random.randint(0, int(h_img - length - 1))
+            x = random.randint(0, int(w_img - length - 1))
+            y = random.randint(0, int(h_img - wall_thickness - 1))
             texture = arcade.load_texture(file_name=file_name,
                                           x=x,
                                           y=y,
-                                          width=wall_thickness,
-                                          height=length)
+                                          width=length,
+                                          height=wall_thickness)
         else:
             raise ValueError('Either color or file_name must be provided')
 
@@ -97,9 +97,9 @@ class SrColorWall(PhysicalElement):
         return CollisionTypes.WALL
 
 
-class NormalWall(SrColorWall):
+class NormalWall(ColorWall):
     """
-    The NormalWall class is a subclass of the SrColorWall class. It is used by
+    The NormalWall class is a subclass of the ColorWall class. It is used by
     the tool 'image_to_map.py' in the directory tools. This class represents
     a normal wall with a specific color and texture.
 
@@ -110,8 +110,8 @@ class NormalWall(SrColorWall):
 
     def __init__(
         self,
-        pos_start: Union[Tuple[float, float], pymunk.Vec2d],
-        pos_end: Union[Tuple[float, float], pymunk.Vec2d],
+        pos_start: Tuple[float, float],
+        pos_end: Tuple[float, float],
         wall_thickness: int = 6,
         **kwargs
     ):
@@ -119,12 +119,12 @@ class NormalWall(SrColorWall):
         Initialize a NormalWall.
 
         Args:
-            pos_start (Union[Tuple[float, float], pymunk.Vec2d]): Start position.
-            pos_end (Union[Tuple[float, float], pymunk.Vec2d]): End position.
+            pos_start (Tuple[float, float]): Start position of the wall.
+            pos_end (Tuple[float, float]): End position of the wall.
             wall_thickness (int): Thickness of the wall.
             **kwargs: Additional keyword arguments.
         """
-        self.color = (200, 240, 230)
+        self.color = (128, 128, 128)
 
         p_start = np.asarray(pos_start)
         p_end = np.asarray(pos_end)
@@ -133,8 +133,11 @@ class NormalWall(SrColorWall):
         magnitude_v = math.sqrt(v[0] ** 2 + v[1] ** 2)
         uv = v / magnitude_v
 
-        new_pos_start = tuple(p_start + wall_thickness / 2 * uv)
-        new_pos_end = tuple(p_end - wall_thickness / 2 * uv)
+        new_p_start = p_start + wall_thickness / 2 * uv
+        new_p_end = p_end - wall_thickness / 2 * uv
+
+        new_pos_start = (float(new_p_start[0]), float(new_p_start[1]))
+        new_pos_end = (float(new_p_end[0]), float(new_p_end[1]))
 
         filename = path_resources + "/stone_texture_g_04.png"
 
@@ -145,9 +148,9 @@ class NormalWall(SrColorWall):
                          **kwargs)
 
 
-class NormalBox(SrColorWall):
+class NormalBox(ColorWall):
     """
-    The NormalBox class is a subclass of the SrColorWall class. It represents a
+    The NormalBox class is a subclass of the ColorWall class. It represents a
      custom wall in the shape of a box.
     This class is used by the tool 'image_to_map.py' in the directory tools.
 
@@ -158,7 +161,7 @@ class NormalBox(SrColorWall):
 
     def __init__(
         self,
-        up_left_point: Union[Tuple[float, float], pymunk.Vec2d],
+        up_left_point: Tuple[float, float],
         width: float,
         height: float,
         **kwargs
@@ -167,7 +170,7 @@ class NormalBox(SrColorWall):
         Initialize a NormalBox.
 
         Args:
-            up_left_point (Union[Tuple[float, float], pymunk.Vec2d]): Upper left point of the box.
+            up_left_point (Tuple[float, float]): Upper left point of the box.
             width (float): Width of the box.
             height (float): Height of the box.
             **kwargs: Additional keyword arguments.
@@ -193,6 +196,6 @@ class NormalBox(SrColorWall):
 
         super().__init__(pos_start=pos_start,
                          pos_end=pos_end,
-                         wall_thickness=wall_thickness,
+                         wall_thickness=int(wall_thickness),
                          file_name=filename,
                          **kwargs)

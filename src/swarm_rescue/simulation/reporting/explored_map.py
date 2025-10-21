@@ -30,10 +30,6 @@ def _create_black_white_image(img_playground) -> np.ndarray:
 
 
 def fill_empty_blob_of_wall(map_img) -> np.ndarray:
-    # In map_img, wall should be black and free zone (and inside some walls)
-    # should be white.
-    # cv2.imshow("map_img", map_img)
-    # cv2.waitKey(0)
     """
     Fill empty blobs in the wall map to ensure walls are contiguous.
 
@@ -43,13 +39,23 @@ def fill_empty_blob_of_wall(map_img) -> np.ndarray:
     Returns:
         np.ndarray: Filled wall map.
     """
+    # In map_img, wall should be black and free zone (and inside some walls)
+    # should be white.
+    # cv2.imshow("map_img", map_img)
+    # cv2.waitKey(0)
+
     # Find connected components and count pixels
     analysis = cv2.connectedComponentsWithStats(map_img)
     (total_labels, label_ids, stats, centroid) = analysis
 
-    # Find the index of the biggest component. Label 0 is the wall
-    # (background, here) so we start at 1
-    biggest_area_index = np.argmax(stats[1:, cv2.CC_STAT_AREA]) + 1
+    # Check if there are any components other than the background
+    areas = stats[1:, cv2.CC_STAT_AREA]
+    if areas.size == 0:
+        # No connected components found, return the original image
+        return map_img
+
+    # Find the index of the biggest component. Label 0 is the wall (background, here) so we start at 1
+    biggest_area_index = np.argmax(areas) + 1
 
     filled_wall_map = ((label_ids == biggest_area_index).astype("uint8")) * 255
     # cv2.imshow("filled_wall_map", filled_wall_map)
@@ -96,7 +102,6 @@ class ExploredMap:
         _explo_pts (Dict): Positions of drones.
         _last_position (Dict): Last position of each drone.
         _count_explored_pixels (int): Number of explored pixels.
-        _count_pixel_total (int): Total number of pixels.
         initialized (bool): Whether the map has been initialized.
     """
 
@@ -125,7 +130,6 @@ class ExploredMap:
         self._last_position = dict()
 
         self._count_explored_pixels = 0
-        self._count_pixel_total = 0
 
         # Flag to indicate if the map has been initialized or not
         self.initialized = False
@@ -144,7 +148,6 @@ class ExploredMap:
         self._explo_pts = dict()
         self._last_position = dict()
         self._count_explored_pixels = 0
-        self._count_pixel_total = 0
 
     def _create_image_walls(self, playground: Playground) -> np.ndarray:
         """
@@ -206,8 +209,8 @@ class ExploredMap:
         # print("width", width, "height", height)
 
         for drone in drones:
-            position_ocv = (round(drone.true_position()[0] + width / 2),
-                            round(-drone.true_position()[1] + height / 2))
+            position_ocv = (round(float(drone.true_position()[0]) + width / 2),
+                            round(-float(drone.true_position()[1]) + height / 2))
             if 0 <= position_ocv[0] < width and 0 <= position_ocv[1] < height:
                 if drone in self._last_position.keys():
                     cv2.line(img=self._map_explo_lines,
@@ -257,7 +260,7 @@ class ExploredMap:
 
         cv2.imshow("explored lines", self._map_explo_lines)
         cv2.imshow("exploration zones", self._map_explo_zones)
-        cv2.waitKey(1)
+        cv2.waitKey(0)
 
     def _process_positions(self) -> None:
         """
@@ -387,12 +390,20 @@ class ExploredMap:
         # Find connected components and count pixels
         _, labels, stats, _ = (
             cv2.connectedComponentsWithStats(self._map_playground))
+
+        # Check if there are any components other than the background
+        areas = stats[1:, cv2.CC_STAT_AREA]
+        if areas.size == 0:
+            # No connected components found, return 0
+            print("count_reachable v3 = 0 (no components found)")
+            return 0
+
         # Find the index of the biggest component. Label 0 is the wall so we
         # start at 1
-        biggest_area_index = np.argmax(stats[1:, cv2.CC_STAT_AREA]) + 1
+        biggest_area_index = np.argmax(areas) + 1
         # Extract area of the biggest component
         biggest_area = stats[biggest_area_index, cv2.CC_STAT_AREA]
-        count_reachable = biggest_area
+        count_reachable = int(biggest_area)
         print("count_reachable v3 =", count_reachable)
         # for i, area in enumerate(stats[0:, cv2.CC_STAT_AREA]):
         #     print(f"Component {i} = {area} pixels")
@@ -418,6 +429,12 @@ class ExploredMap:
 
         # Compute percentage of explored pixels
         count_reachable_pixels = self._compute_reachable_pixels()
+
+        # Handle the case where there are no reachable pixels
+        if count_reachable_pixels == 0:
+            print("Warning: No reachable pixels found in the map. Returning exploration score of 0.")
+            return 0.0
+
         score = self._count_explored_pixels / count_reachable_pixels
         if score > 1.0:
             score = 1.0

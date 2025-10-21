@@ -1,4 +1,5 @@
 import random
+from typing import Tuple, List
 
 import cv2
 import numpy as np
@@ -17,7 +18,7 @@ class ImageToMap:
         height_map (int): Height of the map.
         width_map (int): Width of the map.
         factor (float): Scaling factor from image to map.
-        lines (list): List of detected wall segments.
+        lines (np.ndarray): List of detected wall segments.
         boxes (list): List of detected boxes.
     """
 
@@ -27,8 +28,8 @@ class ImageToMap:
     height_map: int
     width_map: int
     factor: float
-    lines: list
-    boxes: list
+    lines: np.ndarray
+    boxes: List[Tuple[int, int, int, int]]
 
     def __init__(self, image_source: cv2.Mat, auto_resized: bool = True) -> None:
         """
@@ -58,7 +59,8 @@ class ImageToMap:
         self.width_map = 0
         self.factor = 1.0
 
-        self.lines = []
+        # To initialize lines as an empty NumPy array for detected line segments (typically shape (0, 1, 4) for lines with 4 coordinates)
+        self.lines = np.empty((0, 1, 4), dtype=np.float32)
         self.boxes = []
 
     def launch(self) -> None:
@@ -74,14 +76,15 @@ class ImageToMap:
 
     def detect_people(self) -> None:
         """
-        Detects people (green blobs) in the map image and prints their positions.
+        Detects people (yellow blobs) in the map image and prints their positions.
         """
         # convert to hsv colorspace
         img_hsv = cv2.cvtColor(self._img_src, cv2.COLOR_BGR2HSV)
 
-        # lower bound and upper bound for Green color
-        lower_bound = (22, 93, 0)
-        upper_bound = (45, 255, 255)
+        # lower bound and upper bound for Yellow color (more centered on pure yellow RGB 255,255,0)
+        # Use an HSV hue range that targets yellow; adjust if your drawing uses a different tint.
+        lower_bound = (20, 100, 100)
+        upper_bound = (30, 255, 255)
         # find the colors within the boundaries
         mask_people = cv2.inRange(img_hsv, lower_bound, upper_bound)
 
@@ -580,13 +583,16 @@ class ImageToMap:
         print("nombre de boxes =", len(self.boxes))
         print("nombre de lignes =", len(self.lines))
 
+def main():
+    # img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/"
+    #            "map_data/map_complete_map_2.png"
+    img_path = ("/home/battesti/projetCompetDronesDGA/private-swarm-rescue/"
+                "map_data/map_medium_02_color.png")
+    should_auto_resized = False
+    # img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread(img_path)
+    image_to_map = ImageToMap(image_source=img, auto_resized=should_auto_resized)
+    image_to_map.launch()
 
-# img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/"
-#            "map_data/map_complete_map_2.png"
-img_path = ("/home/battesti/projetCompetDronesDGA/private-swarm-rescue/"
-            "map_data/map_medium_02_color.png")
-should_auto_resized = False
-# img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-img = cv2.imread(img_path)
-image_to_map = ImageToMap(image_source=img, auto_resized=should_auto_resized)
-image_to_map.launch()
+if __name__ == '__main__':
+    main()

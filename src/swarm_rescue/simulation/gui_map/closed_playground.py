@@ -8,7 +8,7 @@ from swarm_rescue.simulation.elements.embodied import EmbodiedEntity
 from swarm_rescue.simulation.elements.normal_wall import NormalWall
 from swarm_rescue.simulation.elements.rescue_center import wounded_rescue_center_collision
 from swarm_rescue.simulation.elements.return_area import return_area_collision
-from swarm_rescue.simulation.elements.sensor_disablers import srdisabler_disables_device
+from swarm_rescue.simulation.elements.sensor_disablers import disabler_zone_disables_device
 from swarm_rescue.simulation.gui_map.collision_handlers import grasper_grasps_wounded
 from swarm_rescue.simulation.gui_map.playground import Playground
 from swarm_rescue.simulation.utils.definitions import CollisionTypes
@@ -72,10 +72,10 @@ class ClosedPlayground(Playground):
         w = width / 2
         o = border_thickness / 2
         pts = [
-            [(-w + o, -h), (-w + o, h), ],
+            [(-w + o, -h), (-w + o, h)],
             [(-w, h - o), (w, h - o)],
             [(w - o, h), (w - o, -h)],
-            [(w, -h + o), (-w, -h + o), ],
+            [(w, -h + o), (-w, -h + o)],
         ]
         for begin_pt, end_pt in pts:
             wall = NormalWall(pos_start=begin_pt, pos_end=end_pt,
@@ -92,7 +92,7 @@ class ClosedPlayground(Playground):
 
         self.add_interaction(CollisionTypes.DISABLER_ZONE,
                              CollisionTypes.DEVICE,
-                             srdisabler_disables_device)
+                             disabler_zone_disables_device)
 
         self.add_interaction(CollisionTypes.WOUNDED,
                              CollisionTypes.RESCUE_CENTER,

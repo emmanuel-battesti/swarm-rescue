@@ -84,7 +84,7 @@ class MyMapGpsDisabler(MapAbstract):
 
 
 def main():
-    my_map = MyMapGpsDisabler(drone_type=MyDroneGpsDisabler)
+    the_map = MyMapGpsDisabler(drone_type=MyDroneGpsDisabler)
 
     # Set this value to True to generate a video of the mission
     video_capture_enabled = False
@@ -99,7 +99,7 @@ def main():
     # demonstration of the integration of odometer values, by drawing the
     # estimated path in red. The green circle shows the position of drone
     # according to the gps sensor and the compass.
-    gui = GuiSR(the_map=my_map,
+    gui = GuiSR(the_map=the_map,
                 print_messages=True,
                 draw_gps=True,
                 use_keyboard=True,

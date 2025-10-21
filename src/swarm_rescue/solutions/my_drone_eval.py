@@ -1,4 +1,4 @@
-from solutions.my_drone_random import MyDroneRandom
+from swarm_rescue.solutions.my_drone_random import MyDroneRandom
 
 
 class MyDroneEval(MyDroneRandom):

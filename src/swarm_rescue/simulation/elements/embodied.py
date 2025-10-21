@@ -8,6 +8,7 @@ from typing import List, Optional, Tuple, Union
 
 import arcade
 import pymunk
+import pymunk.autogeometry
 from PIL import Image
 
 from swarm_rescue.simulation.elements.entity import Entity
@@ -291,10 +292,10 @@ class EmbodiedEntity(Entity, ABC):
     # Init pm Elements
     ###############
     def _get_dimensions(
-        self,
-        radius: Optional[float],
-        width: Optional[float],
-        height: Optional[float],
+            self,
+            radius: Optional[float],
+            width: Optional[float],
+            height: Optional[float],
     ) -> Tuple[float, float, float, float]:
         """
         Calculates the scale and dimensions of the entity based on the given parameters.
@@ -498,7 +499,7 @@ class EmbodiedEntity(Entity, ABC):
         sprite.set_position(pos_x, pos_y)
 
         # Update the sprite's angle to match the entity's orientation in degrees
-        sprite.angle = int(self._pm_body.angle * 180 / math.pi)
+        sprite.angle = int(math.degrees(self._pm_body.angle))
 
     ###################
     # Pymunk objects

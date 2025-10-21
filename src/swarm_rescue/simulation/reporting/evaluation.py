@@ -72,6 +72,8 @@ class EvalPlan:
         self.sum_weight = 0
         self.config_description = dict()
         self.config_path = None  # Attribut pour stocker le chemin du fichier
+        self.stat_saving_enabled = False  # Default value, can be overridden by YAML
+        self.video_capture_enabled = False  # Default value, can be overridden by YAML
 
     def add(self, eval_config: EvalConfig) -> None:
         """
@@ -126,12 +128,21 @@ class EvalPlan:
         Returns:
             bool: True if loaded successfully, False otherwise.
         """
-        self.config_path = config_path  # Stocke le chemin du fichier
+        self.config_path = config_path  # Store the file path
 
         # Load configurations from YAML
-        eval_configs = self._load_from_yaml(config_path)
-        if not eval_configs:
+        config = self._load_from_yaml(config_path)
+        if not config:
             return False
+
+        # Expect top-level dict with 'stat_saving_enabled' and 'evaluation_plan'
+        if not isinstance(config, dict) or 'evaluation_plan' not in config:
+            print("Invalid YAML structure: missing 'evaluation_plan' list.")
+            return False
+
+        self.stat_saving_enabled = config.get('stat_saving_enabled', True)
+        self.video_capture_enabled = config.get('video_capture_enabled', False)
+        eval_configs = config['evaluation_plan']
 
         # Convert zone names to enum values
         zone_types = {
@@ -165,7 +176,7 @@ class EvalPlan:
         return True
 
     @staticmethod
-    def _load_from_yaml(config_path: Optional[str] = None) -> List[Dict[str, Any]]:
+    def _load_from_yaml(config_path: Optional[str] = None) -> dict:
         """
         Load evaluation plan configuration from a YAML file.
 
@@ -173,44 +184,15 @@ class EvalPlan:
             config_path (Optional[str]): Path to the YAML configuration file. If None, uses default config.
 
         Returns:
-            List[Dict[str, Any]]: List of evaluation configurations.
+            dict: Loaded configuration data.
         """
         if not os.path.exists(config_path):
             print(f"Config file not found: {config_path}")
-            return []
-
+            return {}
         with open(config_path, 'r') as file:
             try:
                 config = yaml.safe_load(file)
-                if not EvalPlan._validate_yaml_config(config):
-                    print("Invalid YAML configuration")
-                    return []
                 return config
             except yaml.YAMLError as e:
                 print(f"Error parsing YAML file: {e}")
-                return []
-
-    @staticmethod
-    def _validate_yaml_config(config: List[Dict[str, Any]]) -> bool:
-        """
-        Validate the YAML configuration against the schema.
-
-        Args:
-            config (List[Dict[str, Any]]): The loaded YAML configuration.
-
-        Returns:
-            bool: True if the configuration is valid, False otherwise.
-        """
-        schema = {
-            'map_name': {'type': 'string', 'required': True},
-            'nb_rounds': {'type': 'integer', 'required': False, 'min': 1},
-            'config_weight': {'type': 'integer', 'required': False, 'min': 1},
-            'zones_config': {'type': 'list', 'schema': {'type': 'string'}, 'required': False}
-        }
-
-        v = Validator(schema)
-        for item in config:
-            if not v.validate(item):
-                print(f"Validation error: {v.errors}")
-                return False
-        return True
+                return {}

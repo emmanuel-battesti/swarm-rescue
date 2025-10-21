@@ -1,5 +1,6 @@
 import math
 
+import arcade
 import pymunk
 
 from swarm_rescue.resources import path_resources
@@ -40,6 +41,23 @@ class DroneBase(DronePart):
             **kwargs,
         )
 
+        # Load the dead drone texture
+        self._dead_texture = arcade.load_texture(
+            path_resources + "/drone_v2_dead.png",
+            hit_box_algorithm="Simple",
+            hit_box_detail=1,
+            flipped_diagonally=True,
+            flipped_horizontally=True,
+        )
+
+        # Store the alive texture for later use
+        self._alive_texture = self._base_sprite.texture
+
+        # Track if the drone is currently in a kill zone (visual state)
+        self._is_in_kill_zone = False
+        # Flag to track if a kill zone collision occurred during the current frame
+        self._kill_zone_collision_this_frame = False
+
         # Friction normally goes between 0 (no friction) and 1.0 (high friction)
         # Friction is between two objects in contact. It is important to remember
         # in top-down games that friction moving along the 'floor' is controlled
@@ -63,6 +81,78 @@ class DroneBase(DronePart):
         self.angular_ratio = ANGULAR_VELOCITY * angular_ratio
 
         self.inside_return_area = False
+
+
+
+    def set_in_kill_zone(self, in_kill_zone: bool) -> None:
+        """
+        Set whether the drone is in a kill zone and update the sprite accordingly.
+
+        Args:
+            in_kill_zone (bool): True if the drone is in a kill zone, False otherwise.
+        """
+        # Only update sprites if the state actually changed
+        if self._is_in_kill_zone == in_kill_zone:
+            return  # State already correct, nothing to do
+
+        self._is_in_kill_zone = in_kill_zone
+
+        # Update the base sprite texture
+        self._base_sprite.texture = self._dead_texture if in_kill_zone else self._alive_texture
+
+        #print(f"DroneBase UID {self.uid} texture changed to {'dead' if in_kill_zone else 'alive'}.")
+
+        # Update the sprites in all views
+        self._update_sprites_in_views()
+
+    def _update_sprites_in_views(self) -> None:
+        """
+        Update the drone sprite in all views after texture change.
+        This updates the texture directly.
+        """
+        if not self._playground or not self._playground._views:
+            return
+
+        for view in self._playground._views:
+            if self not in view.sprites:
+                continue
+
+            # Update the texture of the existing sprite directly
+            current_sprite = view.sprites[self]
+            current_sprite.texture = self._base_sprite.texture
+
+            # Force a redraw of the sprite to reflect the texture change
+            view.update_and_draw_in_framebuffer(force=True)
+
+
+    @property
+    def in_kill_zone(self) -> bool:
+        """
+        Returns whether the drone is currently in a kill zone.
+
+        Returns:
+            bool: True if in kill zone, False otherwise.
+        """
+        return self._is_in_kill_zone
+
+    def pre_step(self) -> None:
+        """
+        Prepare the drone base for a new simulation step.
+        """
+        super().pre_step()
+
+    def post_step(self) -> None:
+        """
+        Finalize the drone base after a simulation step.
+        If no collision with kill zone occurred this frame, reset to alive state.
+        """
+        super().post_step()
+        # If no kill zone collision occurred during this step, ensure we're in alive state
+        # This is checked at the END of the step, after all collisions have been processed
+        if not self._kill_zone_collision_this_frame:
+            self.set_in_kill_zone(False)
+        # Reset the collision flag for next frame
+        self._kill_zone_collision_this_frame = False
 
     def _apply_commands(self, **kwargs) -> None:
         """

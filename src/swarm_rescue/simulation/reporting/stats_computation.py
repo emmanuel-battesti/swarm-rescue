@@ -45,7 +45,7 @@ class StatsComputation:
         self.df_data_website = None
 
         file = pandas.read_csv(self._result_path +
-                               f'/team{self._team_info.team_number_str}'
+                               f'/team{self._team_info.team_number_str_padded}'
                                f'_stats.csv')
 
         self.dataframe: DataFrame = file.copy()

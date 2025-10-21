@@ -70,6 +70,7 @@ class CoordinateSampler(ABC):
         Returns:
             np.ndarray: Array of relative positions.
         """
+        pos = None
         if self._radius:
             pos = np.indices((self._radius, self._radius))
             dist = (pos[0, :] - self._radius / 2) ** 2 + (pos[1, :] - self._radius / 2)

@@ -107,7 +107,7 @@ class DronePart(PhysicalEntity, ABC):
 
         for device in self.devices:
             if isinstance(device, Grasper):
-                device.apply_commands(**kwargs)
+                device.apply_commands()
 
     @abstractmethod
     def _apply_commands(self, **kwargs) -> None:

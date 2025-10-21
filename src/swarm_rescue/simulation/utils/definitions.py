@@ -4,6 +4,7 @@
 # pylint: disable=missing-class-docstring
 from collections import namedtuple
 from enum import IntEnum, auto
+from typing import Type
 
 SIMULATION_STEPS: int = 10
 SPACE_DAMPING: float = 0.95  # https://www.pymunk.org/en/latest/pymunk.html#pymunk.Space.damping
@@ -45,10 +46,10 @@ class CollisionTypes(IntEnum):
     RETURN_AREA = auto()
 
 
-def add_custom_collision(collision_types: type, name: str) -> type:
+def add_custom_collision(collision_types: Type[IntEnum], name: str) -> type:
     """
     Function that allows to add new collisions to CollisionTypes.
-    This is used when an user wants to create a new type of Entity,
+    This is used when a user wants to create a new type of Entity,
     that requires particular collision handler and behavior.
 
     Examples:

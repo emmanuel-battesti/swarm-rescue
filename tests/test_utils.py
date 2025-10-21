@@ -1,8 +1,15 @@
+import pathlib
+import sys
 import numpy as np
 import pytest
 
+# Insert the 'src' directory, located two levels up from the current script,
+# into sys.path. This ensures Python can find project-specific modules
+# (e.g., 'swarm_rescue') when the script is run from a subfolder like 'tests/'.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "src"))
+
 from swarm_rescue.simulation.utils.utils import (normalize_angle, sign,
-                                    circular_mean, bresenham)
+                                                 circular_mean, bresenham)
 
 
 def test_normalize_angle():
@@ -16,9 +23,26 @@ def test_normalize_angle():
     assert normalize_angle(400) > -3.1416
     assert normalize_angle(400) < 3.1416
 
+    angles = np.array([0.1, 0.5, -0.3, 2.7])
+    assert np.allclose(normalize_angle(angles), np.array([0.1, 0.5, -0.3, 2.7]))
+
     assert np.isnan(normalize_angle(np.nan))
-    assert np.isnan(normalize_angle(np.Inf))
-    assert np.isnan(normalize_angle(np.NINF))
+    assert np.isnan(normalize_angle(np.inf))
+
+    # Test multiples of pi
+    assert normalize_angle(np.pi) == pytest.approx(-np.pi)
+    assert normalize_angle(-np.pi) == pytest.approx(-np.pi)
+    assert normalize_angle(2 * np.pi) == 0
+    assert normalize_angle(-2 * np.pi) == 0
+    assert normalize_angle(3 * np.pi) == pytest.approx(-np.pi)
+    assert normalize_angle(-3 * np.pi) == pytest.approx(-np.pi)
+    # Test array with multiples of pi
+    angles = np.array([np.pi, -np.pi, 2 * np.pi, -2 * np.pi, 3 * np.pi, -3 * np.pi])
+    expected = np.array([-np.pi, -np.pi, 0, 0, -np.pi, -np.pi])
+    assert np.allclose(normalize_angle(angles), expected)
+    # Test very large values
+    assert -np.pi < normalize_angle(1e10) < np.pi
+    assert -np.pi < normalize_angle(-1e10) < np.pi
 
 
 def test_sign():
@@ -28,9 +52,8 @@ def test_sign():
     assert sign(10000) == 1
     assert sign(-10000) == -1
 
-    assert sign(np.NAN) == 1
-    assert sign(np.Inf) == 1
-    assert sign(np.NINF) == -1
+    assert sign(np.nan) == 1
+    assert sign(np.inf) == 1
 
 
 def test_single_angle():

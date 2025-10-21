@@ -29,7 +29,7 @@ class KeyboardController:
 
         Args:
             key (int): The key code pressed.
-            modifiers (int): Modifier keys pressed.
+            modifiers (int): Bitwise OR of all modifier keys currently pressed.
         """
         if self._command:
 
@@ -52,14 +52,14 @@ class KeyboardController:
             if key == arcade.key.W:
                 self._command["grasper"] = 1
 
-    def on_key_release(self, key: int, modifiers: int) -> None:
+    def on_key_release(self, key: int, _: int) -> None:
         """
         Called whenever a key is released. Resets the command values based
         on the released key.
 
         Args:
             key (int): The key code released.
-            modifiers (int): Modifier keys pressed.
+            _ (int): Bitwise OR of all modifier keys currently pressed.
         """
         if self._command:
 

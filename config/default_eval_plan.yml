@@ -1,25 +1,52 @@
-# Default evaluation plan configuration
-- map_name: MyMapIntermediate01
-  nb_rounds: 2
-  config_weight: 1
-  zones_config: []
+# NOTE FOR COMPETITION PARTICIPANTS:
+# The generation of statistics reports and mission videos in the ~/results_swarm_rescue directory is primarily intended for the competition evaluator.
+# These files are used to verify, analyze, and archive the results of your runs.
+# You can enable or disable report and video generation using the 'stat_saving_enabled' and 'video_capture_enabled' fields below.
+#
+# This is the main configuration file for the evaluation plan.
+#
+# Top-level fields:
+#   - stat_saving_enabled: Enables or disables saving statistics and PDF reports generation (true/false).
+#   - video_capture_enabled: Enables or disables video recording of the mission (true/false).
+#
+# The 'evaluation_plan' field contains a list of scenarios to be executed.
+# Each scenario defines the map, number of rounds, weight in score, and special zones.
+#
+# Example usage:
+#   - To enable statistics saving and report generation, set stat_saving_enabled: true
+#   - To enable video capture, set video_capture_enabled: true
+#   - Add or modify scenarios under 'evaluation_plan' as needed.
 
-- map_name: MyMapIntermediate02
-  nb_rounds: 1
-  config_weight: 1
-  zones_config: []
+stat_saving_enabled: false  # Save statistics and generate PDF report (true/false)
+video_capture_enabled: false  # Enable video recording of the mission (true/false)
 
-- map_name: MyMapMedium01
-  nb_rounds: 1
-  config_weight: 1
-  zones_config: []
+evaluation_plan:
+  # Scenario 1: Intermediate map with 2 rounds, no special zones
+  - map_name: MapIntermediate01
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: []
 
-- map_name: MyMapMedium01
-  nb_rounds: 1
-  config_weight: 1
-  zones_config: [NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE]
+  # Scenario 2: Intermediate map with 1 round, no special zones
+  - map_name: MapIntermediate02
+    nb_rounds: 1
+    config_weight: 1
+    zones_config: []
 
-- map_name: MyMapMedium02
-  nb_rounds: 1
-  config_weight: 1
-  zones_config: [NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE]
+  # Scenario 3: Medium map with 1 round, no special zones
+  - map_name: MapMedium01
+    nb_rounds: 1
+    config_weight: 1
+    zones_config: []
+
+  # Scenario 4: Medium map with 1 round, all special zones enabled
+  - map_name: MapMedium01
+    nb_rounds: 1
+    config_weight: 1
+    zones_config: [NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE]
+
+  # Scenario 5: Another medium map with 1 round, all special zones enabled
+  - map_name: MapMedium02
+    nb_rounds: 1
+    config_weight: 1
+    zones_config: [NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE]

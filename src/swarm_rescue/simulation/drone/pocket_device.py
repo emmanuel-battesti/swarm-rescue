@@ -18,7 +18,6 @@ class PocketDevice(Device):
     def __init__(
             self,
             color: Optional[Tuple[int, int, int]] = None,
-            radius: float = DEVICE_RADIUS,
             **kwargs,
     ):
         """

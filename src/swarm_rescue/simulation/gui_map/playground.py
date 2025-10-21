@@ -109,6 +109,12 @@ class Playground:
         self._elements: List[SceneElement] = []
         self._agents: List[Agent] = []
 
+        # Cache variables for performance optimization
+        self._cached_agents: List[Agent] = []
+        self._cached_elements: List[SceneElement] = []
+        self._agents_cache_needs_update = True
+        self._elements_cache_needs_update = True
+
         # Private attributes for managing interactions in playground
         self._timestep: int = 0
 
@@ -121,7 +127,7 @@ class Playground:
         self._views = []
 
         # Arcade window necessary to create contexts, views, sensors and gui
-        self._window = arcade.Window(1, 1, visible=False, antialiasing=True)  # type: ignore
+        self._window = arcade.Window(width=1, height=1, visible=False, antialiasing=True)  # type: ignore
         self._window.ctx.blend_func = self._window.ctx.ONE, self._window.ctx.ZERO
 
         self._ray_compute = None
@@ -323,7 +329,11 @@ class Playground:
         Returns:
             List[Agent]: The agents.
         """
-        return [agent for agent in self._agents if not agent.removed]
+        # Cache the result to avoid recalculating every time
+        if not hasattr(self, '_cached_agents') or self._agents_cache_needs_update:
+            self._cached_agents = [agent for agent in self._agents if not agent.removed]
+            self._agents_cache_needs_update = False
+        return self._cached_agents
 
     @property
     def elements(self) -> List[SceneElement]:
@@ -333,7 +343,11 @@ class Playground:
         Returns:
             List[SceneElement]: The elements.
         """
-        return [elem for elem in self._elements if not elem.removed]
+        # Cache the result to avoid recalculating every time
+        if not hasattr(self, '_cached_elements') or self._elements_cache_needs_update:
+            self._cached_elements = [elem for elem in self._elements if not elem.removed]
+            self._elements_cache_needs_update = False
+        return self._cached_elements
 
     ###############
     # STEP
@@ -357,7 +371,7 @@ class Playground:
             pymunk_steps (int): Number of steps for the pymunk physics engine to run.
 
         Returns:
-            tuple: (observations, messages, rewards)
+            tuple: (messages, rewards)
         Notes:
             pymunk_steps only influences the micro-steps that
             the physical engine is taking to render
@@ -367,7 +381,7 @@ class Playground:
             of pymunk_steps.
 
         """
-        obs, mess, rew = None, None, None
+        mess, rew = None, None
 
         self._pre_step()
 
@@ -376,7 +390,7 @@ class Playground:
         for _ in range(pymunk_steps):
             self.space.step(1.0 / pymunk_steps)
 
-        obs = self._compute_observations()
+        self._compute_observations()
 
         self._post_step()
 
@@ -386,7 +400,7 @@ class Playground:
 
         self._timestep += 1
 
-        return obs, mess, rew
+        return mess, rew
 
     def _pre_step(self) -> None:
         """
@@ -478,7 +492,7 @@ class Playground:
 
         return msgs
 
-    def _compute_observations(self):
+    def _compute_observations(self) -> None:
         """
         Compute observations for all agents.
 
@@ -488,25 +502,19 @@ class Playground:
         if self._ray_compute:
             self._ray_compute.update_sensors()
 
-        obs = {}
         for agent in self.agents:
-            obs[agent] = agent.compute_observations()
-
-        return obs
+            agent.compute_observations()
 
     def reset(self):
         """
         Reset the Playground to its initial state.
-
-        Returns:
-            tuple: (observations, None, None)
         """
         # reset elements that are still in playground
         for element in self._elements:
 
-            if element.temporary:
+            if isinstance(element, Entity) and element.temporary:
                 self.remove(element, definitive=True)
-            elif element.removed:
+            elif isinstance(element, Entity) and element.removed:
                 self.add(element, from_removed=True)
             elif isinstance(element, PhysicalElement) and element.movable:
                 assert element.initial_coordinates
@@ -539,11 +547,8 @@ class Playground:
 
         self._timestep = 0
 
-        obs = self._compute_observations()
+        self._compute_observations()
 
-        return obs, None, None
-
-    # ADD REMOVE ENTITIES
 
     def add(
             self,
@@ -659,9 +664,11 @@ class Playground:
         if isinstance(entity, Agent):
             self._agents.append(entity)
             self._name_to_agents[entity.name] = entity
+            self._agents_cache_needs_update = True
 
         elif isinstance(entity, SceneElement):
             self._elements.append(entity)
+            self._elements_cache_needs_update = True
 
         if isinstance(entity, EmbodiedEntity):
             for pm_shape in entity.pm_shapes:
@@ -736,12 +743,14 @@ class Playground:
 
         if isinstance(entity, Agent):
             self._agents.remove(entity)
+            self._agents_cache_needs_update = True
 
             assert entity.name
             self._name_to_agents.pop(entity.name)
 
         elif isinstance(entity, SceneElement):
             self._elements.remove(entity)
+            self._elements_cache_needs_update = True
 
         if not isinstance(entity, Agent):
             for pm_shape in entity.pm_shapes:
@@ -903,6 +912,38 @@ class Playground:
         Set up collision interactions for the playground.
         """
         ...
+
+    def cleanup(self):
+        """
+        Clean up resources and prepare for garbage collection.
+        Should be called when the playground is no longer needed.
+        """
+        # Clear all entities
+        for agent in self._agents.copy():
+            self.remove(agent, definitive=True)
+
+        for element in self._elements.copy():
+            self.remove(element, definitive=True)
+
+        # Clear caches
+        self._cached_agents.clear()
+        self._cached_elements.clear()
+
+        # Clear mappings
+        self._shapes_to_entities.clear()
+        self._name_to_agents.clear()
+        self._uids_to_entities.clear()
+
+        # Clear views
+        self._views.clear()
+
+        # Close window if it exists
+        if hasattr(self, '_window') and self._window:
+            self._window.close()
+
+        # Clear ray compute
+        if self._ray_compute:
+            self._ray_compute = None
 
     def add_interaction(
             self,

@@ -10,7 +10,7 @@ from typing import List, Type
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
-from swarm_rescue.simulation.elements.drone_motionless import DroneMotionless
+from swarm_rescue.simulation.drone.drone_motionless import DroneMotionless
 from swarm_rescue.simulation.elements.wounded_person import WoundedPerson
 from swarm_rescue.simulation.gui_map.closed_playground import ClosedPlayground
 from swarm_rescue.simulation.gui_map.gui_sr import GuiSR
@@ -19,12 +19,12 @@ from swarm_rescue.simulation.reporting.evaluation import ZonesConfig
 from swarm_rescue.simulation.utils.misc_data import MiscData
 
 
-class MyMapRandom(MapAbstract):
+class MapRandom(MapAbstract):
 
     def __init__(self, drone_type: Type[DroneAbstract], zones_config: ZonesConfig = ()):
         super().__init__(drone_type, zones_config)
         self._number_drones = 10
-        self._max_timestep_limit = 480
+        self._max_timestep_limit = 220
         self._max_walltime_limit = 22  # In seconds
         self._size_area = (1500, 700)
         self._wounded_persons: List[WoundedPerson] = []
@@ -49,9 +49,9 @@ class MyMapRandom(MapAbstract):
 
 
 if __name__ == '__main__':
-    my_map = MyMapRandom(drone_type=DroneMotionless)
+    the_map = MapRandom(drone_type=DroneMotionless)
 
-    gui = GuiSR(the_map=my_map,
+    gui = GuiSR(the_map=the_map,
                 use_mouse_measure=True,
                 )
     gui.run()

@@ -23,3 +23,11 @@ FOV_LIDAR_SENSOR: int = 360
 # and send messages)
 RANGE_COMMUNICATION: int = 250
 
+# 'WINDOW_AUTO_RESIZE_RATIO' is the percentage of screen size used as maximum
+# for automatic window resizing (0.85 = 85% of screen size)
+WINDOW_AUTO_RESIZE_RATIO: float = 0.85
+
+# 'ENABLE_WINDOW_AUTO_RESIZE' allows to completely disable automatic window resizing
+# Set to False to disable auto-resize for all windows
+ENABLE_WINDOW_AUTO_RESIZE: bool = True
+

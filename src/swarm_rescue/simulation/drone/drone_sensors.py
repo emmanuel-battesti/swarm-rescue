@@ -1,5 +1,5 @@
 import math
-from abc import ABC
+from typing import Optional
 
 import numpy as np
 
@@ -8,7 +8,7 @@ from swarm_rescue.simulation.utils.utils import deg2rad, normalize_angle
 from swarm_rescue.simulation.utils.utils_noise import AutoregressiveModelNoise, GaussianNoise
 
 
-class DroneGPS(Sensor, ABC):
+class DroneGPS(Sensor):
     """
     The DroneGPS class is a subclass of Sensor that represents a GPS
     sensor for a drone. It returns the position of the drone as a numpy
@@ -71,7 +71,7 @@ class DroneGPS(Sensor, ABC):
         """
         return self._null_sensor
 
-    def get_sensor_values(self) -> np.ndarray | None:
+    def get_sensor_values(self) -> Optional[np.ndarray]:
         """
         Get the GPS sensor values.
 
@@ -159,7 +159,7 @@ class DroneCompass(Sensor):
         """
         return self._null_sensor
 
-    def get_sensor_values(self) -> float | None:
+    def get_sensor_values(self) -> Optional[float]:
         """
         Get the compass sensor value.
 
@@ -282,7 +282,7 @@ class DroneOdometer(Sensor):
         """
         return self._null_sensor
 
-    def get_sensor_values(self) -> np.ndarray | None:
+    def get_sensor_values(self) -> Optional[np.ndarray]:
         """
         Get the odometer sensor values.
 

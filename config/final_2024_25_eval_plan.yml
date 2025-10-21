@@ -1,0 +1,47 @@
+# Configuration file for Final 2024-2025 maps evaluation
+# This plan includes all three final maps from the 2024-2025 competition
+#
+# Maps included:
+#   - MapFinal_2024_25_01: Final map with communication disruption zones
+#   - MapFinal_2024_25_02: Final map with kill zones (dangerous areas)
+#   - MapFinal_2024_25_03: Final map with GPS disruption zones
+
+stat_saving_enabled: true   # Save statistics and generate PDF report (true/false)
+video_capture_enabled: true # Enable video recording of the mission (true/false)
+
+evaluation_plan:
+  # Final Map 2024-25 #1 - Basic scenario (no special zones)
+  - map_name: MapFinal_2024_25_01
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: []
+
+  # Final Map 2024-25 #1 - With communication disruption zones
+  - map_name: MapFinal_2024_25_01
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: [NO_COM_ZONE]
+
+  # Final Map 2024-25 #2 - Basic scenario (no special zones)
+  - map_name: MapFinal_2024_25_02
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: []
+
+  # Final Map 2024-25 #2 - With kill zones
+  - map_name: MapFinal_2024_25_02
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: [KILL_ZONE]
+
+  # Final Map 2024-25 #3 - Basic scenario (no special zones)
+  - map_name: MapFinal_2024_25_03
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: []
+
+  # Final Map 2024-25 #3 - With GPS disruption zones
+  - map_name: MapFinal_2024_25_03
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: [NO_GPS_ZONE]

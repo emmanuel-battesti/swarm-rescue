@@ -2,115 +2,104 @@
 
 - [Welcome to *Swarm-Rescue*](#welcome-to-swarm-rescue)
 - [The Competition](#the-competition)
-- [Simple-Playgrounds](#simple-playgrounds)
+- [Simulation Environment](#simulation-environment)
 - [Installation](#installation)
 - [Elements of the environment](#elements-of-the-environment)
-- [Programming](#programming)
+- [Programming Your Drones](#programming-your-drones)
 - [Contact](#contact)
 
 # Welcome to *Swarm-Rescue*
 
 With this project, you will try to save human lives, in simulation... Teach a swarm of drones how to behave to save a maximum of injured people in a minimum of time!
 
-Your job will be to propose your own version of the controller of the drone. In a competition, each participating team will perform on a new unknown map, the winner will be the one who gets the most points based on several criteria: speed, quality of exploration, number of injured people saved, health level of the drones returned, etc.
+Your job will be to develop your own drone controller. In the competition, each participating team will be evaluated on new, unknown maps. The winner will be determined by a scoring system based on multiple criteria: rescue speed, exploration efficiency, number of injured people saved, remaining health of the drones, and more.
 
 *Swarm-Rescue* is the environment that simulates the drones and that describes the maps used, the drones and the different elements of the map.
 
-[Access to the GitHub repository *Swarm-Rescue*](https://github.com/emmanuel-battesti/swarm-rescue)
+[Access to the GitHub repository *Swarm-Rescue*](https://github.com/emmanuel-battesti/swarm-rescue) • [Website](https://emmanuel-battesti.github.io/swarm-rescue-website/) • [Changelog](https://github.com/emmanuel-battesti/swarm-rescue/blob/main/CHANGELOG.md)
 
-The Challenge does not require any particular technical skills (beyond basic knowledge of *Python*), and will mainly mobilize creativity and curiosity from the participants.
+The Challenge requires only basic knowledge of *Python* and emphasizes creativity, problem-solving, and algorithmic thinking. Success depends more on innovative approaches to swarm coordination than on advanced programming skills.
 
 # The Competition
 
-The objective of the mission is to map an unknown, potentially hostile area, detect wounded people, and guide them out of the area. A typical use case is to investigate the basement of a collapsed building in the dark, in order to locate trapped people and rescue them.
+## Mission
 
-Each team will have a fleet of 10 drones. Each drone will be equipped with communication functions and sensors.
+The objective is simple: explore an unknown area (like the basement of a collapsed building), detect injured people, and guide them to the rescue center.
 
-**Your job is to make these drones completely autonomous by programming them in *Python*.**
+Each team has a fleet of 10 drones, equipped with sensors and communication devices. Your role is to **program the intelligence of these drones to make them 100% autonomous** by programming them in *Python*.
 
-The drones will have to manage the limited range of the communication means, collaborate between them to acquire information and share information, be able to manage sensor and communication means failures and unforeseen events such as the loss of drones in order to conduct this mission autonomously.
+They will need to collaborate, manage failures, communication losses, and unforeseen events to successfully complete their mission. All development is done **exclusively within this simulation environment**, with maps of increasing complexity.
 
-The work on the challenge will be done **exclusively in this simulation environment**, with maps of increasing complexity. The final evaluation will be done on several unknown maps designed by the organizers and not available to the contestants. Every proposition will be tested on a same computer and a score related to the performance will be computed.
+The final evaluation will be done on several unknown maps designed by the organizers and not available to the contestants. Every proposition will be tested on a same computer and a score related to the performance will be computed.
 
+## Scoring
 
-## Score
+Depending on the scenario evolution before the final evaluation, the score calculation may be slightly modified.
 
-Depending on the scenario evolution before the final evaluation, the score calculation may be slightly modified. The general calculation principle for one map configuration is explained below. 
+A mission ends when:
+- The maximum simulation timestep is reached (*max timestep limit*).
+- The maximum real-world execution time is exceeded (*max walltime limit*, typically 2 to 5 minutes).
+When one of the two limits is reached, the game is over. If your algorithm is fast, you will reach the "max timestep limit" first. If your algorithm is too slow, you will reach the "max walltime limit" before the "max timestep limit".
 
-First, the execution of your algorithms will be stopped after a while. There are two time-limits:
-- max timestep limit: a number of loops in the simulation
-- max walltime limit: a limit in minutes, depending on the map and the computer speed: 2 to 5 minutes.
+Your score will be calculated based on:
+- **✅ Rescued People:** The percentage of injured people brought back to the rescue center.
+- **🗺️ Exploration:** The percentage of the map explored.
+- **❤️ Drone Health:** The percentage of health points remaining for your drones at the end of the mission.
+- **⏱️ Efficiency:** The time remaining if all people are rescued and all the map is explored.
 
-When the first limit is reached, the game is over. If your algorithm is fast, you will reach the "max timestep limit" first. If your algorithm is too slow, you will reach the "max walltime limit" before the "max timestep limit" .
+# Simulation Environment
 
-To calculate the score, the following elements will be taken into account:
-- The percentage of people brought back to the rescue zone,
-- The percentage of the map explored when all people are rescued or the time limit is reached,
-- The percentage of life points of the drones that come back to the return area at the end of the mission compared to the life points of drones at the beginning,
-- The percentage of time remaining relative to the time limit when all people are rescued and the map is explored. 
+Swarm-Rescue is built on a modified code of the 2D simulation library [**Simple-Playgrounds**](https://github.com/mgarciaortiz/simple-playgrounds) (SPG), which uses the **Pymunk** physics engine and the **Arcade** game engine.
 
-# Simple-Playgrounds 
-
-This program *Swarm-Rescue* is an extension of the *Simple-Playgrounds* (SPG) software library: [https://github.com/mgarciaortiz/simple-playgrounds](https://github.com/mgarciaortiz/simple-playgrounds). However, in the current installation of *Swarm-Rescue*, it is the branch *swarm-rescue-v3* of a fork of *Simple-Playgrounds* that is used: [https://github.com/emmanuel-battesti/simple-playgrounds/tree/swarm-rescue-v3](https://github.com/emmanuel-battesti/simple-playgrounds/tree/swarm-rescue-v3).
-
-It is recommended to read the [documentation of *Simple-Playgrounds*](https://github.com/emmanuel-battesti/simple-playgrounds/tree/swarm-rescue-v3).
-
-*Simple-Playgrounds* is an easy-to-use, fast and flexible simulation environment. It bridges the gap between simple and efficient grid environments, and complex and challenging 3D environments. It proposes a large diversity of environments for embodied drones learning through physical interactions. The playgrounds are 2D environments where drones can move around and interact with scene elements.
-
-The game engine, based on [Pymunk](http://www.pymunk.org) and [Arcade](https://api.arcade.academy/), deals with simple physics, such as collision and friction. Drones can act through continuous movements and discrete interactive actions. They perceive the scene with realistic first-person view sensors, top-down view sensors, and semantic sensors.
-
-## Game Engine
-
-In *Simple-Playgrounds*, the game engine used is *Arcade*. Drones enter a Playground, and start acting and perceiving within this environment. The perception/action/communication loop is managed by the game engine. At each time step, all perception is acquired, all communication are done. Then according to actions to do, drones are moved. Everything is synchronized, unlike what you would get on a real robot.
-
-## Physics Engine
-
-In *Simple-Playgrounds*, the 2D physics library *Pymunk* is used. The physics engine handles simple physics, such as collision and friction. This gives a mass and inertia to all objects.
+In practical terms, this means:
+- Drones and objects have mass and inertia (they don't stop instantly).
+- Collisions are handled by the physics engine.
+- The simulator manages a perception-action-communication loop at each time step.
 
 # Installation
 
-For installation instructions, please see [`INSTALL.md`](INSTALL.md).
+For installation instructions, please refer to the [`INSTALL.md`](INSTALL.md) file.
 
 # Elements of the environment
 
 ## Drones
 
-Drones is a version of what is called **agent** in *Simple-Playgrounds*.
+Drones are a type of **agent** in *Simple-Playgrounds*.
 Drones are composed of different body parts attached to a *Base*.
 
-Drones **perceive their surroundings** through 2 first-person view sensors:
+Drones **perceive their surroundings** through two first-person view sensors:
 - *Lidar* sensor
 - *Semantic* sensor
 
-Drones have also a communication system.
+Drones also have a communication system.
 
-Drones are equipped with sensors that allow it to **estimate its position and orientation**. We have two kinds:
-- with absolute measurements: the *GPS* for the positions and the magnetic *compass* for the orientation.
-- with relative measurements: the odometer which provides us with positions and orientation relative to the previous position of the drone.
+Drones are equipped with sensors that allow them to **estimate their position and orientation**. We have two kinds:
+- with absolute measurements: the *GPS* for positions and the magnetic *compass* for orientation.
+- with relative measurements: the *odometer* which provides positions and orientation relative to the previous position of the drone.
 
-It is also equipped with life points (or health) that decrease with each collision with the environment or other drones, leading to its destruction when it reaches zero. When the drone is destroyed, it disappears from the map.
-The drone has access to this value with his data attribute *drone_health*.
+They are also equipped with life points (or health) that decrease with each collision with the environment or other drones, leading to destruction when reaching zero. When a drone is destroyed, it disappears from the map.
+The drone has access to this value with its data attribute *drone_health*.
 
 ### Lidar sensor
 
-In the code, class *DroneLidar*.
+In the file `src/swarm_rescue/simulation/ray_sensors/drone_lidar.py`, class *DroneLidar*.
 
-It emulates a lidar.
+It emulates a lidar sensor with the following specifications:
 
 - *fov* (field of view): 360 degrees
 - *resolution* (number of rays): 181
 - *max range* (maximum range of the sensor): 300 pixels
 
-A gaussian noise has been added to the distance.
-As the *field of view* (fov) is 360°, the first (at -Pi rad) and the last value (at Pi) should be the same.
+Gaussian noise has been added to the distance measurements to simulate real-world conditions.
+As the *field of view* (fov) is 360°, the first value (at -Pi rad) and the last value (at Pi) should be the same.
 
-You can find an example of lidar use in the *solutions/my_drone_lidar_communication.py* file.
+You can find an example of lidar use in the `src/swarm_rescue/solutions/my_drone_lidar_communication.py` file.
 
-To visualize lidar sensor data, you need to set the parameter *draw_lidar_rays* parameter of the *GuiSR* class to *True*.
+To visualize lidar sensor data, you need to set the parameter *draw_lidar_rays* of the *GuiSR* class to *True*.
 
 ### Semantic sensor
 
-In the file *src/swarm_rescue/spg_overlay/entities/drone_sensors.py*, it is described in the class *DroneSemanticSensor*.
+In the file `src/swarm_rescue/simulation/ray_sensors/drone_semantic_sensor.py`, it is described in the class *DroneSemanticSensor*.
 
 The semantic sensor allows to determine the nature of an object, without data processing, around the drone.
 
@@ -120,26 +109,25 @@ The semantic sensor allows to determine the nature of an object, without data pr
 
 As the *fov* is 360°, the first (at -Pi rad) and the last value (at Pi) should be the same.
 
-You can find an example of semantic sensor use in the *examples/example_semantic_sensor.py* file.
+You can find an example of semantic sensor use in the `examples/example_semantic_sensor.py` file.
 
-For this competition, you can only use the semantic sensor to detect *WoundedPerson*, *RescueCenter* and other *Drones*, but not the *Walls*. Use Lidar to detect/avoid Walls.
-The sensor *DroneSemanticSensor* used in your drone is a modified version of the class *SemanticSensor* of SPG.
+For this competition, the semantic sensor can only detect *WoundedPerson*, *RescueCenter* and other *Drones*, but NOT *Walls* (use Lidar for wall detection and avoidance).
 
-Each ray of the sensor provides a data with:
-- *data.distance*: distance of the nearest object detected
-- *data.angle*: angle of the ray in radians
-- *data.entity_type*: type of the detected object
-- *data.grasped*: is the object grasped by a drone or an agent ?
+Each sensor ray provides a data object with these properties:
+- *data.distance*: Distance to the nearest object detected
+- *data.angle*: Angle of the ray in radians
+- *data.entity_type*: Type of the detected object (WoundedPerson, RescueCenter, Drone)
+- *data.grasped*: Boolean indicating if the object is already being grasped
 
-If a wall is detected, distance and angle will be 0, to avoid to use it.
+Note: If a wall is detected, both distance and angle will be 0 to prevent usage of wall data through this sensor.
 
-A gaussian noise has been added to the data distance.
+Gaussian noise is applied to the distance measurements to simulate real-world sensor limitations.
 
 To visualize semantic data, you need to set the *draw_semantic_rays* parameter of the *GuiSR* class constructor to *True*.
 
 ### GPS sensor
 
-In the file *src/swarm_rescue/spg_overlay/entities/drone_sensors.py*, it is described in the class *DroneGPS*.
+In the file `src/swarm_rescue/simulation/drone/drone_sensors.py`, it is described in the class *DroneGPS*.
 
 This sensor gives the position vector along the horizontal axis and vertical axis.
 The position (0, 0) is at the center of the map.
@@ -149,28 +137,29 @@ If you want to enable the visualization of the noises, you need to set the *enab
 
 ### Compass sensor
 
-In the file *src/swarm_rescue/spg_overlay/entities/drone_sensors.py*, it is described in the class *DroneCompass*.
+In the file `src/swarm_rescue/simulation/drone/drone_sensors.py`, it is described in the class *DroneCompass*.
 
 This sensor gives the orientation of the drone.
-The orientation increases with a counter-clockwise rotation of the drone. The value is between -Pi and Pi. 
+The orientation increases with a counter-clockwise rotation of the drone. The value is between -Pi and Pi.
 Noise has been added to the data to make it look like Compass noise. This is not just gaussian noise but noise that follows an autoregressive model of order 1.
 
 If you want to enable the visualization of the noises, you need to set the *enable_visu_noises* parameter of the *GuiSR* class constructor to *True*.
 
 ### Odometer sensor
 
-In the file *src/swarm_rescue/spg_overlay/entities/drone_sensors.py*, it is described in the class *DroneOdometer*.
+In the file `src/swarm_rescue/simulation/drone/drone_sensors.py`, it is described in the class *DroneOdometer*.
 
-This sensor returns an array of data containing:
-- dist_travel, the distance of the drone's movement during the last timestep.
-- alpha, the relative angle of the current position with respect to the previous reference frame of the drone
-- theta, the orientation variation (or rotation) of the drone during the last step in the reference frame
+This sensor provides relative positioning data through an array with three key measurements:
+- `dist_travel`: Distance traveled during the last timestep (in pixels)
+- `alpha`: Relative angle of the current position with respect to the previous frame (in radians)
+- `theta`: Orientation variation (rotation) during the last timestep (in radians)
 
-Those data are relative the previous position of the drone. Usually, we use odometry by integrating measurements over time to get an estimate of the current position of the drone. 
-This can be very useful for example when GPS data is no longer provided in some areas of the map.
+These measurements are all relative to the drone's previous position. By integrating these odometry readings over time, you can estimate the drone's current position when absolute positioning (GPS) is unavailable.
 
-Angles, alpha and theta, increase with a counter-clockwise rotation of the drone. Their value is between -Pi and Pi. 
-Gaussian noise was added separately to the three parts of the data to make them look like real noise. 
+This capability is essential when navigating through GPS-denied areas on the map, such as No-GPS zones.
+
+Angles, alpha and theta, increase with a counter-clockwise rotation of the drone. Their value is between -Pi and Pi.
+Gaussian noise was added separately to the three parts of the data to make them look like real noise.
 
 ![odometer values](img/odom.png)
 
@@ -178,64 +167,93 @@ If you want to enable the visualization of the noises, you need to set the param
 
 ### Communication
 
-Each drone can communicate with all the drones in a certain range (currently, 250 pixels).
-At each time step, data can be sent and/or received.
+Drones can exchange information with nearby teammates through the communication system:
+* Each drone can communicate with all other drones within 250 pixels.
+* Messages are sent and received at each simulation timestep.
+* You can define custom message content through the `define_message_for_all()` method
+* Received messages are available through the `received_messages` attribute
 
-You have the possibility to configure the content of the messages yourself.
-
-You can find an example of communication use in the *solutions/my_drone_lidar_communication.py* file.
+You can find a practical example of drone communication in `src/swarm_rescue/solutions/my_drone_lidar_communication.py`.
 
 ### Actuators
 
 At each time step, you must provide values for your actuators.
 
-You have 3 values to move your drone:
-- *forward_controller*, a float value between -1 and 1. This is a force apply to your drone in the longitudinal way.
-- *lateral_controller*, a float value between -1 and 1. This is a force apply to your drone in the lateral way.
-- *angular_vel_controller*, a float value between -1 and 1. This is the speed of rotation. 
+You have 3 values to control your drone's movement:
+- *forward*: A float value between -1 and 1. This applies force in the longitudinal direction.
+- *lateral*: A float value between -1 and 1. This applies force in the lateral direction.
+- *rotation*: A float value between -1 and 1. This controls the rotation speed.
 
-To interact with the world, you can *grasp* certain *graspable* thing. To move a *wounded person*, you will have to *grasp* it.
-This value *grasp* is either 0 or 1.
+To interact with the world, you can *grasp* certain *graspable* objects. To rescue a *wounded person*, you must:
+1. Approach them
+2. *Grasp* them by setting the *grasper* value to 1
+3. Transport them to the rescue center
+4. Release them by setting the *grasper* value to 0
 
-When a wounded person is grasped by the drone, it disappears for the drone sensors, i.e. it becomes transparent. This allows the drone to navigate more easily without having its sensors obstructed.
+The *grasper* actuator is binary:
+- 0: Released (not carrying anything)
+- 1: Grasped (carrying an object)
 
-You can find examples of actuator use in almost all files in *examples/* and *solutions/*.
+When a wounded person is grasped by a drone, they become "transparent" to the drone's sensors. This design allows the drone to navigate more easily without having its sensors obstructed by the carried person.
+
+You can find examples of actuator use in almost all files in `examples/` and `src/swarm_rescue/solutions/`.
 
 ## Playground
 
 Drones act and perceive in a *Playground*.
 
-A *playground* is composed of scene elements, which can be fixed or movable. A drone can grasp certain scene elements. 
-The playground with all its elements, except for the drones, are called "Map" within this *Swarm-Rescue* repository.
+A *playground* is composed of scene elements, which can be fixed or movable. A drone can grasp certain scene elements.
+The playground with all its elements, except for the drones, is called a "Map" within this *Swarm-Rescue* repository.
 
 ### Coordinate System
 
-A playground is described using a Cartesian coordinate system.
+The playground uses a standard Cartesian coordinate system:
 
-Each element has a position (x,y, theta), with x along the horizontal axis, y along the vertical axis, and theta the orientation in radians, aligned on the horizontal axis. The position (0, 0) is at the center of the map. The value of theta is between -Pi and Pi. Theta increases with a counter-clockwise rotation of the drone. For theta = 0, the drone is oriented towards the right. A playground has a size [width, height], with the width along x-axis, and height along y-axis.
+* The position `(x, y)` :
+  - Origin (0,0) is at the center of the map.
+  - `x`: Horizontal position (positive values to the right)
+  - `y`: Vertical position (positive values upward)
+
+* The orientation `theta`:
+  - Measured in radians between -π and π
+  - Increases with counter-clockwise rotation
+  - At `theta` = 0, the drone faces right (positive x-axis)
+
+* Map Dimensions:
+  - Maps have a size [width, height], with width along x-axis and height along y-axis
+  - All measurements are in pixels
 
 ## Wounded Person
 
-A *Wounded Person* are element that appears as a yellow character on the map. As its name suggests, it is injured person that needs help from the drone. 
+A *Wounded Person* appears as a yellow character on the map and represents an injured individual requiring rescue.
 
-The drones must approach them, *grasped* them and take them to the rescue center.
+**Rescue Process:**
+1. Detect the wounded person (using the semantic sensor)
+2. Approach them
+3. Grasp them (set `grasper = 1`)
+4. Transport them to the rescue center
+5. Release them at the rescue center (set `grasper = 0`)
 
-You can find an example of grasping a wounded person in the *examples/example_semantic_sensor.py* file.
+**Types of Wounded Persons:**
+- **Static** (majority): Remain in fixed positions
+- **Dynamic**: Move along predetermined paths, following these behaviors:
+  - Move back and forth along their defined route
+  - If dropped by a drone somewhere off their path, they will move in a straight line attempting to rejoin their original route
+  - May be more challenging to rescue due to their movement
 
-Most wounded person are static, they don't move, but some are dynamic.
-Dynamic wounded person move along a predetermined path, constantly moving back and forth. This kind of wounded person will always want to continue on their way, so if a drone carrying them drops them somewhere else on the map, they'll head off in a straight line with the aim of continuing on their predetermined path.
+A practical example of grasping a wounded person can be found in `examples/example_semantic_sensor.py`.
 
-You can find an example of some dynamic wounded person in the *examples/example_moving_wounded.py* file.
+You can find an example of some dynamic wounded persons in the `examples/example_moving_wounded.py` file.
 
-## Rescue Center
+## The Rescue Center
 
 The *Rescue Center* is a red element on the map where the drones have to bring the *Wounded Person*.
 
 A reward is given to a drone each time it gives a *Wounded Person* to the *Rescue Center*.
 
-You can find an example of rescue center used in the *examples/example_semantic_sensor.py* file.
+You can find an example of rescue center used in the `examples/example_semantic_sensor.py` file.
 
-## Return Area
+## The Return Area
 
 The *Return Area* is a blue area on the map where the drones should stay at the end of the mission.
 Part of the final score is calculated with this zone: the percentage of health points of the drones that return to this return area at the end of the mission compared to the health points of the drones at the beginning of the mission.
@@ -246,202 +264,435 @@ The *Return Area* is always near the *Rescue Center* and the drones always start
 
 ## Special zones
 
-There are zones that alter the abilities of the drones. They can also call the *disablers*.
+There are zones that alter the abilities of the drones. They can also call the *disablers*. They are invisible to sensors!
+- **No-Communication Zone (transparent yellow):** Cuts off all radio communication.
+- **No-GPS Zone (transparent gray):** The GPS and compass no longer work. Rely on the odometer!
+- **Kill Zone (or deactivation zone) (transparent pink):** Instantly destroys any drone that enters it.
 
-### No-Communication zone
+# Programming Your Drones
 
-*No-Communication zone* where a drone **loses the ability to communicate** with other drones.
-It is represented on the map by a transparent yellow rectangle.
-This zone cannot be directly detected by the drone.
+## Code Architecture
 
-### No-GPS zone
+Your code is located in the `src/swarm_rescue/solutions` directory. You will only need to modify files in this folder.
 
-*No-GPS zone* where a drone **loses the possibility to know its GPS position and Compass orientation**.
-It is represented on the map by a transparent grey rectangle.
-This zone cannot be directly detected by the drone.
+An important file is `src/swarm_rescue/solutions/my_drone_eval.py`. This is where you will tell the simulator which drone class to use: the MyDroneEval class must inherit from your drone class.
 
-### Killing zone (or deactivation zone)
-
-*Killing zone* where a **drone is destroyed automatically.**
-It is represented on the map by a transparent pink rectangle.
-This zone cannot be detected by the drone.
-
-
-# Programming
-
-## Architecture of *Swarm-Rescue*
-
-### Files *my_drone_eval.py* and *launcher.py*
-
-This directory *solutions* will contain your solutions. You need to customize the *my_drone_eval.py* file: the *MyDroneEval* class must inherit from your drone class.
-
-*launcher.py* is the main program file to launch a swarm of drones using your code. This file executes everything needed to perform the evaluation.
+`src/swarm_rescue/launcher.py` is the main program file to launch a swarm of drones using your code. This file executes everything needed to perform the evaluation.
 
 It will launch the 10 drones that you have customized in the map that you want, make it run and give the final score.
 
-This file needs almost no modification to work, except the beginning of the *__init__* function of the *Launcher* class. 
+## Your Drone's Brain
 
-For example: 
+You must create a class that inherits from `DroneAbstract`. This class is your drone's "brain." It must implement two crucial methods:
 
-```python
-	self.eval_plan = EvalPlan()
+1.  `define_message_for_all()`: This is where you define the information the drone will send to its neighbors.
+2.  `control()`: This is the core of your logic. This method is called at each time step and must return the actuator commands (move, turn, etc.).
 
-	eval_config = EvalConfig(map_name="MyMapIntermediate01", nb_rounds=2)
-	self.eval_plan.add(eval_config=eval_config)
+**Golden Rule:** In your code, use **only** sensor data (e.g., `measured_gps_position()`) and not the true simulation values (e.g., `true_position()`). This is essential to prepare for the actual competition conditions where ground truth is not available.
 
-	eval_config = EvalConfig(map_name="MyMapIntermediate02")
-	self.eval_plan.add(eval_config=eval_config)
+## Useful Directories
 
-	zones_config: ZonesConfig = ()
-	eval_config = EvalConfig(map_name="MyMapMedium01", zones_config=zones_config, nb_rounds=1, config_weight=1)
-	self.eval_plan.add(eval_config=eval_config)
+- `src/swarm_rescue/solutions`: **Your code.** Examples are provided here.
+- `src/swarm_rescue/maps`: The available simulation maps.
+- `examples/`: Standalone example scripts to understand each feature (controlling a drone with the keyboard, visualizing Lidar, etc.).
+- `src/swarm_rescue/tools`: Tools, for example, to create a map from an image.
+- `src/swarm_rescue/simulation`: The core of the simulator. **Do not modify these files.**
 
-	zones_config: ZonesConfig = (ZoneType.NO_COM_ZONE, ZoneType.NO_GPS_ZONE, ZoneType.KILL_ZONE)
-	eval_config = EvalConfig(map_name="MyMapMedium01", zones_config=zones_config, nb_rounds=1, config_weight=1)
-	self.eval_plan.add(eval_config=eval_config)
+## Evaluation Plan
 
-	zones_config: ZonesConfig = (ZoneType.NO_COM_ZONE, ZoneType.NO_GPS_ZONE, ZoneType.KILL_ZONE)
-	eval_config = EvalConfig(map_name="MyMapMedium02", zones_config=zones_config, nb_rounds=1, config_weight=1)
-	self.eval_plan.add(eval_config=eval_config)
+### What is the Evaluation Plan?
+
+The evaluation plan defines which scenarios your drones will be tested on. It is fully configurable via a YAML file, allowing you to specify which maps, special zones, and how many rounds to run for each scenario—without changing any Python code.
+
+**Why use it?**
+- Evaluators can easily test your solution on many scenarios.
+- You can test your own code on custom maps and conditions.
+- Output options (reports, videos) are controlled from the same file.
+
+---
+
+### YAML Configuration Structure
+
+Your main configuration file (e.g., `config/default_eval_plan.yml`) should look like this:
+
+```yaml
+stat_saving_enabled: true        # Save statistics and generate PDF report (true/false)
+video_capture_enabled: false     # Enable video recording of the mission (true/false)
+
+evaluation_plan:
+  - map_name: MapIntermediate01
+    nb_rounds: 2
+    config_weight: 1
+    zones_config: []
+  - map_name: MapIntermediate02
+    nb_rounds: 1
+    config_weight: 1
+    zones_config: []
+  - map_name: MapMedium01
+    nb_rounds: 1
+    config_weight: 1
+    zones_config: []
+  - map_name: MapMedium01
+    nb_rounds: 1
+    config_weight: 1
+    zones_config: [NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE]
+  - map_name: MapMedium02
+    nb_rounds: 1
+    config_weight: 1
+    zones_config: [NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE]
 ```
 
-You need to build an evaluation plan, called *evalplan*.
-An evaluation plan is a list of different evaluation configurations, called *evalconfig*.
+**Top-level fields:**
+- `stat_saving_enabled`: Save statistics and generate a PDF report (`true`/`false`)
+- `video_capture_enabled`: Record a video of the mission (`true`/`false`)
 
-The different configurations added to the evaluation plan will be played one after the other, in the order in which they were added.
+The generation of statistics reports and mission videos in the ~/results_swarm_rescue directory is primarily intended for the competition evaluator.
+You can enable or disable report and video generation using the 'stat_saving_enabled' and 'video_capture_enabled' fields below.
 
-Each configuration corresponds to an existing map and a list (tuple) of special zones. You can specify the number of rounds for this configuration, i.e. how many times the same configuration will be re-evaluated. The default value is 1. You can also specify the weighting in the final score in relation to the other configurations. The default value is 1, and this parameter is not useful for developers.
+**evaluation_plan:**
+A list of scenarios, each with:
+- `map_name`: The map to use (see `src/swarm_rescue/maps`)
+- `nb_rounds`: How many times to repeat this scenario
+- `config_weight`: Importance in the final score
+- `zones_config`: List of special zones to activate:
+  - `NO_COM_ZONE`: Disables drone communication
+  - `NO_GPS_ZONE`: Disables GPS positioning  
+  - `KILL_ZONE`: Destroys drones that enter
+  - Empty list `[]`: No special zones active
 
-Usable maps can be found in the *src/swarm_rescue/maps* folder.
+### Quick Start: Running an Evaluation
 
-### Directory *spg_overlay*
+1. Edit your YAML file as needed.
+2. Run the launcher with your config:
+   ```bash
+   python src/swarm_rescue/launcher.py --config config/my_eval_plan.yml
+   ```
+3. Results (reports/videos) will appear in `~/results_swarm_rescue` if enabled.
 
-As its name indicates, this folder is a software overlay of the spg (simple-playground) code.
- It contains three subdirectories:
-- *entities*: contains a description of the different entities used in the program.
-- *gui_map*: contains a description of the default map and the gui interface.
-- *reporting*: contains tools to compute the score and create a pdf evaluation report.
-- *utils*: contains various functions and useful tools.
+**Note:**
+Generated reports and videos are for the evaluator's use.
 
-The files it contains must *not* be modified. It contains the definition of the class *Drone*, of the class of the sensors, of the wounded persons, etc.
+### Running in Headless Mode (No Display)
 
-An important file is the *gui_map/gui_sr.py* which contains the class *GuiSR*. 
-In order to utilize the keyboard to navigate the drone designated as "n°0", it is necessary to configure the *use_keyboard* parameter within the *GuiSR* class constructor to a value of *True*.
-If you want to enable the visualization of the noises, you need to set the *enable_visu_noises* parameter of the *GuiSR* class constructor to *True*. It will show also a demonstration of the integration of odometer values, by drawing the estimated path.
+The simulator supports **headless mode**, which is essential for running evaluations on remote servers without a display or GPU.
+
+#### Basic Usage
+
+Add the `--headless` (or `-H`) flag to run without opening a window:
+
+```bash
+python src/swarm_rescue/launcher.py --headless --config config/my_eval_plan.yml
+```
+
+**Important:** This command works if you already have an X11 server running (even if hidden). The `--headless` flag tells arcade not to show the window, but it still needs an X11 display to create the OpenGL context.
+
+#### Running on Servers Without Display
+
+If you're on a server without X11 or if you encounter OpenGL/display errors, use `xvfb-run` to create a virtual framebuffer:
+
+```bash
+# Install xvfb (if needed)
+sudo apt-get install xvfb
+
+# Run with virtual display
+xvfb-run -s "-screen 0 1920x1080x24" python src/swarm_rescue/launcher.py --headless --config config/my_eval_plan.yml
+```
+
+This allows the simulator to create OpenGL contexts even without a physical display, enabling video capture and rendering in headless environments.
+
+### API: EvalConfig and EvalPlan
+
+You can also create evaluation plans programmatically:
+
+```python
+from swarm_rescue.simulation.reporting.evaluation import EvalConfig, EvalPlan
+from swarm_rescue.simulation.elements.sensor_disablers import ZoneType
+
+# Create an easy scenario
+easy_config = EvalConfig(map_name="MyMapEasy01")
+
+# Scenario with all special zones
+hard_config = EvalConfig(
+    map_name="MapMedium01",
+    zones_config=(ZoneType.NO_COM_ZONE, ZoneType.NO_GPS_ZONE, ZoneType.KILL_ZONE),
+    nb_rounds=3,
+    config_weight=2
+)
+
+# Add scenarios to a plan
+plan = EvalPlan()
+plan.add(easy_config)
+plan.add(hard_config)
+```
+You can see examples of evaluation plan created programmatically in the main() fonction of the files:
+- src/swarm_rescue/maps/map_final_2023_24_01.py
+- src/swarm_rescue/maps/map_final_2023_24_02.py 
+- src/swarm_rescue/maps/map_final_2023_24_03.py
+- src/swarm_rescue/maps/map_final_2024_25_01.py
+- src/swarm_rescue/maps/map_final_2024_25_02.py
+- src/swarm_rescue/maps/map_final_2024_25_03.py
+
+### Pre-configured Evaluation Plans
+
+The `config/` directory contains ready-to-use evaluation plan YAML files for different competition scenarios:
+
+**Competition-specific configurations:**
+- `final_2024_25_eval_plan.yml` - Latest 2024-2025 final maps (MapFinal_2024_25_01/02/03)
+- `final_2023_24_eval_plan.yml` - 2023-2024 final maps (MapFinal_2023_24_01/02/03) 
+- `final_2022_23_eval_plan.yml` - 2022-2023 final map (MapFinal2022_23)
+- `intermediate_eval_plan.yml` - Training maps (MapIntermediate01/02)
+
+**Usage examples:**
+```bash
+# Test on latest 2024-2025 competition maps
+python src/swarm_rescue/launcher.py --config config/final_2024_25_eval_plan.yml
+
+# Train on intermediate difficulty maps
+python src/swarm_rescue/launcher.py --config config/intermediate_eval_plan.yml
+
+# Test on previous year's final maps
+python src/swarm_rescue/launcher.py --config config/final_2023_24_eval_plan.yml
+```
+
+Each configuration includes scenarios with progressive difficulty:
+- Basic scenarios (no special zones) for algorithm validation
+- Individual special zone challenges (NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE)
+
+Statistics saving and video capture are enabled by default in these configurations for detailed performance analysis.
+
+## Code in detail
+
+### Directory *simulation*
+
+As its name indicates, the folder `src/swarm_rescue/simulation` contains the software for the simulator. It contains six subdirectories:
+- *drone*: definition of the drone, its sensors and actuators.
+- *elements*: definition of the different elements of the environment (walls, wounded persons, rescue center, return area, etc.).
+- *gui_map*: graphical interface, keyboard management, playground, etc.
+- *ray_sensors*: ray sensors (lidar, semantic sensor, etc.) and the shaders used for the sensors.
+- *reporting*: tools to compute the score and create a PDF evaluation report.
+- *utils*: various functions and useful tools.
+
+The files it contains must *not* be modified.
+
+An important file is `src/swarm_rescue/simulation/gui_map/gui_sr.py` which contains the class *GuiSR*. To use the keyboard to navigate drone "#0", set the `use_keyboard` parameter in the *GuiSR* constructor to `True`. To enable visualization of noises for debugging, set `enable_visu_noises=True`; it also draws the estimated odometry path.
 
 ### Directory *maps*
 
-This directory contains the maps that will be utilized by the drones. New maps may be incorporated into the repository as new missions are developed. Additionally, users are given the option to create their own maps based on existing ones.
+This directory `src/swarm_rescue/maps` contains the maps used by the drones. New maps may be added as new missions are developed. You can also create your own maps based on existing ones.
 
-Every map file contains a main function, which enables the file to be executed directly. In this instance, the map is initiated with stationary drones, solely for the purpose of map observation. Furthermore, the use_mouse_measure parameter is set to True, thereby ensuring that the measure tool is active upon clicking on the screen.
+Every map file contains a main function, allowing the file to be executed directly to observe the map. In this case, the map is run with stationary drones. The parameter `use_mouse_measure` is set to `True` so the measuring tool is active when clicking on the screen.
 
 Each map must inherit from the class *MapAbstract*.
 
 ### Directory *solutions*
 
-This directory will contain your solutions. Taking inspiration from what is there and going beyond, you will put in the code that will define your drones and how they interact with their environment.
+This directory `src/swarm_rescue/solutions` will contain your solutions. The code currently there serves as example implementations with simple behavior. Use it as inspiration and go beyond: write code that defines your drones and how they interact with the environment.
 
-Each Drone must inherit from the class *DroneAbstract*. You have 2 mandatory member functions: **define_message_for_all()** that will define the message sent between drone, and **control()** that will give the action to do for each time step.
+Each Drone must inherit from the class *DroneAbstract*. You have 2 mandatory member functions: `define_message_for_all()` to define the message sent between drones, and `control()` to return the action to perform at each time step.
 
-Keep in mind, that the same code will be in each of the 10 drones. Each drone will be an instance of your Drone class.
+Keep in mind that the same code runs on each of the 10 drones. Each drone is an instance of your Drone class.
 
-For your calculation in the control() function, it is mandatory to use only the sensor and communication data, without directly accessing the class members. In particular, don't the *position* and *angle* variables, but use the *measured_gps_position()* and *measured_compass_angle()* functions to have access to the position and orientation of the drone. These values are noisy, representing more realistic sensors, and can be altered by special zones in the map where the position information can be scrambled.
+For your computations in `control()`, use only the sensor and communication data, without directly accessing internal members. In particular, do not use the true `position` and `angle` variables; instead use `measured_gps_position()` and `measured_compass_angle()` to get the drone’s position and orientation. These values are noisy (more realistic) and may be altered by special zones.
 
-The true position of the drone can be accessed with the functions *true_position()* and *true_angle()* (or directly with the variable *position* and *angle*), BUT it is only for debugging or logging.
+The true position of the drone can be accessed via `true_position()` and `true_angle()` (or directly with the variables `position` and `angle`), BUT this is only for debugging or logging.
 
-Some examples are provided:
-- *my_drone_random.py* shows the use of lidar sensor and actuators
-- *my_drone_lidar_communication.py* shows the use of lidar and communication between drones
+Example implementations are provided in `src/swarm_rescue/solutions` to help you get started:
+- `my_drone_random.py` - Demonstrates basic lidar sensor usage and actuator control
+- `my_drone_lidar_communication.py` - Shows how to implement inter-drone communication with lidar
+- `my_drone_motionless.py` - A minimal implementation of a stationary drone (useful as a starting template)
 
 ### Directory *examples*
 
-In the folder, you will find stand-alone programs to help you program with examples. In particular:
-- *display_lidar.py* shows a visualization of the lidar on a graph. You can see the noise added.
-- *example_com_disablers.py* shows a demonstration of communication between drones and the effect of *No Com Zone* and "Kill Zone". If the communication is possible, a line is drawn between two drones.
-- *example_disablers.py* shows an example of each *disabling zone*.
-- *example_gps_disablers.py* shows a demonstration of the effect of *No GPS Zone* and "Kill Zone". The green circle is the GPS position. The red circle is the estimated position from odometry only.
-- *example_keyboard.py* shows how to use the keyboard for development or debugging purpose. The usable keyboard keys:
-	- <kbd>up</kbd> / <kbd>down</kbd>: forward and backward
-	- <kbd>left</kbd> / <kbd>right</kbd>: turn left / right
-	- <kbd>shift</kbd> + <kbd>left</kbd> / <kbd>right</kbd>: left/right lateral movement
-	- <kbd>W</kbd>: grasp objects
-	- <kbd>L</kbd>: display (or not) the lidar sensor
-	- <kbd>S</kbd>: display (or not) the semantic sensor
-	- <kbd>P</kbd>: draw position from GPS sensor
-	- <kbd>C</kbd>: draw communication between drones
-	- <kbd>M</kbd>: print messages
-	- <kbd>Q</kbd>: exit the program
-	- <kbd>R</kbd>: reset
-- *example_mapping.py* shows how to create a simple environment occupancy map.
-- *example_pid_rotation.py* shows how to control the drone orientation with a pid controller.
-- *example_pid_translation.py* shows how to control the drone translation with a pid controller.
-- *example_return_area.py* shows how to use the boolean data attribute *is_inside_return_area* gives information about whether the drone is inside the return area or not.
-- *example_semantic_sensor.py* shows the use of semantic sensor and actuators, and how to grasp a wounded person and bring it back to the rescue area.
-- *example_static_semantic_sensor.py* illustrate the semantic sensor rays with other drones and wounded persons.
-- *random_drones.py* shows a large number of drones flying at random in an empty space.
-- *random_drones_intermediate_1.py* shows some drones flying at random in the *map_intermediate_01* map.
+In the `examples/` folder at the root of the repository, you will find stand-alone programs to help you understand key concepts. In particular:
+- `example_display_lidar.py` shows a visualization of the lidar on a graph, with noise.
+- `example_com_disabler.py` demonstrates communication between drones and the effect of *No Com Zone* and *Kill Zone*. When communication is possible, a line is drawn between two drones.
+- `example_disablers.py` illustrates each disabling zone.
+- `example_gps_disablers.py` demonstrates the effect of *No GPS Zone* and *Kill Zone*. The green circle is the GPS position; the red circle is the odometry-only estimate.
+- `example_keyboard.py` shows how to use the keyboard for development or debugging. Usable keys include: Up/Down (forward/backward), Left/Right (turn), Shift+Left/Right (lateral), W (grasp), L (lidar rays), S (semantic rays), P (GPS position), C (communication), M (print messages), Q (quit), R (reset).
+- `example_mapping.py` shows how to create an occupancy map.
+- `example_pid_rotation.py` controls orientation with a PID.
+- `example_pid_translation.py` controls translation with a PID.
+- `example_return_area.py` uses `is_inside_return_area` to detect whether the drone is inside the return area.
+- `example_semantic_sensor.py` shows semantic sensor and actuators, grasping a wounded person and bringing it back to the rescue area.
+- `example_static_semantic_sensor.py` illustrates semantic sensor rays with other drones and wounded persons.
+- `random_drones.py` shows many drones flying randomly in empty space.
+- `random_drones_intermediate_1.py` shows random flying in `map_intermediate_01`.
 
 ### Directory *tools*
 
-In this directory, you may find some tools to help you, may be, to create new map, to make measurement, etc.
-
-- *image_to_map.py* allows to build a map from a black and white image.
-- *check_map.py* allows to see a map without drones. By clicking on the screen you can make measurement. It can be useful when designing or modifying a map.
+In `src/swarm_rescue/tools`, you may find utilities to create maps, make measurements, etc. Notably:
+- `image_to_map.py` builds a map from a black and white image.
+- `check_map.py` shows a map without drones; clicking prints coordinates—useful for designing or modifying a map.
 
 ## Submission
 
-At the end of the competition, you will have to submit your solution to your evaluator. The evaluator of your code will have this same software to evaluate your solution.
+At the end of the competition, submit your solution to your evaluator. The evaluator will use the same software to assess your solution.
 
-Be careful, you will provide only:
-- The code to run your simulated drone, which will only come from the *solutions* directory,
-- In particular, the file *team_info.yml*, which must be filled in correctly.
-- The list of new dependencies needed to make your drone work.
+Provide only:
+- The code to run your simulated drone, which must come from the `src/swarm_rescue/solutions` directory.
+- The file `team_info.yml`, filled in correctly.
+- The list of any new dependencies required to run your drone.
 
 ## Various tips
 
 ### Exiting an execution
 
-- To exit elegantly after launching a map, press 'q'.
+- To exit elegantly after launching a map, press `Q` in the simulation window (exits current round).
+- To exit the entire program immediately, press `E` in the simulation window (exits all rounds).
 
 ### Enable some visualizations
 
-The GuiSR class can be called when the gui is created with parameters that already have default values.
-
-- *draw_zone*: boolean, True by default. This draws the special zones (no com zone, no gps zone, killing zone).
-- *draw_lidar_rays*: boolean, False by default. This draws lidar rays.
-- *draw_semantic_rays*: boolean, False by default. This draws  semantic sensor rays.
-- *draw_gps*: boolean, False by default. This draws gps position.
-- *draw_com*: boolean, False by default. This displays the circle corresponding to the drone's communication range. Drones that can communicate with each other are connected by a line.
-- *print_rewards*: boolean, False by default.
-- *print_messages*: boolean, False by default.
-- *use_keyboard*: boolean, False by default.
-- *use_mouse_measure*: boolean, False by default. When activated, a click on the screen will print the position of the mouse.
-- *enable_visu_noises*: boolean, False by default.
-- *filename_video_capture*: if the name is not “None”, it becomes the filename of the video capture file.
+The `GuiSR` class can be constructed with the following parameters (defaults shown):
+- `draw_zone`: True. Draws special zones (no com zone, no gps zone, killing zone).
+- `draw_lidar_rays`: False. Draws lidar rays.
+- `draw_semantic_rays`: False. Draws semantic sensor rays.
+- `draw_gps`: False. Draws the GPS position.
+- `draw_com`: False. Displays the communication range and links between communicating drones.
+- `print_rewards`: False.
+- `print_messages`: False.
+- `use_keyboard`: False.
+- `use_mouse_measure`: False. Click to print the mouse position.
+- `enable_visu_noises`: False.
+- `filename_video_capture`: None to disable; otherwise the output video filename.
 
 ### Print FPS performance in the terminal
 
-You can display the program's fps in the console at regular intervals. To do this, change the global variable at the beginning of the file in *spg_overlay/gui_map/gui_sr.py*: *DISPLAY_FPS = True.*
-
-For more information on this display, see the *spg_overlay/utils/fps_display.py file.*
+Display the program's FPS in the console at regular intervals by changing the global variable at the top of `src/swarm_rescue/simulation/gui_map/gui_sr.py`: `DISPLAY_FPS = True`. 
+See `src/swarm_rescue/simulation/utils/fps_display.py` for details.
 
 ### Show your own display
 
-In the *DroneAbstract* class, which serve as the parent class of your Drone class, there are two interesting functions you can override: 
-- *draw_top_layer()*: it will draw what you want on top of all the other drawing layers.
-- *draw bottom_layer()*: it will draw what you want below all other drawing layers.
+In *DroneAbstract*, you can override two functions to draw overlays:
+- `draw_top_layer()`: draw on top of all layers.
+- `draw_bottom_layer()`: draw below all other layers.
 
-For example, you can draw the identifier of a drone near it as follows:
+For example, draw the drone identifier by calling `self.draw_identifier()` inside `draw_top_layer()`.
 
-```python
-    def draw_top_layer(self):
-        self.draw_identifier()
+### Create a new map
+
+Creating custom maps is useful to reproduce specific scenarios, stress-test parts of your algorithm, and compare strategies under controlled conditions.
+It also lets you prototype challenges (wall layouts, wounded placements, and special zones) before the final evaluation on unknown maps.
+
+To add a new map you must create and add two files in `src/swarm_rescue/maps`:
+- `map_<name>.py` — defines the Map class (inherits from `MapAbstract`). In the `__init__` of your Map class paste the initialization lines printed by `image_to_map.py` (for example `self._size_area`, `self._rescue_center`, `self._rescue_center_pos`, `self._wounded_persons_pos`) so the map parameters exactly match the conversion. Implement `build_playground()` to set drones' start positions and to call helper functions that add walls/boxes.
+- `walls_<name>.py` — contains the helper functions generated by `image_to_map.py` (the script writes `generated_code.py`). Copy the generated helper functions (for example `add_walls(playground)` and `add_boxes(playground)`) into `walls_<name>.py` and import them from `map_<name>.py`.
+
+Step-by-step workflow
+
+1. Draw your map as a PNG image with clear, consistent colors:
+   - Walls: pure black (RGB 0,0,0), ~10 px thick for robust detection.
+   - Wounded persons: bright yellow (recommended RGB 255,255,0), about 25–40 px diameter.
+   - Rescue center: pure red (RGB 255,0,0).
+2. Edit `img_path` in `src/swarm_rescue/tools/image_to_map.py` to point to your PNG and run the script. The tool is interactive and shows intermediate images with OpenCV (`cv2.imshow`); press any key to advance (`cv2.waitKey(0)`). On success it will:
+   - write a `generated_code.py` that contains helper functions (walls/boxes), and
+   - print a few Python initialization lines in the console.
+3. Copy the helper functions from `generated_code.py` into a new file `src/swarm_rescue/maps/walls_<name>.py`.
+4. COPY the initialization lines printed in the console into the `__init__` of your `Map` class in `src/swarm_rescue/maps/map_<name>.py`. Important: copy these exact assignments so your map parameters match the converter output:
+   - `self._size_area`
+   - `self._rescue_center`
+   - `self._rescue_center_pos`
+   - `self._wounded_persons_pos`
+   These values ensure the map dimensions, rescue center placement and wounded persons coordinates are identical to the conversion (the console output from `image_to_map.py` is authoritative).
+5. Implement `build_playground()` in `map_<name>.py` to:
+   - import and call the helper functions from `walls_<name>.py` to add walls/boxes,
+   - define drones' starting area/positions (the converter does not create drone starts automatically),
+   - add any return area or extra elements required by your scenario.
+6. Validate visually using `src/swarm_rescue/tools/check_map.py` (displays the map without drones and prints coordinates when clicking). After visual validation, run a short simulation to smoke-test the map:
+```bash
+python3 src/swarm_rescue/launcher.py --config config/my_eval_plan.yml
+```
+Notes & troubleshooting
+- Exact variables to copy: when you run `image_to_map.py` the console output contains the Python lines to paste into your `map_<name>.py`. In particular copy the assignments for `self._size_area`, `self._rescue_center`, `self._rescue_center_pos`, and `self._wounded_persons_pos` into your Map class `__init__`.
+- Color detection: `image_to_map.py` detects yellow hues for wounded persons and red for the rescue center using HSV/luma thresholds. If detection fails for a particular shade (for instance yellow vs green), tweak the thresholds inside `src/swarm_rescue/tools/image_to_map.py` (adjust yellow/green thresholds there). The README intentionally points to the tool for color tuning rather than enumerating many variants.
+- Drone start positions: the converter does not set drone starting positions. Add them explicitly in `map_<name>.py` — see existing `map_*.py` examples for idiomatic patterns.
+- Small elements and thickness: keep walls reasonably thick in the source PNG (~8–12 px) to avoid fragmentation during detection.
+- Final check: after creating both files (`map_<name>.py`, `walls_<name>.py`) and validating with `check_map.py`, run a short simulation to validate the map in situ.
+
+# Getting Started
+
+Welcome to Swarm-Rescue! This section will help you quickly set up and run your first simulation with a custom drone controller.
+
+## Installation
+
+Follow [INSTALL.md](INSTALL.md) to set up your environment, install dependencies, and troubleshoot common issues. Supported platforms include Ubuntu (recommended) and Windows (with WSL2 or Git Bash).
+
+## Quick Start Example
+
+Once installed, you can launch a default simulation with:
+
+```bash
+python3 src/swarm_rescue/launcher.py
 ```
 
-*draw_identifier()* is a function of *drone_abstract.py*.
+## Minimal Drone Controller Example
+
+Here is a minimal example of a custom drone controller.
+Create a new file in the `src/swarm_rescue/solutions/` directory, e.g., `my_great_drone.py`, and add the following code:
+
+```python
+from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
+
+class MyGreatDrone(DroneAbstract):
+    def control(self):
+        # Simple forward motion at each step
+        return {
+            "forward": 1.0,  # Move forward at full speed
+            "lateral": 0.0,  # No sideways movement
+            "rotation": 0.0,  # No rotation
+            "grasper": 0      # Don't grasp anything
+        }
+
+    def define_message_for_all(self) -> None:
+        # Define message content for communication with other drones
+        pass
+```
+
+Then, modify `src/swarm_rescue/solutions/my_drone_eval.py` to use your new drone:
+```python
+from swarm_rescue.solutions.my_great_drone import MyGreatDrone
+class MyDroneEval(MyGreatDrone):
+    pass
+```
+
+Now, run the launcher again to see your drone in action!
+```bash
+python3 src/swarm_rescue/launcher.py
+```
+
+# Project Structure Overview
+
+```
+private-swarm-rescue/
+├── src/
+│   └── swarm_rescue/
+│       ├── launcher.py
+│       ├── solutions/
+│       │   ├── my_drone_eval.py
+│       │   ├── my_drone_lidar_communication.py
+│       │   ├── my_drone_motionless.py
+│       │   ├── my_drone_random.py
+│       │   └── team_info.yml
+│       ├── simulation/
+│       │   ├── drone/
+│       │   │   ├── drone_sensors.py
+│       │   │   └── drone_abstract.py
+│       │   ├── ray_sensors/
+│       │   │   ├── drone_lidar.py
+│       │   │   └── drone_semantic_sensor.py
+│       │   ├── gui_map/
+│       │   │   └── gui_sr.py
+│       │   └── ...
+│       ├── maps/
+│       └── tools/
+├── examples/
+├── config/
+├── tests/
+├── INSTALL.md
+├── README.md
+└── pyproject.toml
+```
 
 # Contact
 
-If you have questions about the code, you can contact:
+If you have questions about the code, propose improvements or report bugs, you can contact:
 emmanuel . battesti at ensta . fr
-

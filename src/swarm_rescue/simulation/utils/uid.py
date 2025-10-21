@@ -1,4 +1,7 @@
-def id_to_pixel(uid: int) -> tuple[int, int, int]:
+from typing import Tuple
+
+
+def id_to_pixel(uid: int) -> Tuple[int, int, int]:
     """
     Convert a unique integer ID to an RGB color tuple.
 
@@ -6,7 +9,7 @@ def id_to_pixel(uid: int) -> tuple[int, int, int]:
         uid (int): Unique identifier.
 
     Returns:
-        tuple[int, int, int]: RGB color tuple.
+        Tuple[int, int, int]: RGB color tuple.
     """
     id_0 = uid & 255
     id_1 = (uid >> 8) & 255

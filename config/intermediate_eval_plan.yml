@@ -1,0 +1,34 @@
+# Configuration file for Intermediate maps evaluation
+# This plan includes both intermediate maps for training and evaluation
+#
+# Maps included:
+#   - MapIntermediate01: First intermediate map
+#   - MapIntermediate02: Second intermediate map
+
+stat_saving_enabled: true   # Save statistics and generate PDF report (true/false)
+video_capture_enabled: true # Enable video recording of the mission (true/false)
+
+evaluation_plan:
+  # Intermediate Map 1 - Basic scenario with multiple rounds
+  - map_name: MapIntermediate01
+    nb_rounds: 3
+    config_weight: 1
+    zones_config: []
+
+  # Intermediate Map 1 - With GPS disruption
+  - map_name: MapIntermediate01
+    nb_rounds: 3
+    config_weight: 1
+    zones_config: [NO_GPS_ZONE]
+
+  # Intermediate Map 2 - Basic scenario with multiple rounds
+  - map_name: MapIntermediate02
+    nb_rounds: 3
+    config_weight: 1
+    zones_config: []
+
+  # Intermediate Map 2 - Full challenge with all special zones
+  - map_name: MapIntermediate02
+    nb_rounds: 3
+    config_weight: 1
+    zones_config: [NO_COM_ZONE, KILL_ZONE]

@@ -2,7 +2,7 @@
 # Table of Content
 - [Table of Content](#table-of-content)
 - [Introduction](#introduction)
-- [Installation on macOs](#installation-on-macos)
+- [Installation on macOS](#installation-on-macos)
 - [Installation on Ubuntu (recommended)](#installation-on-ubuntu-recommended)
   - [**Warning** for Ubuntu users on VirtualBox](#warning-for-ubuntu-users-on-virtualbox)
   - [Git and Arcade library dependencies](#git-and-arcade-library-dependencies)
@@ -15,23 +15,23 @@
   - [*Git* installation](#git-installation)
   - [Configure *Git Bash*](#configure-git-bash)
   - [Install this *swarm-rescue* repository](#install-this-swarm-rescue-repository)
-- [Troubleshootings](#troubleshootings)
+- [Troubleshooting](#troubleshooting)
   - [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders)
-  - [Tool to view your software versions](#tool-to-view-your-software-versions)
+  - [Check software versions](#check-software-versions)
   - [Find OpenGL version on Ubuntu](#find-opengl-version-on-ubuntu)
-  - [Update Mesa](#update-mesa)
+  - [Update Mesa library](#update-mesa-library)
 - [Python IDE](#python-ide)
 - [Contact](#contact)
 
 # Introduction
 
-This installation procedure has been successfully tested on **Ubuntu** and **Windows 11 with Git Bash**, but Ubuntu is recommended.
+This installation procedure has been successfully tested on **Ubuntu** and **Windows 11 with Git Bash**. Ubuntu is the recommended platform for optimal performance and stability.
 
-# Installation on macOs
+# Installation on macOS
 
-Installation on a **macOS system** seems difficult, but is virtually untested and will **not be supported** in the future. *Swarm-Rescue* requires a recent version of *OpenGL* to work. However, recent versions of macOs no longer use *OpenGL*, but an equivalent library called *Metal*.
+Installation on **macOS systems** is challenging and is **not officially supported**. *Swarm-Rescue* requires a recent version of *OpenGL* to function properly. However, recent versions of macOS no longer use *OpenGL* and instead rely on Apple's *Metal* graphics framework.
 
-In any case, the code has had to be adapted for macOS in the past, resulting in a loss of program performance compared to an Ubuntu machine. (See [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders))
+In any case, the code has had to be adapted for macOS in the past, resulting in significant performance degradation compared to Ubuntu systems. If you must use macOS, refer to [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders)
 
 # Installation on Ubuntu (recommended)
 
@@ -39,21 +39,21 @@ This installation procedure has been tested on Ubuntu 20.04, 22.04 and 24.04.
 
 ## **Warning** for Ubuntu users on VirtualBox
 
-**Problems have been reported by VirtualBox users**.
+**VirtualBox users have reported compatibility issues**.
 
-*Swarm-Rescue* uses *OpenGL* via shaders to speed up calculations, and this always seems to be the case. The calculations for emulating the lidar and semantic sensors of the drones are performed, via these shaders, directly on the GPU.
+*Swarm-Rescue* uses *OpenGL* shaders to accelerate computations. The lidar and semantic sensor calculations are performed directly on the GPU via these shaders for optimal performance.
 
-VirtualBox has a problem with the graphics driver and the way it handles OpenGL.
+VirtualBox has known issues with graphics drivers and OpenGL handling, which can cause problems with *Swarm-Rescue*.
 
 You have several solutions:
-- Change to Ubuntu operating system without VirtualBox,
-- Use the manipulation described here: [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders)
+- **Recommended**: Install Ubuntu natively (not in VirtualBox)
+- **Alternative**: Follow the workaround described in [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders)
 
 ## Git and Arcade library dependencies
 
 First, you will obviously have to install the Git tools.
 
-And for the Python library *Arcade*, which is a library for creating 2D arcade games, you may need to install *libjpeg-dev* and *zlib1g-dev*.
+The *Arcade* library (used for 2D graphics) requires *libjpeg-dev* and *zlib1g-dev* for proper functionality.
 
 ```bash
 sudo apt update
@@ -62,56 +62,66 @@ sudo apt install git git-gui gitk libjpeg-dev zlib1g-dev
 
 ## *Python* installation
 
-We need, at least, *Python 3.8*, which is the default version of *Python* on *Ubuntu 20.04*.
+*Swarm-Rescue* requires **Python 3.8 or higher**. Python 3.8 is the default version on Ubuntu 20.04.
 
 ```bash
 sudo apt update
 sudo apt install python3 python3-venv python3-dev python3-pip 
 ```
-You can verify the version with the command:
+
+Verify your Python version:
 ```bash
 python3 --version
 ```
 
 ## Installing this *swarm-rescue* repository
 
-- To install this git repository, go to the directory you want to work in (for example: *~/code/*).
-- With your terminal, you have to use those Linux commands, for example:
+**Step 1: Prepare your workspace**
+Navigate to your desired working directory (e.g., *~/code/*):
+
 ```bash
 cd
 mkdir code
 cd code
 ```
-- Git-clone the code from [*Swarm-Rescue*](https://github.com/emmanuel-battesti/swarm-rescue):
+
+**Step 2: Clone the repository**
+Download the code from [*Swarm-Rescue*](https://github.com/emmanuel-battesti/swarm-rescue):
 
 ```bash
 git clone https://github.com/emmanuel-battesti/swarm-rescue.git
 ```
-This command will create the *swarm-rescue* directory with all the code inside it.
 
-- Create your virtual environment. This command will create a *.venv* directory where all dependencies will be installed:
+This creates the *swarm-rescue* directory with all the source code.
+
+**Step 3: Create a virtual environment**
+Set up an isolated Python environment for the project:
 
 ```bash
 cd swarm-rescue
 python3 -m venv .venv
 ```
+It creates a *.venv* directory where all dependencies are installed.
 
-- To use this newly created virtual environment, as each time you need it, use the command:
+**Step 4: Activate the virtual environment**
+Activate the environment (required each time you work with the project):
 
 ```bash
 source .venv/bin/activate
 ```
 
-To deactivate this virtual environment, just type: `deactivate`
+To deactivate the virtual environment when finished: `deactivate`
 
-- With this virtual environment activated, we can install all the dependencies with the command:
+**Step 5: Install dependencies**
+With the virtual environment activated, install all required packages:
 
 ```bash
 python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
+python3 -m pip install --editable .
 ```
 
-- To test, you can run:
+**Step 6: Test the installation**
+Verify everything works by running the launcher:
 
 ```bash
 python3 ./src/swarm_rescue/launcher.py
@@ -124,43 +134,45 @@ For this to work, certain points need to be checked:
 - Use WSL 2 and not WSL 1,
 - Have Windows 11 or Windows 10 with the latest updates,
 - Update with the latest graphics card drivers, and reboot,
-- Use Ubuntu 24.04 (doesn't work on 22.04 or less) for WSL.
+- Use Ubuntu 24.04 for WSL (Ubuntu 22.04 or earlier will not work).
 
 Then simply follow the Ubuntu installation instructions: [Installation on Ubuntu (recommended)](#installation-on-ubuntu-recommended)
 
 > [!NOTE]
-> To be more precise, there's no need to install a driver for the graphics card under WSL. WSL uses the Windows driver via a virtual graphics driver. OpenGL, necessary for Swarm-Rescue's operation, is managed by the Mesa library. The Mesa version of Ubuntu 22 on WSL does not support OpenGL 4.4 as required.
+> To be more precise, there's no need to install a driver for the graphics card under WSL. WSL uses the Windows graphics driver through a virtual interface. OpenGL support is provided by the Mesa library. Ubuntu 22.04's Mesa version in WSL does not support the required OpenGL 4.4 features, which is why Ubuntu 24.04 is mandatory.
 
 # Installation on Windows 10/11 with GitBash
 
-This installation procedure has been tested on Windows 10 (a build number ending in 2311 or higher) and Windows 11.
+This installation procedure has been tested on Windows 11 (october 2025)
 
 ## **Warning** for Windows users
 
-**Many problems have been reported by Windows users**, ranging from strange behavior to program failure!
+**Windows users have reported various issues**, ranging from unexpected behavior to complete program failure.
 
-Sometimes it's hard to spot the problem. For example, we've had people report cases where the lidar went through walls or the semantic sensor continued to detect the wounded even though he was “grasped”...
+**Common Problems:**
+- Lidar sensors detecting through walls
+- Semantic sensors continuing to detect wounded persons even when grasped
+- General simulation instabilities
 
-*Swarm-Rescue* uses OpenGL via shaders to speed up calculations, and this always seems to be the case. The calculations for emulating the lidar and semantic sensors of the drones are performed, via these shaders, directly on the GPU.
+**Root Cause:**
 
-At the moment, we have noticed these problems with some Windows users. It's probably a problem with the graphics driver or the way Windows handles OpenGL.
-
+*Swarm-Rescue* uses OpenGL shaders for GPU-accelerated computations (lidar and semantic sensor calculations). These issues appear to stem from graphics driver compatibility or Windows' OpenGL implementation.
 The problem doesn't seem to occur on Ubuntu. On some "more powerful" Windows machines (desktop), it also works correctly.
 
-First things first:
-- Have Windows 11 or Windows 10 with the latest updates,
-- Update your graphics card drivers, and reboot,
-- Check the *performance options* of your OS.
+**Environment Requirements:**
+- Windows 11 or Windows 10 with latest updates
+- Up-to-date graphics card drivers (restart after installation)
+- Optimal performance settings configured
 
 If problems persist, you have several solutions:
-- Change your machine,
 - Change to Ubuntu operating system,
-- Use the manipulation describe here: [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders)
+- Change your machine, more powerful desktop machines tend to have fewer issues
+- Use the workaround in [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders)
 
 ## *Python* installation
 
 - Open the following link in your web browser: https://www.python.org/downloads/windows/
-- The program will **not** work with a Python version greater than or equal to 12.
+- The program will **not** work with a Python version greater than or equal to 3.12. (3.13.7 aug. 14 2025)
 - Don't choose the latest version of Python, but choose version 3.11.9. Currently (10/2023), it is "*Python 3.11.9 - April 2, 2024*".
 - For modern machines, you must select the *Windows installer (64-bit)*.
 - Once the installer is downloaded, run the Python installer.
@@ -168,20 +180,20 @@ If problems persist, you have several solutions:
 
 ## *Git* installation
 
-Git is a source code management tool. [Git is being used](https://www.simplilearn.com/tutorials/git-tutorial/what-is-git) to track changes in the *swarm-rescue* source code.
+Git is essential for source code management and tracking changes in the *swarm-rescue* project.
 
- - Download the [latest version of Git](https://git-scm.com/download/win) and select the "64-bit Git for Windows Setup" version.
- - Once the file has been downloaded, install it on your system with the default configuration.
- - Once installed, select *Launch Git Bash*, then click on *finish*. The *Git Bash* is now launched.
+**Installation Steps:**
+1. Download the [latest version of Git](https://git-scm.com/download/win)
+2. Select "Git for Windows/x64 Setup" in "Standalone Installer"
+3. Install with default configuration settings
+4. Select "Launch Git Bash" and click "Finish"
 
-We will use the *Git Bash* terminal to work on the project later.
+The *Git Bash* terminal will be your primary interface for project work.
 
 ## Configure *Git Bash*
 
 - Run the *Git Bash* terminal.
 - **Warning**, by default you may **not** be in your home directory. So to get there, just type `cd`.
-- To facilitate the use of the *python* command, you need to create an alias for the real location of the python.exe program: `echo "alias python='winpty python.exe'" >> ~/.bashrc`.
-- Then `source .bashrc` to activate the change.
 - If everything works, the command `python --version` should show the installed Python version, for example: `Python 3.11.9`.
 
 ## Install this *swarm-rescue* repository
@@ -193,12 +205,14 @@ cd
 mkdir code
 cd code
 ```
-- Git-clone the code from [*Swarm-Rescue*](https://github.com/emmanuel-battesti/swarm-rescue):
+
+Clone the code from [*Swarm-Rescue*](https://github.com/emmanuel-battesti/swarm-rescue):
 
 ```bash
 git clone https://github.com/emmanuel-battesti/swarm-rescue.git
 ```
-This command will create the *swarm-rescue* directory with all the code inside it.
+
+This creates the *swarm-rescue* directory with all the source code.
 
 - Create your virtual environment. This command will create a *.venv* directory where all dependencies will be installed:
 
@@ -213,42 +227,43 @@ python -m venv .venv
 source .venv/Scripts/activate
 ```
 
-To deactivate this virtual environment, just type: `deactivate`
+To deactivate this virtual environment when finished, just type: `deactivate`
 
 - With this virtual environment activated, we can install all the dependencies with the command:
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m pip install --editable .
 ```
 
-- To test, you can run:
+Test the installation:
 
 ```bash
 python ./src/swarm_rescue/launcher.py
 ```
-# Troubleshootings
+# Troubleshooting
 
 ## Deactivation of OpenGL shaders
 
- Shaders are programs that use OpenGL and are written in the C-like language GLSL. These programs exploit the power of graphics cards and greatly accelerate calculations.
+Shaders are GPU-accelerated programs written in GLSL that significantly improve performance. However, compatibility issues may require disabling them.
 
-Because of problems with OpenGL, our algorithms, which use shaders, also exist in non-shader versions.
-This version can be activated by changing a parameter in the code:
-- Open file *src/swarm_rescue/spg_overlay/gui_map/closed_playground.py*
-- Go to line 37,
-- Change parameter use_shaders from *True* to *False*.
+To disable shaders:
+1. Open file *src/swarm_rescue/spg_overlay/gui_map/closed_playground.py*
+2. Navigate to line 37
+3. Change parameter `use_shaders` from *True* to *False*
 
-The downside of this manipulation is that it reduces performance. Calculations will take longer, especially if you have a lot of drones.
+**Note**: This reduces performance, especially with multiple drones.
 
-## Tool to view your software versions
+## Check software versions
 
-To work with Swarm-Rescue, you need OpenGL 4.40 or higher.
-To view and check your software versions, you can use the following script: *src/swam_rescue/tools/opengl_info.py*
+*Swarm-Rescue* requires OpenGL 4.40 or higher. Use this script to verify your system:
+```bash
+python src/swarm_rescue/tools/opengl_info.py
+```
 
 ## Find OpenGL version on Ubuntu
 
-Under Linux or WSL2, you can find out which version of OpenGL is supported with *glxinfo*.
+Check your OpenGL version using *glxinfo*:
 
 Install *glxinfo*:
 ```bash
@@ -261,7 +276,7 @@ Use *glxinfo*:
 glxinfo | grep "OpenGL version"
 ```
 
-## Update Mesa
+## Update Mesa library
 
 Under Linux or WSL2, to update the Mesa library to the lastest (but not-official) version:
 ```bash
@@ -272,15 +287,15 @@ sudo apt upgrade
 
 # Python IDE
 
-Although not required, it is a good idea to use an IDE when programming in *Python*. It makes programming easier.
+While optional, using an IDE improves the Python development experience.
 
-For example, you can use the free *community* version of [*PyCharm*](https://www.jetbrains.com/pycharm/). In this case, you will need to set your *interpreter* path to your venv path for it to work. 
+**Recommended**: [*PyCharm Community*](https://www.jetbrains.com/pycharm/) (free)
+- Configure the interpreter path to your virtual environment (.venv) for proper integration 
 
 # Contact
 
-If you have questions about the code and installation, you can contact:
+For questions about installation or code:
 
-emmanuel . battesti at ensta . fr
-
-Or use the discord server.
+**Email**: emmanuel . battesti at ensta . fr  
+**Discord**: Available on the project's Discord server
 

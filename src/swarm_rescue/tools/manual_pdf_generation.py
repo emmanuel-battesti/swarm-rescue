@@ -14,7 +14,7 @@ def manual_pdf_generation() -> None:
     """
     team_info = TeamInfo()
     directory = str(Path.home()) + '/results_swarm_rescue'
-    path = directory + f'/team{team_info.team_number_str}_test_pdf'
+    path = directory + f'/team{team_info.team_number_str_padded}_test_pdf'
 
     try:
         os.makedirs(directory, exist_ok=True)

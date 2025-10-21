@@ -96,7 +96,7 @@ class Communicator(PocketDevice):
         Returns:
             bool: True if in range, False otherwise.
         """
-        dist = comm.position.get_distance(self.position)
+        dist = comm.position.get_distance(self.position) # type: ignore[arg-type]
 
         # If both have infinite range:
         if not (comm.transmission_range or self._transmission_range):

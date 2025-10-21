@@ -37,7 +37,6 @@ class DataSaver:
          enabled.
         _team_info: An object containing information about the team
         participating in the challenge.
-        _directory: The directory path where the results are stored.
         _result_path: The path to the directory for the current team and timestamp.
         _stats_filename: The filename of the CSV file for storing the statistics.
     """
@@ -87,7 +86,7 @@ class DataSaver:
         Create the file for the result stats and add the header line.
         """
         self._stats_filename = (self._result_path +
-                                f"/team{self._team_info.team_number_str}"
+                                f"/team{self._team_info.team_number_str_padded}"
                                 f"_stats.csv")
         file = open(self._stats_filename, 'w')
         file.close()
@@ -196,7 +195,7 @@ class DataSaver:
             return
         num_round_str = str(num_round)
         filename = (f"{self._images_path}/"
-                    f"team{self._team_info.team_number_str}_"
+                    f"team{self._team_info.team_number_str_padded}_"
                     f"{map_name}_{zones_name}_rd{num_round_str}_"
                     f"screen.png")
 
@@ -207,7 +206,7 @@ class DataSaver:
 
         # Save the screen capture of the explored zone done by all drones
         filename_explo = (f"{self._images_path}/"
-                          f"team{self._team_info.team_number_str}_"
+                          f"team{self._team_info.team_number_str_padded}_"
                           f"{map_name}_{zones_name}_rd{num_round_str}_"
                           f"screen_explo.png")
 
@@ -216,7 +215,7 @@ class DataSaver:
 
         # Save the screen capture of the path done by each drone
         filename_path = (f"{self._images_path}/"
-                         f"team{self._team_info.team_number_str}_"
+                         f"team{self._team_info.team_number_str_padded}_"
                          f"{map_name}_{zones_name}_rd{num_round_str}_"
                          f"screen_path.png")
 

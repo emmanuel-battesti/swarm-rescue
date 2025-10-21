@@ -1,6 +1,6 @@
 import math
 from collections import deque
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Union, Deque
 
 import arcade
 
@@ -8,7 +8,7 @@ from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
 
 
 def _draw_pseudo_drone(position_screen: Tuple[int, int, float],
-                       color: Tuple[int, int, int],
+                       color: Union[Tuple[int, int, int], Tuple[int, int, int, int]],
                        radius: int = 15) -> None:
     """
     Drawing a pseudo drone on the screen.
@@ -20,14 +20,14 @@ def _draw_pseudo_drone(position_screen: Tuple[int, int, float],
 
     Args:
         position_screen (Tuple[int, int, float]): (x, y, angle) screen position.
-        color (Tuple[int, int, int]): RGB color.
+        color (Tuple[int, int, int] or Tuple[int, int, int, int]): RGB or RGBA color.
         radius (int): Radius of the drone.
     """
 
     if not isinstance(position_screen, tuple) or len(position_screen) != 3:
         raise ValueError("position_screen must be a tuple of length 3")
-    if not isinstance(color, tuple) or len(color) != 3:
-        raise ValueError("color must be a tuple of length 3")
+    if not isinstance(color, tuple) or len(color) not in (3, 4):
+        raise ValueError("color must be a tuple of length 3 or 4 (RGB or RGBA)")
     if radius <= 0:
         raise ValueError("Radius must be a positive number.")
 
@@ -68,9 +68,9 @@ class VisuNoises:
 
         self._scr_pos_gps: Dict[DroneAbstract, Tuple[int, int, float]] = {}
         self._gps_enabled: Dict[DroneAbstract, bool] = {}
-        self._scr_pos_odom: Dict[DroneAbstract, deque[Tuple[int, int, float]]] = {}
+        self._scr_pos_odom: Dict[DroneAbstract, Deque[Tuple[int, int, float]]] = {}
         self._last_world_pos_odom: Dict[DroneAbstract, Tuple[float, float, float]] = {}
-        self._scr_pos_true: Dict[DroneAbstract, deque[Tuple[float, float, float]]] = {}
+        self._scr_pos_true: Dict[DroneAbstract, Deque[Tuple[float, float, float]]] = {}
         self._max_size_circular_buffer = 150
 
     def reset(self) -> None:

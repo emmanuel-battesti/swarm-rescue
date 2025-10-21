@@ -1,5 +1,5 @@
 import math
-from typing import Union, Type
+from typing import Union, Type, Optional
 
 import numpy as np
 
@@ -74,7 +74,7 @@ class GaussianNoise:
         # noise
         self._std_dev_noise = std_dev_noise
 
-        self._shape: Union[tuple, Type[None]] = None
+        self._shape: Optional[tuple] = None
 
     def add_noise(self, values: Union[np.ndarray, float]):
         """
@@ -90,7 +90,7 @@ class GaussianNoise:
             return None
 
         values2 = values
-        gaussian_noise: Union[np.ndarray, float, Type[None]] = None
+        gaussian_noise: Optional[np.ndarray | float] = None
         if isinstance(values, np.ndarray):
             # if values.ndim == 1:
             #     # change shape from (n,) to (n, 1), ie a column vector
@@ -134,8 +134,8 @@ class AutoregressiveModelNoise:
         self._std_dev_wn = math.sqrt(
             self._std_dev_noise ** 2 * (1 - self._model_param ** 2))
 
-        self._last_noise: Union[np.ndarray, float, Type[None]] = None
-        self._shape: Union[tuple, Type[None]] = None
+        self._last_noise: Union[np.ndarray, float, None] = None
+        self._shape: Union[tuple, None] = None
 
     def add_noise(self, values: Union[np.ndarray, float, Type[None]]):
         """
@@ -151,7 +151,7 @@ class AutoregressiveModelNoise:
             return None
 
         values2 = values
-        white_noise: Union[np.ndarray, float, Type[None]] = None
+        white_noise: Union[np.ndarray, float, None] = None
         if isinstance(values, np.ndarray):
             # if values.ndim == 1:
             #     # change shape from (n,) to (n, 1), ie a column vector

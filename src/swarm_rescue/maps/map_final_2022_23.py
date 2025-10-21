@@ -25,7 +25,7 @@ from swarm_rescue.simulation.utils.misc_data import MiscData
 from swarm_rescue.maps.walls_final_2022_23 import add_walls, add_boxes
 
 
-class MyMapFinal2022_23(MapAbstract):
+class MapFinal2022_23(MapAbstract):
 
     def __init__(self, drone_type: Type[DroneAbstract], zones_config: ZonesConfig = ()):
         super().__init__(drone_type, zones_config)
@@ -122,9 +122,9 @@ class MyMapFinal2022_23(MapAbstract):
 
 
 def main():
-    my_map = MyMapFinal2022_23(drone_type=DroneMotionless)
+    the_map = MapFinal2022_23(drone_type=DroneMotionless)
 
-    gui = GuiSR(the_map=my_map,
+    gui = GuiSR(the_map=the_map,
                 use_mouse_measure=True,
                 )
     gui.run()

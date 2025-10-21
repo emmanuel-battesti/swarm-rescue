@@ -33,7 +33,7 @@ class ResultPathCreator:
 
         # Create the folder to keep results of the mission
         self._result_path = (self._directory
-                             + f'/team{self._team_info.team_number_str}'
+                             + f'/team{self._team_info.team_number_str_padded}'
                                f'_{date.strftime("%y%m%d_%Hh%Mmin%Ss")}')
 
     def _make_dir(self) -> None:

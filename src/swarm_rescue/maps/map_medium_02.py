@@ -25,12 +25,12 @@ from swarm_rescue.simulation.utils.misc_data import MiscData
 from swarm_rescue.maps.walls_medium_02 import add_walls, add_boxes
 
 
-class MyMapMedium02(MapAbstract):
+class MapMedium02(MapAbstract):
 
     def __init__(self, drone_type: Type[DroneAbstract], zones_config: ZonesConfig = ()):
         super().__init__(drone_type, zones_config)
-        self._max_timestep_limit = 7200
-        self._max_walltime_limit = 720  # In seconds
+        self._max_timestep_limit = 5000
+        self._max_walltime_limit = 1000  # In seconds
 
         # PARAMETERS MAP
         self._size_area = (1113, 750)
@@ -117,9 +117,9 @@ class MyMapMedium02(MapAbstract):
 
 
 if __name__ == '__main__':
-    my_map = MyMapMedium02(drone_type=DroneMotionless)
+    the_map = MapMedium02(drone_type=DroneMotionless)
 
-    gui = GuiSR(the_map=my_map,
+    gui = GuiSR(the_map=the_map,
                 use_mouse_measure=True,
                 )
     gui.run()

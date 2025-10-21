@@ -293,10 +293,10 @@ class MyMapSemantic(MapAbstract):
 
 
 def main():
-    my_map = MyMapSemantic(drone_type=MyDroneSemantic)
+    the_map = MyMapSemantic(drone_type=MyDroneSemantic)
 
     # draw_semantic_rays : enable the visualization of the semantic rays
-    gui = GuiSR(the_map=my_map,
+    gui = GuiSR(the_map=the_map,
                 draw_semantic_rays=True,
                 use_keyboard=False,
                 )

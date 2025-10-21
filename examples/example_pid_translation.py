@@ -183,9 +183,9 @@ class MyMap(MapAbstract):
 
 
 def main():
-    my_map = MyMap(drone_type=MyDronePidTranslation)
+    the_map = MyMap(drone_type=MyDronePidTranslation)
 
-    gui = GuiSR(the_map=my_map,
+    gui = GuiSR(the_map=the_map,
                 use_keyboard=False,
                 use_mouse_measure=True,
                 enable_visu_noises=False,
@@ -193,7 +193,7 @@ def main():
 
     gui.run()
 
-    score_health_returned = my_map.compute_score_health_returned()
+    score_health_returned = the_map.compute_score_health_returned()
     print("score_health_returned = ", score_health_returned)
 
 

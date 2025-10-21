@@ -1,0 +1,6 @@
+stat_saving_enabled: false  # Save statistics and generate PDF report (true/false)
+video_capture_enabled: false  # Enable video recording of the mission (true/false)
+
+evaluation_plan:
+  - map_name: MapTestSpecialZones
+    zones_config: [NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE]

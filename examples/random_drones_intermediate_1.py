@@ -13,7 +13,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "src"))
 
 from swarm_rescue.simulation.drone.controller import CommandsDict
-from swarm_rescue.maps.map_intermediate_01 import MyMapIntermediate01
+from swarm_rescue.maps.map_intermediate_01 import MapIntermediate01
 from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
 from swarm_rescue.simulation.gui_map.gui_sr import GuiSR
 from swarm_rescue.simulation.utils.utils import normalize_angle
@@ -91,9 +91,9 @@ class MyDroneRandom(DroneAbstract):
 
 
 def main():
-    my_map = MyMapIntermediate01(drone_type=MyDroneRandom)
+    the_map = MapIntermediate01(drone_type=MyDroneRandom)
 
-    gui = GuiSR(the_map=my_map,
+    gui = GuiSR(the_map=the_map,
                 use_keyboard=False,
                 use_mouse_measure=True,
                 enable_visu_noises=False,

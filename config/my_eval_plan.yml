@@ -1,9 +1,9 @@
-- map_name: MyMapMedium01
-  nb_rounds: 1
-  config_weight: 1
-  zones_config: [NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE]
+stat_saving_enabled: false  # Save statistics and generate PDF report (true/false)
+video_capture_enabled: false  # Enable video recording of the mission (true/false)
 
-- map_name: MyMapMedium02
-  nb_rounds: 1
-  config_weight: 1
-  zones_config: [NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE]
+evaluation_plan:
+  - map_name: MapMedium01
+    zones_config: [NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE]
+
+  - map_name: MapMedium02
+    zones_config: [NO_COM_ZONE, NO_GPS_ZONE, KILL_ZONE]
