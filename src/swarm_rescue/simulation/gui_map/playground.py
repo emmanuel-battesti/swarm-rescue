@@ -695,8 +695,9 @@ class Playground:
             entity: The entity to remove.
             definitive (bool): Whether to remove definitively.
         """
-        self._remove_from_space(entity)
-        self._remove_from_views(entity)
+        if not entity.removed:
+            self._remove_from_space(entity)
+            self._remove_from_views(entity)
 
         if definitive:
             self._remove_from_mappings(entity)
@@ -739,22 +740,30 @@ class Playground:
         """
         assert entity.uid
 
+        # Protection: if already removed from mappings, skip
+        if entity.uid not in self._uids_to_entities:
+            return
+
         self._uids_to_entities.pop(entity.uid)
 
         if isinstance(entity, Agent):
-            self._agents.remove(entity)
-            self._agents_cache_needs_update = True
+            if entity in self._agents:
+                self._agents.remove(entity)
+                self._agents_cache_needs_update = True
 
             assert entity.name
-            self._name_to_agents.pop(entity.name)
+            if entity.name in self._name_to_agents:
+                self._name_to_agents.pop(entity.name)
 
         elif isinstance(entity, SceneElement):
-            self._elements.remove(entity)
-            self._elements_cache_needs_update = True
+            if entity in self._elements:
+                self._elements.remove(entity)
+                self._elements_cache_needs_update = True
 
         if not isinstance(entity, Agent):
             for pm_shape in entity.pm_shapes:
-                self._shapes_to_entities.pop(pm_shape)
+                if pm_shape in self._shapes_to_entities:
+                    self._shapes_to_entities.pop(pm_shape)
 
         entity.playground = None
 
@@ -917,6 +926,11 @@ class Playground:
         """
         Clean up resources and prepare for garbage collection.
         Should be called when the playground is no longer needed.
+
+        Note: This method cleans internal data structures and frees resources
+        but does NOT close the GUI window. Close the window explicitly by
+        calling `close_window()` when desired. This avoids closing a global
+        window used by other tests or components.
         """
         # Clear all entities
         for agent in self._agents.copy():
@@ -929,7 +943,7 @@ class Playground:
         self._cached_agents.clear()
         self._cached_elements.clear()
 
-        # Clear mappings
+        # Clear all mappings
         self._shapes_to_entities.clear()
         self._name_to_agents.clear()
         self._uids_to_entities.clear()
@@ -937,13 +951,28 @@ class Playground:
         # Clear views
         self._views.clear()
 
-        # Close window if it exists
-        if hasattr(self, '_window') and self._window:
-            self._window.close()
+        # Note: Do NOT close the window here. Call close_window() explicitly when needed.
 
         # Clear ray compute
         if self._ray_compute:
             self._ray_compute = None
+
+    def close_window(self) -> None:
+        """
+        Close the GUI window associated with this playground, if any.
+
+        This is separated from `cleanup()` so tests and other callers can
+        clean internal resources without closing a shared/global window.
+        """
+        if hasattr(self, '_window') and self._window:
+            try:
+                self._window.close()
+            except Exception:
+                # Ignore errors while closing window to avoid test flakes
+                pass
+            finally:
+                # Ensure reference is removed
+                self._window = None
 
     def add_interaction(
             self,

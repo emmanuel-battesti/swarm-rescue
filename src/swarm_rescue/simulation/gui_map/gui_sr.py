@@ -211,7 +211,7 @@ class GuiSR(TopDownView):
         """
         Close the simulation window.
         """
-        self._playground.window.close()
+        self._playground.close_window()
 
     def set_caption(self, window_title: str) -> None:
         """
