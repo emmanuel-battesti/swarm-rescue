@@ -3,7 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [5.1.0] - 2025-01-21
+## [5.1.1] - 2025-11-18
+
+### Fixed
+- Fix crash when cleanup memory after a round
+
+## [5.1.0] - 2025-10-21
 
 ### Added
 - Add headless mode for running simulations without GUI
@@ -349,7 +354,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.1.0...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.1.1...HEAD
+[5.1.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.1.0...v5.1.1
 [5.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.0.0...v5.1.0
 [5.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.1.0...v5.0.0
 [4.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.0.4...v4.1.0

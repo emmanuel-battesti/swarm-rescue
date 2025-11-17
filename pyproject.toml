@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "swarm-rescue"
-version = "5.1.0"
+version = "5.1.1"
 description = "Set up a team of drones to rescue wounded people in different locations..."
 readme = "README.md"
 authors = [
