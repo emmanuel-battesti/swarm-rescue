@@ -130,12 +130,16 @@ class Grasper(Device):
         """
         wounded.grasped_by.remove(self)
 
-        for sensor in self._anchor.agent.external_sensors:
-            if sensor.invisible_grasped:
-                sensor.remove_from_temporary_invisible(wounded)
+        # Handle sensors if anchor still exists
+        if self._anchor and hasattr(self._anchor, 'agent'):
+            for sensor in self._anchor.agent.external_sensors:
+                if sensor.invisible_grasped:
+                    sensor.remove_from_temporary_invisible(wounded)
 
+        # Remove joints from physics space if anchor and playground still exist
         joints = self._grasp_joints.pop(wounded)
-        self._anchor.playground.space.remove(*joints)
+        if self._anchor and hasattr(self._anchor, 'playground') and self._anchor.playground:
+            self._anchor.playground.space.remove(*joints)
 
         self._grasped_wounded_persons.remove(wounded)
 
