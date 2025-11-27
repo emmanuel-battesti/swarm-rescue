@@ -8,9 +8,9 @@ check_field() {
   fi
 }
 
-# Check if requirements.txt exists
-if [ ! -f requirements.txt ]; then
-  echo "Warning: requirements.txt not found in this directory. Generation of the submission ZIP file is not possible."
+# Check if req.txt exists
+if [ ! -f req.txt ]; then
+  echo "Warning: req.txt not found in this directory. Generation of the submission ZIP file is not possible."
   exit 1
 fi
 
@@ -32,7 +32,7 @@ team_name=$(grep 'team_name:' src/swarm_rescue/solutions/team_info.yml | awk '{p
 team_members=$(grep 'team_members:' src/swarm_rescue/solutions/team_info.yml | awk -F': ' '{print $2}')
 
 # Format the team number with leading zeros if necessary
-formatted_team_number=$(printf "%02d" $team_number)
+formatted_team_number=$(printf "%03d" $team_number)
 
 # Validate the extracted fields
 check_field "$team_name" "Team name"
@@ -92,9 +92,9 @@ if ! (cd src/swarm_rescue/solutions && zip -r ../../../"$zip_file" .); then
   exit 1
 fi
 
-# Update the zip file to include requirements.txt
-if ! zip -u "$zip_file" requirements.txt; then
-  echo "Error: Failed to update the ZIP file with requirements.txt. Generation of the submission ZIP file is not possible."
+# Update the zip file to include req.txt
+if ! zip -u "$zip_file" req.txt; then
+  echo "Error: Failed to update the ZIP file with req.txt. Generation of the submission ZIP file is not possible."
   exit 1
 fi
 
