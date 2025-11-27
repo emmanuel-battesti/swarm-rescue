@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [5.1.2] - 2025-11-27
+
+### Fixed
+- Correct evaluation guidelines
+
 ## [5.1.1] - 2025-11-18
 
 ### Fixed
@@ -354,7 +359,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.1.1...HEAD
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.1.2...HEAD
+[5.1.2]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.1.1...v5.1.2
 [5.1.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.1.0...v5.1.1
 [5.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.0.0...v5.1.0
 [5.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v4.1.0...v5.0.0
