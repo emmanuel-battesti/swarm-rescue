@@ -108,20 +108,30 @@ class DroneBase(DronePart):
     def _update_sprites_in_views(self) -> None:
         """
         Update the drone sprite in all views after texture change.
-        This updates the texture directly.
+        This updates the texture directly for visual display.
         """
         if not self._playground or not self._playground._views:
             return
+
+        # Get the ID view if it exists
+        id_view = None
+        if self._playground._ray_compute is not None:
+            id_view = self._playground._ray_compute._id_view
 
         for view in self._playground._views:
             if self not in view.sprites:
                 continue
 
-            # Update the texture of the existing sprite directly
+            # Skip the ID view entirely - we don't want to change its texture
+            # because that would create invalid UIDs when rendering
+            if view is id_view:
+                continue
+
+            # Update the texture of the existing sprite directly (only in display views)
             current_sprite = view.sprites[self]
             current_sprite.texture = self._base_sprite.texture
 
-            # Force a redraw of the sprite to reflect the texture change
+            # Redraw the view to show the new texture
             view.update_and_draw_in_framebuffer(force=True)
 
 
