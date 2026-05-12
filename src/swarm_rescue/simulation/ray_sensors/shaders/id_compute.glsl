@@ -103,7 +103,12 @@
                 float angle = in_coord.angle;
 
                 // INVISIBLE POINTS
-                int inv_pts[MAX_N_INVISIBLE] = InvIDs.inv_ids[i_sensor];
+                int inv_pts[MAX_N_INVISIBLE];
+                for (int j = 0; j < MAX_N_INVISIBLE; j++)
+                {
+                    inv_pts[j] = InvIDs.inv_ids[i_sensor][j];
+                }
+
 
                 // CENTER AND END OF RAY
                 vec2 center = vec2(sensor_x_on_view, sensor_y_on_view);
