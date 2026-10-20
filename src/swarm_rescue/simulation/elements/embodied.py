@@ -7,6 +7,8 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple, Union
 
 import arcade
+import arcade.hitbox
+import numpy as np
 import pymunk
 import pymunk.autogeometry
 from PIL import Image
@@ -14,6 +16,7 @@ from PIL import Image
 from swarm_rescue.simulation.elements.entity import Entity
 from swarm_rescue.simulation.utils.definitions import ELASTICITY_ENTITY, FRICTION_ENTITY
 from swarm_rescue.simulation.utils.position import Coordinate, CoordinateSampler, InitCoord
+from swarm_rescue.simulation.utils.texture_cache import load_texture_cached
 
 
 class EmbodiedEntity(Entity, ABC):
@@ -53,16 +56,27 @@ class EmbodiedEntity(Entity, ABC):
         """
         super().__init__(name, temporary)
 
-        # Initialize the base sprite with the given texture or filename
         self._sprite_front_is_up = sprite_front_is_up
+
+        # Detailed hitbox algorithm, so collisions follow the sprite's shape.
+        hit_box_algo = arcade.hitbox.PymunkHitBoxAlgorithm(detail=1.0)
+
+        # Récupération ou chargement de la texture
+        if texture is not None:
+            base_texture = texture
+        elif filename is not None:
+            base_texture = load_texture_cached(filename, hit_box_algorithm=hit_box_algo)
+        else:
+            raise ValueError("Either 'texture' or 'filename' must be provided to EmbodiedEntity.")
+
+        # Horizontal/vertical flips are applied on the texture itself.
+        if sprite_front_is_up:
+            base_texture = base_texture.flip_diagonally().flip_horizontally()
+
         self._base_sprite = arcade.Sprite(
-            texture=texture,
-            filename=filename,
-            hit_box_algorithm="Detailed",
-            hit_box_detail=1,
-            flipped_diagonally=sprite_front_is_up,
-            flipped_horizontally=sprite_front_is_up,
-        )  # type: ignore
+            base_texture,
+            hit_box_algorithm=hit_box_algo,
+        )
 
         self._color = color
 
@@ -291,6 +305,12 @@ class EmbodiedEntity(Entity, ABC):
     ##############
     # Init pm Elements
     ###############
+    def _get_hitbox_points(self) -> List[Tuple[float, float]]:
+        """
+        Récupère les sommets de la hitbox du sprite de base.
+        """
+        return list(self._base_sprite.hit_box.points)
+
     def _get_dimensions(
             self,
             radius: Optional[float],
@@ -308,12 +328,13 @@ class EmbodiedEntity(Entity, ABC):
         Returns:
             Tuple[float, float, float, float]: Scale, radius, width, and height.
         """
+        points = self._get_hitbox_points()
         orig_radius = max(
-            pymunk.Vec2d(*vert).length for vert in self._base_sprite.get_hit_box()
+            pymunk.Vec2d(*vert).length for vert in points
         )
 
-        horiz = [pymunk.Vec2d(*vert).x for vert in self._base_sprite.get_hit_box()]
-        vert = [pymunk.Vec2d(*vert).y for vert in self._base_sprite.get_hit_box()]
+        horiz = [pymunk.Vec2d(*vert).x for vert in points]
+        vert = [pymunk.Vec2d(*vert).y for vert in points]
 
         orig_width = max(horiz) - min(horiz)
         orig_height = max(vert) - min(vert)
@@ -333,7 +354,7 @@ class EmbodiedEntity(Entity, ABC):
 
         return scale, radius, width, height
 
-    def _get_pm_shapes_from_sprite(self, shape_approximation: Optional[str]):
+    def _get_pm_shapes_from_sprite(self, shape_approximation: Optional[str]) -> List[pymunk.Shape]:
         """
         Creates pymunk shapes for the entity based on its sprite and shape approximation.
 
@@ -348,11 +369,11 @@ class EmbodiedEntity(Entity, ABC):
             shape = self.physics_engine.get_physics_object(sprite)
 
         """
-        vertices = self._base_sprite.get_hit_box()
+        vertices = self._get_hitbox_points()
         vertices = [(x * self._scale, y * self._scale) for x, y in vertices]
 
         if shape_approximation == "circle":
-            pm_shapes = [pymunk.Circle(self._pm_body, self._radius)]
+            pm_shapes: List[pymunk.Shape] = [pymunk.Circle(self._pm_body, self._radius)]
 
         elif shape_approximation == "box":
             top = max(vert[0] for vert in vertices)
@@ -412,11 +433,10 @@ class EmbodiedEntity(Entity, ABC):
 
         assert isinstance(texture, arcade.Texture)
 
+        # The texture already carries its hitbox algorithm.
         sprite = arcade.Sprite(
-            texture=texture,
+            texture,
             scale=zoom * self._scale,
-            hit_box_algorithm="Detailed",
-            hit_box_detail=1,
         )
 
         if self._color and not use_color_uid:
@@ -436,29 +456,19 @@ class EmbodiedEntity(Entity, ABC):
         Returns:
             arcade.Texture: A new texture with the UID encoded as a color.
         """
-        # Create a new blank RGBA image with the same size as the input texture
-        img_uid = Image.new("RGBA", texture.size)
-        pixels = img_uid.load()  # Access the pixel data of the new image
-        pixels_texture = texture.image.load()  # Access the pixel data of the original texture
+        # Every opaque pixel of the input becomes the uid color; every fully
+        # transparent one stays transparent. Expressed as a boolean mask rather
+        # than a Python loop over the pixels, to avoid re-evaluating
+        # `color_uid` (a property, so three shifts and three masks) once per
+        # pixel.
+        source = np.asarray(texture.image, dtype=np.uint8)
+        img_uid = np.zeros((source.shape[0], source.shape[1], 4), dtype=np.uint8)
+        img_uid[source[:, :, 3] != 0] = np.asarray(self.color_uid, dtype=np.uint8)
 
-        # Iterate over each pixel in the new image img_uid
-        for i in range(img_uid.size[0]):
-            for j in range(img_uid.size[1]):
-
-                # If the pixel is fully transparent in the original texture,
-                # set the pixel to fully transparent and black in the new image
-                if pixels_texture[i, j][3] == 0:
-                    pixels[i, j] = (0, 0, 0, 0)
-
-                # Else if the pixel is not black in the original texture
-                else:
-                    pixels[i, j] = self.color_uid  # type: ignore
-
+        hit_box_algo = arcade.hitbox.PymunkHitBoxAlgorithm(detail=1.0)
         texture = arcade.Texture(
-            name=str(self._uid),
-            image=img_uid,
-            hit_box_algorithm="Detailed",
-            hit_box_detail=1,
+            image=Image.fromarray(img_uid),
+            hit_box_algorithm=hit_box_algo,
         )
 
         return texture
@@ -473,7 +483,7 @@ class EmbodiedEntity(Entity, ABC):
         """
         return self._moved
 
-    def update_sprite(self, view, sprite) -> None:
+    def update_sprite(self, view, sprite: arcade.Sprite) -> None:
         """
         Updates the position and angle of the sprite based on the entity's current position
         and orientation in the playground (and in pymunk).
@@ -488,18 +498,14 @@ class EmbodiedEntity(Entity, ABC):
         physical position (`_pm_body.position`) relative to the view's center and applying
         the zoom level. It also updates the sprite's angle to match the entity's orientation.
         """
-        pos_x = (
-                        self._pm_body.position.x - view.center[0]
-                ) * view.zoom + view.width // 2
-        pos_y = (
-                        self._pm_body.position.y - view.center[1]
-                ) * view.zoom + view.height // 2
 
         # Set the sprite's position in the view
-        sprite.set_position(pos_x, pos_y)
+        sprite.position = self._pm_body.position
 
-        # Update the sprite's angle to match the entity's orientation in degrees
-        sprite.angle = int(math.degrees(self._pm_body.angle))
+        # Update the sprite's angle to match the entity's orientation
+        # Note: In Arcade 3, sprite rotation (radians/angle) is clockwise,
+        # while Pymunk body angle is trigonometric (counter-clockwise).
+        sprite.radians = -self._pm_body.angle
 
     ###################
     # Pymunk objects

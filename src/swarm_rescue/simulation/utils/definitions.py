@@ -8,7 +8,8 @@ from typing import Type
 
 SIMULATION_STEPS: int = 10
 SPACE_DAMPING: float = 0.95  # https://www.pymunk.org/en/latest/pymunk.html#pymunk.Space.damping
-# SPACE_DAMPING: a value of 0.9 means that each body will lose 10% of its velocity per second. Defaults to 1.
+# SPACE_DAMPING: a value of 0.9 means that each body will lose 10% of its velocity per
+# second. Defaults to 1.
 LINEAR_FORCE: int = 100
 ANGULAR_VELOCITY: float = 0.3
 ARM_MAX_FORCE: int = 500
@@ -65,7 +66,7 @@ def add_custom_collision(collision_types: Type[IntEnum], name: str) -> type:
 
     """
     names = [m.name for m in collision_types] + [name]
-    extended_enum = IntEnum("CollisionTypes", names)
+    extended_enum = IntEnum("CollisionTypes", names)  # type: ignore[misc]
     return extended_enum
 
 

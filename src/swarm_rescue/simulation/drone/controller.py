@@ -83,7 +83,10 @@ class Controller(PocketDevice):
         check_passed = self._check(command)
 
         if not check_passed and self._hard_check:
-            raise ValueError(f"Invalid command '{command}' for controller '{self.name}'. Expected type: {type(self.default).__name__}")
+            raise ValueError(
+                f"Invalid command '{command}' for controller '{self.name}'. "
+                f"Expected type: {type(self.default).__name__}"
+            )
 
         # Maybe replace by closest later?
         if not check_passed or self._currently_disabled:
@@ -184,7 +187,7 @@ class GrasperController(Controller):
         """
         Returns a random valid command value.
         """
-        return self._playground.rng.choice(self._valid_command_values)
+        return self._rng.choice(self._valid_command_values)
 
 
 class CenteredContinuousController(Controller):
@@ -242,4 +245,4 @@ class CenteredContinuousController(Controller):
         """
         Returns a random command value in the allowed range.
         """
-        return self._playground.rng.uniform(self._min, self._max)
+        return self._rng.uniform(self._min, self._max)

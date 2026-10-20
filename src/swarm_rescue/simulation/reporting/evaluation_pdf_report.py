@@ -1,7 +1,6 @@
 import os
 from datetime import datetime
 
-import matplotlib.pyplot as plt
 import numpy as np
 from fpdf import FPDF
 
@@ -54,6 +53,10 @@ class EvaluationPdfReport:
     Generates a PDF report for the evaluation of a team.
     """
 
+    # Assigned by `generate_pdf()` before any of the `_add_*` helpers run;
+    # declared here (without a default) so those helpers can use it directly.
+    stats_computation: StatsComputation
+
     def __init__(self, team_info: TeamInfo, result_path: str):
         """
         Initialize the EvaluationPdfReport.
@@ -64,7 +67,6 @@ class EvaluationPdfReport:
         """
         self._team_info = team_info
         self._result_path = result_path
-        self.stats_computation = None
 
         self._images_path = None
         if self._result_path is not None:
@@ -243,6 +245,7 @@ class EvaluationPdfReport:
         self._body_text_font()
 
         df_configs = self.stats_computation.df_configs
+        assert df_configs is not None
         for index, row in df_configs.iterrows():
             id_config = row["Id Config"]
             map_name = row["Map"]
@@ -256,7 +259,7 @@ class EvaluationPdfReport:
                 f"   - special zones: {zones_name_casual}",
                 f"   - number of rounds: {nb_round}",
                 f"   - weight for final score: {weight:.1f}",
-                f""
+                ""
             ]
 
             self._body_text_font()
@@ -288,6 +291,7 @@ class EvaluationPdfReport:
         col_width = self.epw / 6.75
 
         df_detailed = self.stats_computation.df_detailed
+        assert df_detailed is not None
 
         self._table_text_font()
         x = self.pdf.get_x()
@@ -308,7 +312,7 @@ class EvaluationPdfReport:
             y = self.pdf.get_y()
             for index_col, value in enumerate(row):
                 self.pdf.set_xy(x, y)
-                if index_col == 0:  # index
+                if index_col == 0: # index
                     continue
 
                 if index_col == 1:
@@ -363,6 +367,7 @@ class EvaluationPdfReport:
         col_width = self.epw / 2.5
 
         df_summary = self.stats_computation.df_summary
+        assert df_summary is not None
 
         self._table_text_font()
 
@@ -384,7 +389,7 @@ class EvaluationPdfReport:
             y = self.pdf.get_y()
             for index_col, value in enumerate(row):
                 self.pdf.set_xy(x, y)
-                if index_col == 0:  # index
+                if index_col == 0: # index
                     continue
 
                 if index_col == 1:
@@ -411,8 +416,15 @@ class EvaluationPdfReport:
     def _add_graph_score(self) -> None:
         """
         Add a graphical illustration of the scores.
+
+        `matplotlib` is imported here rather than at module level: this module
+        is on the import path of every run, and the graph is only built when a
+        PDF report is actually produced.
         """
+        import matplotlib.pyplot as plt
+
         df_graph_scores = self.stats_computation.df_graph_scores
+        assert df_graph_scores is not None
 
         y_sauv, y_explo, y_health, y_temps, y_score = [], [], [], [], []
         legend = ['Rescues', 'Exploration', 'Health return', 'Remaining time',
@@ -462,6 +474,7 @@ class EvaluationPdfReport:
         Add screenshots of the best rounds for each configuration.
         """
         df_screenshots = self.stats_computation.df_screenshots
+        assert df_screenshots is not None
         offset = 20
 
         for index, row in df_screenshots.iterrows():
@@ -493,8 +506,8 @@ class EvaluationPdfReport:
 
                 best_rd_str = str(row["Round"])
                 round_score = str(row["Round Score"])
-                mean_computation_freq = (row["Elapsed Time Step"] /
-                                         row["Real Time Elapsed"])
+                real_time = row["Real Time Elapsed"]
+                mean_computation_freq = (row["Elapsed Time Step"] / real_time) if real_time > 0 else 0.0
                 mean_drones_health_percent = row["Mean Health Percent"]
                 percent_drones_destroyed = row["Percent Drones Destroyed"]
 
@@ -549,66 +562,6 @@ class EvaluationPdfReport:
                                    offset_from_left_margin=offset)
                 self._empty_line(height=1)
 
-    def _print_data_website(self) -> None:
-        """
-        Print data for the website to the console.
-        """
-        df_data_website = self.stats_computation.df_data_website
-
-        print("\nData for the website:")
-        for index, row in df_data_website.iterrows():
-            if not row.empty:
-                configuration = row["Configuration"]
-                rescued_percent = row["Rescued Percent"]
-                exploration_score = row["Exploration Score"]
-                health_return_score = row["Health Return Score"]
-                time_score = row["Time Score"]
-                # drone_health_percent = row["Mean Health Percent"]
-                crashed_percent = row["Crashed"]
-                config_score = row["Config Score"]
-
-                print(f"{self._team_info.team_number},"
-                      f"{configuration},"
-                      f"{rescued_percent},"
-                      f"{exploration_score},"
-                      f"{health_return_score},"
-                      f"{time_score},"
-                      # f"{drone_health_percent},"
-                      f"{crashed_percent}%,"
-                      f"{config_score}")
-
-    def _write_data_website_to_file(self) -> None:
-        """
-        Write website data to a file.
-        """
-        df_data_website = self.stats_computation.df_data_website
-        date_str = datetime.now().strftime("%d/%m/%Y - %H:%M")
-        # file_path = os.path.abspath("data_website.txt")
-        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../data_website.txt")
-
-        with open(file_path, "a") as file:
-            file.write(f"\nData for the website (generated on {date_str}):\n")
-            for index, row in df_data_website.iterrows():
-                if not row.empty:
-                    configuration = row["Configuration"]
-                    rescued_percent = row["Rescued Percent"]
-                    exploration_score = row["Exploration Score"]
-                    health_return_score = row["Health Return Score"]
-                    time_score = row["Time Score"]
-                    crashed_percent = row["Crashed"]
-                    config_score = row["Config Score"]
-
-                    file.write(f"{self._team_info.team_number},"
-                               f"{configuration},"
-                               f"{rescued_percent},"
-                               f"{exploration_score},"
-                               f"{health_return_score},"
-                               f"{time_score},"
-                               f"{crashed_percent}%,"
-                               f"{config_score}\n")
-
-        print(f"The file has been updated: {os.path.normpath(file_path)}")
-
     def generate_pdf(self, stats_computation: StatsComputation) -> None:
         """
         Generate the PDF report.
@@ -616,25 +569,21 @@ class EvaluationPdfReport:
         Args:
             stats_computation (StatsComputation): Computed statistics.
         """
+        # `stats_computation` is required by the signature: a caller with no
+        # statistics has nothing to report and must not call this at all.
         self.stats_computation = stats_computation
 
-        if self.stats_computation is not None:
-            self._header()
-            self._add_explanation()
-            self._add_description_config()
-            self._add_table_detailed_stats()
-            self._add_perf_freq_health()
-            self._add_table_summary_stats()
-            self._add_graph_score()
-            self._add_screenshots()
-            filename_pdf = (self._result_path +
-                            f'/team{self._team_info.team_number_str_padded}'
-                            f'_report.pdf')
-            self.pdf.output(filename_pdf, 'F')
-            print("")
-            print(f"A new evaluation report is available here: {filename_pdf}")
-
-            self._print_data_website()
-            # self._write_data_website_to_file()
-        else:
-            print("self.stats_computation is None !!")
+        self._header()
+        self._add_explanation()
+        self._add_description_config()
+        self._add_table_detailed_stats()
+        self._add_perf_freq_health()
+        self._add_table_summary_stats()
+        self._add_graph_score()
+        self._add_screenshots()
+        filename_pdf = (self._result_path +
+                        f'/team{self._team_info.team_number_str_padded}'
+                        f'_report.pdf')
+        self.pdf.output(filename_pdf, 'F')
+        print("")
+        print(f"A new evaluation report is available here: {filename_pdf}")

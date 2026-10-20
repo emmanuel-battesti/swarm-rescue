@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 import cv2
 
 from swarm_rescue.simulation.gui_map.top_down_view import TopDownView
@@ -22,7 +24,8 @@ class ScreenRecorder:
         recorder.end_recording()
     """
 
-    def __init__(self, width: int, height: int, fps: int, out_file: str):
+    def __init__(self, width: int, height: int, fps: int,
+                 out_file: Optional[str]):
         """
         Initialize the recorder with parameters of the view.
 
@@ -33,19 +36,25 @@ class ScreenRecorder:
             out_file (str): Output file to save the recording.
         """
 
+        # Declared up-front so the type checker knows them even when the
+        # recording is disabled (``out_file`` is None).
+        self.video: Optional[cv2.VideoWriter] = None
+        self._size: Optional[Tuple[int, int]] = None
+        self._out_file: Optional[str] = None
+
         if out_file is None:
-            self.video = None
             return
 
         self._out_file = out_file
+        self._size = (int(width), int(height))
 
-        print("Initializing ScreenRecorder with parameters : width:{}, "
+        print("Initializing ScreenRecorder with parameters: width:{}, "
               "height:{}, fps:{}.".format(width, height, fps))
 
         # define the codec and create a video writer object
-        four_cc = cv2.VideoWriter_fourcc(*'XVID')
+        four_cc = cv2.VideoWriter.fourcc(*'XVID')
         self.video = cv2.VideoWriter(out_file, four_cc, float(fps),
-                                     (width, height))
+                                     (self._size[0], self._size[1]))
 
     def capture_frame(self, gui: TopDownView) -> None:
         """
@@ -63,6 +72,20 @@ class ScreenRecorder:
         # The image should be flip and the color channel permuted
         img_capture = cv2.flip(gui.get_np_img(), 0)
         img_capture = cv2.cvtColor(img_capture, cv2.COLOR_RGB2BGR)
+
+        # Ensure frame size matches the VideoWriter expectation
+        h, w = img_capture.shape[:2]
+        if self._size is not None and (w, h) != self._size:
+            # Resize to expected size to avoid FFmpeg write errors due to size mismatch
+            # This can happen if auto-resize reduced the window size at initialization
+            # Use appropriate interpolation: INTER_AREA for downscaling, INTER_LINEAR for upscaling
+            if w > self._size[0] or h > self._size[1]:
+                # Downscaling: use INTER_AREA (best quality for shrinking)
+                interpolation = cv2.INTER_AREA
+            else:
+                # Upscaling: use INTER_LINEAR (faster and good enough for enlarging)
+                interpolation = cv2.INTER_LINEAR
+            img_capture = cv2.resize(img_capture, self._size, interpolation=interpolation)
 
         # write the frame
         self.video.write(img_capture)

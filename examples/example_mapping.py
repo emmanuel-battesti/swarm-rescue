@@ -8,7 +8,6 @@ import pathlib
 import sys
 from typing import Type
 
-import cv2
 import numpy as np
 
 # Insert the 'src' directory, located two levels up from the current script,
@@ -32,6 +31,15 @@ from swarm_rescue.simulation.gui_map.map_abstract import MapAbstract
 class OccupancyGrid(Grid):
     """Simple occupancy grid"""
 
+    # Display parameters.
+    # The whole map is 139 x 94 cells, which is too small to read on screen, so
+    # the overview is upscaled by OVERVIEW_PIXELS_PER_CELL.
+    OVERVIEW_PIXELS_PER_CELL: int = 2
+    # The zoomed window is centered on the drone and shows ZOOM_CELLS cells,
+    # i.e. ZOOM_CELLS * resolution meters across.
+    ZOOM_CELLS: int = 40
+    ZOOM_PIXELS_PER_CELL: int = 8
+
     def __init__(self,
                  size_area_world,
                  resolution: float,
@@ -50,13 +58,16 @@ class OccupancyGrid(Grid):
                                    + 0.5)
 
         self.grid = np.zeros((self.x_max_grid, self.y_max_grid))
-        self.zoomed_grid = np.empty((self.x_max_grid, self.y_max_grid))
+        self.zoomed_grid = np.zeros((self.ZOOM_CELLS, self.ZOOM_CELLS))
+        # Grid coordinates of the top-left cell of `zoomed_grid`, needed by
+        # `display()` to place the drone marker inside the cropped window.
+        self.zoomed_origin = (0, 0)
 
     def update_grid(self, pose: Pose):
         """
         Bayesian map update with new observation
-        lidar : lidar data
-        pose : corrected pose in world coordinates
+        lidar: lidar data
+        pose: corrected pose in world coordinates
         """
         EVERY_N = 3
         LIDAR_DIST_CLIP = 40.0
@@ -80,7 +91,7 @@ class OccupancyGrid(Grid):
         # We use a value a little bit less than LIDAR_DIST_CLIP because of the
         # noise in lidar
         lidar_dist_empty = np.maximum(lidar_dist - LIDAR_DIST_CLIP, 0.0)
-        # All values of lidar_dist_empty_clip are now <= max_range
+        # All values of lidar_dist_empty_clip are <= max_range
         lidar_dist_empty_clip = np.minimum(lidar_dist_empty, max_range)
         points_x = pose.position[0] + np.multiply(lidar_dist_empty_clip,
                                                   cos_rays)
@@ -110,11 +121,30 @@ class OccupancyGrid(Grid):
         self.grid = np.clip(self.grid, THRESHOLD_MIN, THRESHOLD_MAX)
 
         # compute zoomed grid for displaying
-        self.zoomed_grid = self.grid.copy()
-        new_zoomed_size = (int(self.size_area_world[1] * 0.5),
-                           int(self.size_area_world[0] * 0.5))
-        self.zoomed_grid = cv2.resize(self.zoomed_grid, new_zoomed_size,
-                                      interpolation=cv2.INTER_NEAREST)
+        self.update_zoomed_grid(pose)
+
+    def update_zoomed_grid(self, pose: Pose):
+        """
+        Extract a window of ZOOM_CELLS x ZOOM_CELLS cells centered on the drone.
+
+        Cropping around the drone and telling `display()` the origin and the
+        zoom scale keeps the drone marker on the drone; `display()` does the
+        upscaling itself.
+        """
+        half = self.ZOOM_CELLS // 2
+
+        x_cell, y_cell = self._conv_world_to_grid(pose.position[0],
+                                                  pose.position[1])
+
+        # Top-left cell of the window, clamped so the crop stays inside the map.
+        x_start = int(np.clip(x_cell - half, 0,
+                              self.x_max_grid - self.ZOOM_CELLS))
+        y_start = int(np.clip(y_cell - half, 0,
+                              self.y_max_grid - self.ZOOM_CELLS))
+
+        self.zoomed_grid = self.grid[x_start:x_start + self.ZOOM_CELLS,
+                                     y_start:y_start + self.ZOOM_CELLS]
+        self.zoomed_origin = (x_start, y_start)
 
 
 class MyDroneMapping(DroneAbstract):
@@ -148,20 +178,31 @@ class MyDroneMapping(DroneAbstract):
         # increment the iteration counter
         self.iteration += 1
 
-        self.estimated_pose = Pose(np.asarray(self.measured_gps_position()),
-                                   self.measured_compass_angle())
-        # self.estimated_pose = Pose(np.asarray(self.true_position()),
-        #                            self.true_angle())
+        gps_position = self.measured_gps_position()
+        compass_angle = self.measured_compass_angle()
+        if gps_position is None or compass_angle is None:
+            # No GPS fix or no compass heading (disabled zone): there is
+            # nothing new to integrate.
+            return command
+
+        self.estimated_pose = Pose(np.asarray(gps_position), compass_angle)
 
         self.grid.update_grid(pose=self.estimated_pose)
         if self.iteration % 5 == 0:
+            # Whole map, upscaled so it is readable on screen.
             self.grid.display(self.grid.grid,
                               self.estimated_pose,
-                              title="occupancy grid")
+                              title="occupancy grid",
+                              scale=self.grid.OVERVIEW_PIXELS_PER_CELL,
+                              arrow_length_px=20.0)
+            # Window centered on the drone: the marker is drawn with the crop
+            # origin and the zoom scale, so it sits exactly on the drone.
             self.grid.display(self.grid.zoomed_grid,
                               self.estimated_pose,
-                              title="zoomed occupancy grid")
-            # pass
+                              title="zoomed occupancy grid",
+                              scale=self.grid.ZOOM_PIXELS_PER_CELL,
+                              origin=self.grid.zoomed_origin,
+                              arrow_length_px=60.0)
 
         return command
 

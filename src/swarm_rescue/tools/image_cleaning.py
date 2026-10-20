@@ -4,15 +4,15 @@ import numpy as np
 from swarm_rescue.tools.progress_bar import print_progress_bar
 
 
-def wall_width_correction(image_source: cv2.Mat) -> cv2.Mat:
+def wall_width_correction(image_source: np.ndarray) -> np.ndarray:
     """
     Corrects the width of wall segments in a binary image to a standard width.
 
     Args:
-        image_source (cv2.Mat): The input binary image.
+        image_source (np.ndarray): The input binary image.
 
     Returns:
-        cv2.Mat: The corrected image with standardized wall widths.
+        np.ndarray: The corrected image with standardized wall widths.
     """
     img = image_source.copy()
     rows, cols = img.shape
@@ -30,7 +30,7 @@ def wall_width_correction(image_source: cv2.Mat) -> cv2.Mat:
         # print("")
         for j in range(cols):
             print_progress_bar(index=i * cols + j, total=cols * rows - 1,
-                               label="wall_width_correction : line by line "
+                               label="wall_width_correction: line by line "
                                      "processing")
             value = img[i, j]
             if value == 0 and prev_value == 255:
@@ -72,7 +72,7 @@ def wall_width_correction(image_source: cv2.Mat) -> cv2.Mat:
         # print("")
         for i in range(rows):
             print_progress_bar(index=i + j * rows, total=cols * rows - 1,
-                               label="wall_width_correction : "
+                               label="wall_width_correction: "
                                      "col by col processing")
             value = img[i, j]
             if value == 0 and prev_value == 255:
@@ -110,15 +110,15 @@ def wall_width_correction(image_source: cv2.Mat) -> cv2.Mat:
     return img
 
 
-def remove_white_patch(image_source: cv2.Mat) -> cv2.Mat:
+def remove_white_patch(image_source: np.ndarray) -> np.ndarray:
     """
     Removes small white patches from a binary image.
 
     Args:
-        image_source (cv2.Mat): The input binary image.
+        image_source (np.ndarray): The input binary image.
 
     Returns:
-        cv2.Mat: The image with small white patches removed.
+        np.ndarray: The image with small white patches removed.
     """
     img = image_source.copy()
     rows, cols = img.shape
@@ -134,7 +134,7 @@ def remove_white_patch(image_source: cv2.Mat) -> cv2.Mat:
         white_size = 0
         for j in range(cols):
             print_progress_bar(index=i * cols + j, total=cols * rows - 1,
-                               label="remove_white_patch : "
+                               label="remove_white_patch: "
                                      "line by line processing")
             value = img[i, j]
             if value == 255 and prev_value == 0:
@@ -166,7 +166,7 @@ def remove_white_patch(image_source: cv2.Mat) -> cv2.Mat:
         # print("")
         for i in range(rows):
             print_progress_bar(index=i + j * rows, total=cols * rows - 1,
-                               label="remove_white_patch : "
+                               label="remove_white_patch: "
                                      "col by col processing")
             value = img[i, j]
             if value == 255 and prev_value == 0:
@@ -193,15 +193,15 @@ def remove_white_patch(image_source: cv2.Mat) -> cv2.Mat:
     return img
 
 
-def remove_black_patch(image_source: cv2.Mat) -> cv2.Mat:
+def remove_black_patch(image_source: np.ndarray) -> np.ndarray:
     """
     Removes small black patches from a binary image.
 
     Args:
-        image_source (cv2.Mat): The input binary image.
+        image_source (np.ndarray): The input binary image.
 
     Returns:
-        cv2.Mat: The image with small black patches removed.
+        np.ndarray: The image with small black patches removed.
     """
     img = image_source.copy()
     rows, cols = img.shape
@@ -217,7 +217,7 @@ def remove_black_patch(image_source: cv2.Mat) -> cv2.Mat:
         black_size = 0
         for j in range(cols):
             print_progress_bar(index=i * cols + j, total=cols * rows - 1,
-                               label="remove_black_patch : "
+                               label="remove_black_patch: "
                                      "line by line processing")
             value = img[i, j]
             if value == 0 and prev_value == 255:
@@ -249,7 +249,7 @@ def remove_black_patch(image_source: cv2.Mat) -> cv2.Mat:
         # print("")
         for i in range(rows):
             print_progress_bar(index=i + j * rows, total=cols * rows - 1,
-                               label="remove_black_patch : "
+                               label="remove_black_patch: "
                                      "col by col processing")
             value = img[i, j]
             if value == 0 and prev_value == 255:
@@ -276,15 +276,15 @@ def remove_black_patch(image_source: cv2.Mat) -> cv2.Mat:
     return img
 
 
-def remove_noise(image_source: cv2.Mat) -> cv2.Mat:
+def remove_noise(image_source: np.ndarray) -> np.ndarray:
     """
     Removes noise from a binary image using morphological operations.
 
     Args:
-        image_source (cv2.Mat): The input binary image.
+        image_source (np.ndarray): The input binary image.
 
     Returns:
-        cv2.Mat: The denoised image.
+        np.ndarray: The denoised image.
     """
     # Remove white pixels noise
     size_kernel = 10
@@ -314,15 +314,15 @@ def remove_noise(image_source: cv2.Mat) -> cv2.Mat:
     return img_closing
 
 
-def image_cleaning(image_source: cv2.Mat) -> cv2.Mat:
+def image_cleaning(image_source: np.ndarray) -> np.ndarray:
     """
     Cleans the input image by correcting wall widths.
 
     Args:
-        image_source (cv2.Mat): The input binary image.
+        image_source (np.ndarray): The input binary image.
 
     Returns:
-        cv2.Mat: The cleaned image.
+        np.ndarray: The cleaned image.
     """
     img_clean = wall_width_correction(image_source)
     return img_clean
@@ -332,8 +332,10 @@ def main():
                 "map_data/map_medium_01_color.png")
     # img_path = "/home/battesti/projetCompetDronesDGA/private-swarm-rescue/
     #            "map_data/map_complete_map_2.png"
-    print("image path : {}".format(img_path))
+    print("image path: {}".format(img_path))
     img_source = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    if img_source is None:
+        raise FileNotFoundError(f"Could not read image: {img_path}")
     cv2.imshow("img_source", img_source)
 
     img_clean1 = remove_noise(img_source)

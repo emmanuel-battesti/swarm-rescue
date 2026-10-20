@@ -1,7 +1,8 @@
 from enum import IntEnum, auto
-from typing import List, Optional, Type, Union, Tuple
+from typing import TYPE_CHECKING, List, Optional, Type, Union, Tuple
 
 import arcade
+import arcade.hitbox
 import pymunk
 from PIL import Image
 from PIL import ImageDraw
@@ -11,9 +12,14 @@ from swarm_rescue.simulation.drone.device import Device
 from swarm_rescue.simulation.drone.drone_sensors import DroneGPS, DroneCompass
 from swarm_rescue.simulation.elements.interactive_zone import InteractiveZone
 from swarm_rescue.simulation.elements.scene_element import SceneElement
-from swarm_rescue.simulation.gui_map.collision_handlers import get_colliding_entities
-from swarm_rescue.simulation.gui_map.playground import Playground
+from swarm_rescue.simulation.utils.constants import DEATH_BY_KILL_ZONE
+from swarm_rescue.simulation.collision_handlers import get_colliding_entities
 from swarm_rescue.simulation.utils.definitions import CollisionTypes
+
+if TYPE_CHECKING:
+    # Only used to annotate a *local* variable, never evaluated at runtime
+    # (PEP 526). See the same note in rescue_center.py.
+    from swarm_rescue.simulation.gui_map.playground import Playground
 
 
 class ZoneType(IntEnum):
@@ -31,7 +37,7 @@ def disabler_zone_disables_device(arbiter: pymunk.Arbiter, _, data) -> bool:
 
     Args:
         arbiter (pymunk.Arbiter): The collision arbiter.
-        _ : Unused.
+        _: Unused.
         data: Dictionary containing the playground.
 
     Returns:
@@ -45,10 +51,10 @@ def disabler_zone_disables_device(arbiter: pymunk.Arbiter, _, data) -> bool:
 
     disabler_zone.disable(device)
 
-    # If this is a KillZone, update the drone's visual appearance
-    # Check that the device's anchor has an 'agent' attribute (to avoid WoundedPerson)
-    if isinstance(disabler_zone, KillZone) and hasattr(device._anchor, 'agent'):
-        agent = device._anchor.agent
+    # If this is a KillZone, destroy the drone and update its visual appearance.
+    # Devices anchored to a wounded person have no agent: those are skipped.
+    if isinstance(disabler_zone, KillZone) and hasattr(device.anchor, 'agent'):
+        agent = getattr(device.anchor, 'agent', None)
         if agent is not None:
             from swarm_rescue.simulation.drone.drone_base import DroneBase
             if isinstance(agent.base, DroneBase):
@@ -56,6 +62,11 @@ def disabler_zone_disables_device(arbiter: pymunk.Arbiter, _, data) -> bool:
                 agent.base._kill_zone_collision_this_frame = True
                 # Update the visual state if needed
                 agent.base.set_in_kill_zone(True)
+                # The kill zone destroys the drone. Unlike a drone out of
+                # health, the wreck keeps blocking and stays in the sensors'
+                # image: it was disabled on the spot, and it is still physically
+                # there.
+                agent.die(DEATH_BY_KILL_ZONE)
 
     return True
 
@@ -96,11 +107,10 @@ class DisablerZone(InteractiveZone, SceneElement):
             # Add text to an image
             img_draw.text((5, 5), text_to_draw, fill=(0, 0, 0))
 
+        # Texture built directly from the generated image, with a simple hitbox.
         texture = arcade.Texture(
-            name=f"Disabler_{width}_{height}_{color}",
             image=img,
-            hit_box_algorithm="Simple",
-            hit_box_detail=1,
+            hit_box_algorithm=arcade.hitbox.algo_simple,
         )
         super().__init__(texture=texture)
 

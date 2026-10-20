@@ -23,9 +23,9 @@ class MyDrone(DroneAbstract):
 
     def control(self) -> CommandsDict:
         """
-        Returns control commands for the drone (not implemented).
+        Returns control commands for the drone (the drone stays still).
         """
-        pass
+        return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
 
 
 def main():
@@ -45,6 +45,9 @@ def main():
               f"zones \'{one_eval.zones_name_for_filename}\'")
         # Retrieve the class object from the global namespace using its name
         map_class = globals().get(one_eval.map_name)
+        if map_class is None:
+            print(f"Unknown map type '{one_eval.map_name}', skipping.")
+            continue
         # Instantiate the map class with the provided zones configuration
         the_map = map_class(drone_type=MyDrone, zones_config=one_eval.zones_config)
 

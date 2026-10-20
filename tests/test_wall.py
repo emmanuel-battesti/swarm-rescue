@@ -27,7 +27,8 @@ class TestColorWall:
         assert wall1.wall_coordinates == ((5.0, 0.0), 0.0)
 
         # Assert that the wall has the correct texture
-        assert wall1.texture.name == "Wall_5_0_0_12.0"
+        assert wall1.texture is not None
+        assert wall1.texture.size == (2, 12)
 
         # Create a colored wall with valid parameters
         wall2 = ColorWall(pos_start=(0, 0), pos_end=(0, 10),
@@ -40,4 +41,5 @@ class TestColorWall:
         assert wall2.wall_coordinates == ((0.0, 5.0), 1.5707963267948966)
 
         # Assert that the wall has the correct texture
-        assert wall2.texture.name == "Wall_0_5_90_12.0"
+        assert wall2.texture is not None
+        assert wall2.texture.size == (2, 12)

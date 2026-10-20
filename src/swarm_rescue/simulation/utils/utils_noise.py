@@ -1,11 +1,32 @@
 import math
-from typing import Union, Type, Optional
+from typing import Union, Optional
 
 import numpy as np
 
+# When no generator is provided, noise comes from the global numpy RNG: the
+# historical, non-reproducible behavior. A seeded run hands each sensor a
+# generator derived from the run seed instead, which makes the noisy readings
+# replayable.
+RNG = Optional[np.random.Generator]
+
+
+def gaussian_random(rng: RNG, **kwargs) -> Union[float, np.ndarray]:
+    """
+    Draw from a normal distribution, from a seeded generator when one is
+    given, else from the global numpy RNG (the historical, non-reproducible
+    behavior).
+
+    Args:
+        rng (np.random.Generator): Optional generator to draw from.
+        **kwargs: Arguments forwarded to ``normal`` (loc, scale, size).
+    """
+    source = rng if rng is not None else np.random
+    return source.normal(**kwargs)
+
 
 def vector_gaussian_noise(size: int, mean_noise: float = 0,
-                          std_dev_noise: float = 1.0) -> np.ndarray:
+                          std_dev_noise: float = 1.0,
+                          rng: RNG = None) -> np.ndarray:
     """
     The vector_gaussian_noise function generates a vector of Gaussian noise
     using the NumPy library.
@@ -23,6 +44,8 @@ def vector_gaussian_noise(size: int, mean_noise: float = 0,
         Defaults to 0.
         std_dev_noise (float): Standard deviation of the Gaussian
         distribution. Defaults to 1.0.
+        rng (np.random.Generator): Optional generator to draw from. None (the
+        default) comes from the global numpy RNG.
     """
 
     if not isinstance(size, int) or size <= 0:
@@ -34,11 +57,11 @@ def vector_gaussian_noise(size: int, mean_noise: float = 0,
     if not isinstance(mean_noise, (int, float)):
         raise ValueError("mean_noise must be a number")
 
-    gaussian_noise = np.random.normal(loc=mean_noise,
-                                      scale=std_dev_noise,
-                                      size=size)
+    source = rng if rng is not None else np.random
+    gaussian_noise = source.normal(loc=mean_noise,
+                                   scale=std_dev_noise,
+                                   size=size)
     return gaussian_noise
-
 
 class GaussianNoise:
     """
@@ -66,17 +89,34 @@ class GaussianNoise:
     Args:
         mean_noise (float): Mean of the Gaussian noise.
         std_dev_noise (float): Standard deviation of the Gaussian noise.
+        rng (np.random.Generator): Optional generator to draw from. None (the
+        default) comes from the global numpy RNG.
     """
 
-    def __init__(self, mean_noise: float = 0, std_dev_noise: float = 1.0):
+    def __init__(self, mean_noise: float = 0, std_dev_noise: float = 1.0,
+                 rng: RNG = None):
         self._mean_noise = mean_noise
         # std_dev_noise is the standard deviation of the resulted gaussian
         # noise
         self._std_dev_noise = std_dev_noise
 
+        # The noise source. None means the global numpy RNG: the historical,
+        # non-reproducible behavior.
+        self._rng = rng
+
         self._shape: Optional[tuple] = None
 
-    def add_noise(self, values: Union[np.ndarray, float]):
+    def set_rng(self, rng: RNG) -> None:
+        """
+        Replace the generator the noise comes from.
+
+        Args:
+            rng (np.random.Generator): The generator, or None to draw from the
+            global numpy RNG.
+        """
+        self._rng = rng
+
+    def add_noise(self, values: Optional[Union[np.ndarray, float]]):
         """
         Add Gaussian noise to the input values.
 
@@ -89,24 +129,25 @@ class GaussianNoise:
         if values is None:
             return None
 
-        values2 = values
         gaussian_noise: Optional[np.ndarray | float] = None
         if isinstance(values, np.ndarray):
             # if values.ndim == 1:
             #     # change shape from (n,) to (n, 1), ie a column vector
-            #     values2 = values[:, np.newaxis]
+            #     values = values[:, np.newaxis]
 
             if self._shape is None:
-                self._shape = values2.shape
-            assert (self._shape == values2.shape)
+                self._shape = values.shape
+            assert (self._shape == values.shape)
 
-            gaussian_noise = np.random.normal(loc=self._mean_noise,
-                                              scale=self._std_dev_noise,
-                                              size=values2.shape)
+            gaussian_noise = gaussian_random(self._rng,
+                                         loc=self._mean_noise,
+                                         scale=self._std_dev_noise,
+                                         size=values.shape)
         elif isinstance(values, float):
-            gaussian_noise = np.random.normal(loc=self._mean_noise,
-                                              scale=self._std_dev_noise)
-        return values2 + gaussian_noise
+            gaussian_noise = gaussian_random(self._rng,
+                                         loc=self._mean_noise,
+                                         scale=self._std_dev_noise)
+        return values + gaussian_noise
 
 
 class AutoregressiveModelNoise:
@@ -114,21 +155,28 @@ class AutoregressiveModelNoise:
     Add autoregressive model noise of order 1 to input values. https://en.wikipedia.org/wiki/Autoregressive_model#Example:_An_AR(1)_process
 
      We have two parameters :
-     - std_dev_noise : it is the standard deviation of the resulted noise
-     - model_param : value between 0 and 1 (but <1)
+     - std_dev_noise: it is the standard deviation of the resulted noise
+     - model_param: value between 0 and 1 (but <1)
      noise = model_param * previous_noise + white_noise
-     if model_param = 0 : the final noise is a white noise
-     if model_param -> 1 : the noise get some derive
+     if model_param = 0: the final noise is a white noise
+     if model_param -> 1: the noise get some derive
 
     Args:
         model_param (float): AR(1) model parameter (0 <= model_param < 1).
         std_dev_noise (float): Standard deviation of the resulting noise.
+        rng (np.random.Generator): Optional generator to draw from. None (the
+        default) comes from the global numpy RNG.
     """
 
-    def __init__(self, model_param: float, std_dev_noise: float):
+    def __init__(self, model_param: float, std_dev_noise: float,
+                 rng: RNG = None):
         self._model_param = model_param
         # std_dev is the real standard deviation of the resulted noise
         self._std_dev_noise = std_dev_noise
+
+        # The noise source. None means the global numpy RNG: the historical,
+        # non-reproducible behavior.
+        self._rng = rng
 
         # _std_dev_wn is the standard deviation of the white noise
         self._std_dev_wn = math.sqrt(
@@ -137,7 +185,17 @@ class AutoregressiveModelNoise:
         self._last_noise: Union[np.ndarray, float, None] = None
         self._shape: Union[tuple, None] = None
 
-    def add_noise(self, values: Union[np.ndarray, float, Type[None]]):
+    def set_rng(self, rng: RNG) -> None:
+        """
+        Replace the generator the noise comes from.
+
+        Args:
+            rng (np.random.Generator): The generator, or None to draw from the
+            global numpy RNG.
+        """
+        self._rng = rng
+
+    def add_noise(self, values: Optional[Union[np.ndarray, float]]):
         """
         Add AR(1) noise to the input values.
 
@@ -150,30 +208,29 @@ class AutoregressiveModelNoise:
         if values is None:
             return None
 
-        values2 = values
         white_noise: Union[np.ndarray, float, None] = None
         if isinstance(values, np.ndarray):
             # if values.ndim == 1:
             #     # change shape from (n,) to (n, 1), ie a column vector
-            #     values2 = values[:, np.newaxis]
+            #     values = values[:, np.newaxis]
 
-            white_noise = np.random.normal(0, self._std_dev_wn,
-                                           size=values2.shape)
+            white_noise = gaussian_random(self._rng, loc=0, scale=self._std_dev_wn,
+                                      size=values.shape)
 
             if self._last_noise is None:
-                self._last_noise = np.zeros(values2.shape)
-                self._shape = values2.shape
+                self._last_noise = np.zeros(values.shape)
+                self._shape = values.shape
 
-            assert (self._shape == values2.shape)
-            assert white_noise.all()
+            assert (self._shape == values.shape)
+            assert np.asarray(white_noise).all()
 
         elif isinstance(values, float):
-            white_noise = np.random.normal(0, self._std_dev_wn)
+            white_noise = gaussian_random(self._rng, loc=0, scale=self._std_dev_wn)
             if self._last_noise is None:
                 self._last_noise = 0
 
         additive_noise = self._model_param * self._last_noise + white_noise
         self._last_noise = additive_noise
 
-        values2 += additive_noise
-        return values2
+        values += additive_noise
+        return values

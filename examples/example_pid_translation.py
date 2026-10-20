@@ -53,12 +53,22 @@ class MyDronePidTranslation(DroneAbstract):
         command: CommandsDict = {"forward": 0.0,
                                  "rotation": 0.0}
 
+        # The drone must reason from its sensors, not from the ground truth:
+        # true_position() and true_angle() raise TrueStateAccessError inside
+        # control(). Use measured_gps_position() / measured_compass_angle(),
+        # which are noisy and can return None when a disabler zone is active.
+        measured_position = self.measured_gps_position()
+        measured_angle = self.measured_compass_angle()
+
+        if measured_position is None:
+            # Without the GPS we do not know where we are, so we stop instead
+            # of driving blindly.
+            return command
+
         self.iter_path += 1
-        if self.iter_path % 3 == 0:
-            position = np.array([self.true_position()[0],
-                                 self.true_position()[1]])
-            angle = self.true_angle()
-            pose = Pose(position=position, orientation=angle)
+        if self.iter_path % 3 == 0 and measured_angle is not None:
+            pose = Pose(position=np.asarray(measured_position),
+                        orientation=measured_angle)
             self.path_done.append(pose)
 
         self.counter += 1
@@ -68,12 +78,12 @@ class MyDronePidTranslation(DroneAbstract):
             else:
                 self.position_setpoint = np.array([-self.distance, 0.0])
             self.to_the_right = not self.to_the_right
-            print("*******************************")
+            print("-" * 60)
 
         diff_position = (self.position_setpoint -
-                         np.asarray(self.true_position()))
+                         np.asarray(measured_position))
 
-        if self.identifier == 0:  # with PD
+        if self.identifier == 0: # with PD
             deriv_diff_position = diff_position - self.prev_diff_position
             Kp = 1.6
             Kd = 11.0
@@ -83,9 +93,9 @@ class MyDronePidTranslation(DroneAbstract):
 
             forward = clamp(forward, -1.0, 1.0)
 
-            print("counter", self.counter,
-                  ", diff_position", int(diff_position[0] * 10),
-                  "forward=", forward)
+            print(f"counter={self.counter:4d}  "
+                  f"diff_position={int(diff_position[0] * 10):+4d}  "
+                  f"forward={forward:+.2f}")
 
             rotation = 0.0
             command = {"forward": forward,
@@ -93,14 +103,14 @@ class MyDronePidTranslation(DroneAbstract):
 
             self.prev_diff_position = diff_position
 
-        elif self.identifier == 1:  # with P with too much gain
+        elif self.identifier == 1: # with P with too much gain
             forward = 2.0 * float(diff_position[0])
             forward = clamp(forward, -1.0, 1.0)
             rotation = 0.0
             command = {"forward": forward,
                        "rotation": rotation}
 
-        elif self.identifier == 2:  # with P with too little gain
+        elif self.identifier == 2: # with P with too little gain
             forward = 0.0015 * float(diff_position[0])
             forward = clamp(forward, -1.0, 1.0)
             rotation = 0
@@ -115,23 +125,22 @@ class MyDronePidTranslation(DroneAbstract):
         self.draw_antedirection()
 
     def draw_setpoint(self):
-        half_width = self._half_size_array[0]
-        half_height = self._half_size_array[1]
-        pt1 = self.position_setpoint + np.array([half_width, 0])
-        pt2 = self.position_setpoint + np.array([half_width, 2 * half_height])
+        half_height = self.size_area[1] //2
+        pt1 = self.position_setpoint + np.array([0, -half_height+50])
+        pt2 = self.position_setpoint + np.array([0, half_height-50])
         arcade.draw_line(float(pt2[0]),
                          float(pt2[1]),
                          float(pt1[0]),
                          float(pt1[1]),
                          color=arcade.color.GRAY)
 
-    def draw_path(self, path: Path(), color: Tuple[int, int, int]):
+    def draw_path(self, path: Path, color: Tuple[int, int, int]) -> None:
         length = path.length()
         # print(length)
         pt2 = None
         for ind_pt in range(length):
             pose = path.get(ind_pt)
-            pt1 = pose.position + self._half_size_array
+            pt1 = pose.position
             # print(ind_pt, pt1, pt2)
             if ind_pt > 0:
                 arcade.draw_line(float(pt2[0]),
@@ -142,7 +151,6 @@ class MyDronePidTranslation(DroneAbstract):
 
     def draw_antedirection(self):
         pt1 = np.array([self.true_position()[0], self.true_position()[1]])
-        pt1 = pt1 + self._half_size_array
         pt2 = pt1 + 150 * np.array([math.cos(self.true_angle() + np.pi / 2),
                                     math.sin(self.true_angle() + np.pi / 2)])
         color = (255, 64, 0)
@@ -193,8 +201,6 @@ def main():
 
     gui.run()
 
-    score_health_returned = the_map.compute_score_health_returned()
-    print("score_health_returned = ", score_health_returned)
 
 
 if __name__ == '__main__':

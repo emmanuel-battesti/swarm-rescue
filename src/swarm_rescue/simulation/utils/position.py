@@ -72,7 +72,7 @@ class CoordinateSampler(ABC):
         """
         pos = None
         if self._radius:
-            pos = np.indices((self._radius, self._radius))
+            pos = np.indices((int(self._radius), int(self._radius)))
             dist = (pos[0, :] - self._radius / 2) ** 2 + (pos[1, :] - self._radius / 2)
             pos = np.where(dist < (self._radius / 2) ** 2)
             pos = pos - np.atleast_2d((self._radius / 2, self._radius / 2)).transpose()
@@ -80,13 +80,13 @@ class CoordinateSampler(ABC):
         elif self._width:
 
             if self._height:
-                pos = np.indices((self._width, self._height)).reshape(2, -1)
+                pos = np.indices((int(self._width), int(self._height))).reshape(2, -1)
                 pos = (
                         pos - np.atleast_2d((self._width / 2, self._height / 2)).transpose()
                 )
 
             else:
-                pos = np.indices((self._width, self._width)).reshape(2, -1)
+                pos = np.indices((int(self._width), int(self._width))).reshape(2, -1)
                 pos = (
                         pos - np.atleast_2d((self._width / 2, self._width / 2)).transpose()
                 )

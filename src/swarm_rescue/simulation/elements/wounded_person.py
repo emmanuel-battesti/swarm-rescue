@@ -12,6 +12,7 @@ from swarm_rescue.simulation.utils.definitions import CollisionTypes
 from swarm_rescue.simulation.utils.definitions import LINEAR_FORCE
 from swarm_rescue.simulation.utils.path import Path
 from swarm_rescue.simulation.utils.pose import Pose
+from swarm_rescue.simulation.utils.true_state_guard import check_true_state_access
 from swarm_rescue.simulation.utils.utils import clamp
 from swarm_rescue.simulation.utils.utils import normalize_angle
 
@@ -31,8 +32,8 @@ class WoundedPerson(PhysicalElement):
         WoundedPerson object is instantiated, passing the rescue_center object
         as an argument. This creates a connection between the WoundedPerson and
         the RescueCenter.
-        The WoundedPerson can now receive rewards when it comes into contact
-        with the RescueCenter.
+        The WoundedPerson receives rewards when it comes into contact with the
+        RescueCenter.
     """
 
     def __init__(
@@ -153,8 +154,8 @@ class WoundedPerson(PhysicalElement):
 
     def follow_path(self) -> Tuple[float, float]:
         """
-        The WoundedPerson goes from his position to the end of the path (reverse= False) or to the beginning of
-        the path (reverse = True).
+        The WoundedPerson goes from his position to the end of the path (reverse= False)
+        or to the beginning of the path (reverse = True).
         The next point to be reached is found by traversing the path from the end to the beginning.
 
         Compute the next movement command to follow the path.
@@ -172,8 +173,8 @@ class WoundedPerson(PhysicalElement):
         dist_to_goal = math.sqrt(vector_to_goal[0] ** 2 + vector_to_goal[1] ** 2)
 
         if dist_to_goal < RADIUS_ARRIVED:
-            # if we arrived at the goal, we need a new goal. The new goal is the next one (in reverse or not) and only
-            # if it is stay inside.
+            # if we arrived at the goal, we need a new goal. The new goal is the next one
+            # (in reverse or not) and only if it is stay inside.
             if self.path.length() == 1:
                 return 0, 0
             elif (not self.reverse) and self.goal_index < (self.path.length() - 1):
@@ -207,21 +208,31 @@ class WoundedPerson(PhysicalElement):
     def true_position(self) -> np.ndarray:
         """
         Give the true position of the woundedPerson, in pixels.
-        You must NOT use this value for your calculation in the control() function. But you can use it for
-        debugging or logging.
+        You must NOT use this value for your calculation in the control() function. But you
+        can use it for debugging or logging.
+        Calling it from control() or define_message_for_all() raises
+        TrueStateAccessError.
 
         Returns:
             np.ndarray: The true position.
         """
+        check_true_state_access(
+            "true_position", "the measured GPS position"
+        )
         return np.array(self._pm_body.position)
 
     def true_angle(self) -> float:
         """
         Give the true orientation of the woundedPerson, in radians between -Pi and Pi.
-        You must NOT use this value for your calculation in the control() function. But you can use it for
-        debugging or logging.
+        You must NOT use this value for your calculation in the control() function. But you
+        can use it for debugging or logging.
+        Calling it from control() or define_message_for_all() raises
+        TrueStateAccessError.
 
         Returns:
             float: The true angle.
         """
-        return normalize_angle(self._pm_body.angle)
+        check_true_state_access(
+            "true_angle", "the measured compass angle"
+        )
+        return float(normalize_angle(self._pm_body.angle))

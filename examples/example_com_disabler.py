@@ -31,9 +31,14 @@ class MyDroneComDisabler(DroneAbstract):
         """
         Here, we don't need communication...
         """
-        msg_data = (self.identifier,
-                    (self.measured_gps_position(),
-                     self.measured_compass_angle()))
+        position = self.measured_gps_position()
+        angle = self.measured_compass_angle()
+        msg_data = {
+            "id": self.identifier,
+            "gps": None if position is None else
+            (round(float(position[0]), 1), round(float(position[1]), 1)),
+            "compass": None if angle is None else round(float(angle), 2),
+        }
         return msg_data
 
     def control(self) -> CommandsDict:
@@ -97,7 +102,7 @@ def main():
     else:
         filename_video_capture = None
 
-    # enable_visu_noises : to enable the visualization. It will show also a
+    # enable_visu_noises: to enable the visualization. It will show also a
     # demonstration of the integration of odometer values, by drawing the
     # estimated path in red. The green circle shows the position of drone
     # according to the gps sensor and the compass.

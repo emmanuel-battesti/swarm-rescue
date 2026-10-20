@@ -3,11 +3,72 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-10-19
+
+### Added
+- Add seeded, fully reproducible sensor noise (GPS, compass, odometer, lidar, semantic) with `--seed`.
+- Add `SWARM_RESCUE_ALLOW_TRUE_STATE` environment variable to allow true state access for debugging.
+- Add window icon for the drone.
+- Add status bar with map name and round progress.
+- Add `tools/visualize_uid.py` to dump the uid image read by the ray sensors.
+- Add death animation: a destroyed drone spins down to a stop as a wreck.
+
+### Changed
+- Migrate arcade 2.6.17 to 3.3.3, requiring significant code rewrites.
+- Destroyed drones now leave a wreck instead of vanishing; leaving a kill zone no longer revives a drone.
+- Death is now a state of the drone: wrecks stay on the map, drawn according to what the sensors can still see.
+- Collision damage counted in simulation steps instead of wall-clock time.
+- Model no longer depends on the presentation (gui_map); ray sensors use a uid provider.
+- `ExploredMap` initializes itself; maps with no drone are measured like any other.
+- Raise minimum Python to 3.10; tighten and declare dependencies explicitly.
+- `Playground` accepts an existing window; simulation loop, stepper and entity registry moved out of `Playground`.
+- Explicit participant API (`PARTICIPANT_API`) declared on `DroneAbstract`.
+- Simulation window now opens at most at 1366x768 (`MAX_WINDOW_WIDTH`/`MAX_WINDOW_HEIGHT`), preserving the map aspect ratio; the window stays freely resizable afterward.
+
+### Fixed
+- Destroyed drones no longer keep communicating or drawing sensor rays.
+- Windows CI: use legacy GDI+ font renderer to avoid `IndexError`; fix UTF-8 file reads.
+- `Grid.add_points()` handles scalar floats; various minor fixes (files leaks, typos, tox envs).
+
+### Removed
+- Lazy matplotlib imports; drop unused imports, `Playground._name_to_agents`, `SceneElement` annotation and `pathlib2`.
+
+## [5.2.0] - 2025-12-01
+
+### Added
+- Add optional `use_shaders` parameter to map constructors and introduce centralized `ShaderConfig` for automatic shader detection/control.
+- Add `close_window()` method on `Playground` to separate GUI window closing from internal cleanup.
+- Add benchmark `tests/bench_ray_compute.py` (GPU/CPU comparison).
+- Add many tests covering resizing, sensor consistency, disappearing walls and rescue workflow.
+
+### Changed
+- UI & rendering: improved auto-resize logic, debounced manual resize handling, `set_zoom`/`set_center` APIs and framebuffer management in `TopDownView`/`GuiSR`.
+- Prevent manual window resizing during active video recording to avoid FFmpeg errors; allow controlled auto-resize at initialization.
+- `ScreenRecorder` normalizes frame sizes before writing (chooses interpolation based on up/downscaling) to avoid write errors.
+- Various defensive checks and safer removals in `Playground` and related classes to prevent crashes during resets/cleanup.
+
+### Fixed
+- `DisappearingWall` and `DisappearingBox`: implement `reset()` to restore initial state and stop permanent removal during reset.
+- Fix crash during cleanup when entities (anchor/playground/windows) are partially removed; safer checks and guarded window close added (already released as 5.1.1 for a related fix).
+- `Grasper`: avoid crashes cases.
+- `Grasper`: fix mutation-during-iteration bugs when releasing grasped persons or removing temporary elements during `Playground.reset()`; centralize grasper release logic in `Playground.remove()` and clarify API (`release_one_person`/`release_all_persons`).
+- `Playground.remove()`: preserve `entity.playground` reference until sub-entities (base, devices, interactives, grasped persons) have been fully removed, fixing silently-skipped joint/space cleanup.
+- `Playground.remove()`: remove sub-entities before their parent (bottom-up teardown) for more robust cleanup ordering.
+- `Playground`: invalidate the `agents`/`elements` caches on every removal and re-addition (not only definitive ones), fixing stale/dead entities lingering in `playground.agents`/`playground.elements` after non-definitive removals (e.g. destroyed drones, rescued wounded persons) and after `reset()` re-adds temporary/removed entities.
+- `RayCompute`: unregister `RaySensor` devices on `Playground.remove()`, fixing an unbounded sensor list growth/duplication across destroy+reset cycles; make `RayCompute.add()`/`remove()` idempotent.
+- `ExternalSensor`: make `add_to_temporary_invisible()`/`remove_from_temporary_invisible()` idempotent, preventing stale duplicate entries that could keep an element permanently invisible to a sensor.
+- Ray-cast compute shader (`id_compute.glsl`): clamp sampled ray points to the view texture bounds before `texelFetch()` to avoid undefined behavior for out-of-bounds reads; guard against division by zero when a sensor has a single ray; zero out unused `rel_pos` output fields instead of leaving them uninitialized.
+
+### Compatibility notes
+- `use_shaders` is optional and backward-compatible (default `None` keeps previous behavior).
+- `Playground.cleanup()` no longer closes the GUI window — call `close_window()` explicitly to close it. The `Launcher` has been updated accordingly.
+
+
 ## [5.1.3] - 2026-02-03
 
 ### Fixed
-- bug fix : dead drones were not visible by other drones with the semantic sensor
-- bug fix : crash with semantic visualization when a drone is dead
+- bug fix: dead drones were not visible by other drones with the semantic sensor
+- bug fix: crash with semantic visualization when a drone is dead
 
 ## [5.1.2] - 2025-11-27
 
@@ -52,7 +113,7 @@ All notable changes to this project will be documented in this file.
 - Fix compatibility issues with Ubuntu 20 and Python 3.8
 - Fix test_wall.py functionality
 - Fix bugs in check_map and my_drone_eval.py
-- Improve robustness of explored_map.py to avoid crashes
+- Improve the robustness of explored_map.py to avoid crashes
 - Fix wall rendering and collision detection
 - Fix _hitpoints calculation bug
 - Fix import issues and remove warnings after code inspection
@@ -64,7 +125,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - Big change: we don't use the library simple-playground anymore. His code is now directly integrated in swarm-rescue. So, swarm-rescue is now independent of simple-playground.
-- Simplification of the architecture of the code.
+- Simplifying the code's architecture.
 - Change of some function names
 - Change of some class names
 - Change of some file names
@@ -73,7 +134,7 @@ All notable changes to this project will be documented in this file.
 ## [4.1.0] - 2025-09-11
 
 ### Changed
-- Now, some files define the "eval plans" : map name, number of rounds, configuration weight, zones configuration. Those files are in the directory config.
+- Now, some files define the "eval plans": map name, number of rounds, configuration weight, zones configuration. Those files are in the directory config.
 
 ## [4.0.4] - 2025-06-26
 
@@ -107,7 +168,7 @@ All notable changes to this project will be documented in this file.
 ## [4.0.1] - 2024-10-23
 ### Added
 - Add the maps used for the assessment of the 2023-24 challenge, but add the return zone.
-- Add a "main" function in the maps Python file. Permit to just display the map with motionless drones.
+- Add a "main" function to each map file, so the map can be displayed with motionless drones.
 
 ### Changed
 - Enlarge return area on some maps.
@@ -135,14 +196,14 @@ All notable changes to this project will be documented in this file.
 - Updated requirements and documentation.
 - Indentation and code details.
 - Swarm-Rescue is now linked to the *swarm-rescue-v3* version of *simple-playground*.
-- The key to activate grasping, on the keyboard, change from G to W.
+- The keyboard key that activates grasping changed from G to W.
 
 ## [3.2.0] - 2024-04-15
 
 ### Changed
 - Use drones health percentage instead of drones health value
-- If the execution crash, now it continue with the next configuration
-- new way to computed reachable pixel in the map to compute the exploration score
+- If an execution crashes, it now continues with the next configuration
+- New way to compute the reachable pixels of the map for the exploration score
 
 ### Added
 - add title to the window
@@ -156,7 +217,7 @@ All notable changes to this project will be documented in this file.
 - Improve and update the README.md
 - Moved installation instructions to a separate file, INSTALL.md, for easier access and organization.
 - Modified image_to_map.py tool
-- Add management of collision to all the maps
+- Add collision management to all maps
 
 ### Fixed
 - Refined the score exploration algorithm to ensure higher accuracy.
@@ -365,8 +426,9 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Initial commit
 
-[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.1.3...HEAD
-[5.1.3]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.1.2...v5.1.3
+[Unreleased]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v6.0.0...HEAD
+[6.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.2.0...v6.0.0
+[5.2.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.1.2...v5.2.0
 [5.1.2]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.1.1...v5.1.2
 [5.1.1]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.1.0...v5.1.1
 [5.1.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v5.0.0...v5.1.0
@@ -398,4 +460,3 @@ All notable changes to this project will be documented in this file.
 [1.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v0.9.0...v1.0.0
 [0.9.0]: https://github.com/emmanuel-battesti/swarm-rescue/compare/v0.0.0...v0.9.0
 [0.0.0]: https://github.com/emmanuel-battesti/swarm-rescue/releases/tag/v0.0.0
-

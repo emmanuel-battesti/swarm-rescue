@@ -1,18 +1,19 @@
 import arcade
+import arcade.hitbox
 import numpy as np
 import pymunk
 from PIL import Image
 from skimage.draw import disk, polygon
 
 
-def get_texture_from_shape(pm_shape, color, name_texture) -> arcade.Texture:
+def get_texture_from_shape(pm_shape, color, name_texture: str = "") -> arcade.Texture:
     """
     Generate an arcade.Texture from a pymunk shape and color.
 
     Args:
         pm_shape: The pymunk shape (Segment, Circle, or Poly).
         color: The RGB color tuple.
-        name_texture: Name for the texture.
+        name_texture: Optional name/label for the texture.
 
     Returns:
         arcade.Texture: The generated texture.
@@ -54,15 +55,17 @@ def get_texture_from_shape(pm_shape, color, name_texture) -> arcade.Texture:
         img[rr, cc] = color_rgba
 
     else:
-        raise ValueError
+        raise ValueError(f"Unsupported pymunk shape type: {type(pm_shape)}")
 
     PIL_image = Image.fromarray(np.uint8(img)).convert("RGBA")
 
+    # The hitbox is computed from the drawn shape so collisions follow the
+    # image, and the texture is built directly from the PIL image.
+    hit_box_algo = arcade.hitbox.PymunkHitBoxAlgorithm(detail=1.0)
+
     texture = arcade.Texture(
-        name=name_texture,
         image=PIL_image,
-        hit_box_algorithm="Detailed",
-        hit_box_detail=1,
+        hit_box_algorithm=hit_box_algo,
     )
 
     return texture

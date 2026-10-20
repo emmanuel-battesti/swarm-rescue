@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import arcade
+from typing import Any
+
 import numpy as np
 
 from swarm_rescue.simulation.ray_sensors.ray_sensor import RaySensor
@@ -22,7 +24,7 @@ class SemanticSensor(RaySensor):
         """
         Draws the semantic sensor rays using Arcade.
         """
-        if self._disabled:
+        if self.is_switched_off:
             return
 
         view_xy = self._hitpoints[:, :2]
@@ -50,7 +52,7 @@ class SemanticSensor(RaySensor):
         return self._resolution, 2
 
     @property
-    def _default_value(self) -> np.ndarray:
+    def _default_value(self) -> Any:
         """
         Returns the default value for the sensor.
         """

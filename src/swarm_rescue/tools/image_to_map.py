@@ -12,8 +12,8 @@ class ImageToMap:
     Converts an image to a map representation by extracting walls, boxes, people, and rescue center.
 
     Attributes:
-        _img_src (cv2.Mat): Source image.
-        _img_src_walls (cv2.Mat): Binary image for wall detection.
+        _img_src (np.ndarray): Source image.
+        _img_src_walls (np.ndarray): Binary image for wall detection.
         _auto_resized (bool): Whether to auto-resize the map.
         height_map (int): Height of the map.
         width_map (int): Width of the map.
@@ -22,8 +22,8 @@ class ImageToMap:
         boxes (list): List of detected boxes.
     """
 
-    _img_src: cv2.Mat
-    _img_src_walls: cv2.Mat
+    _img_src: np.ndarray
+    _img_src_walls: np.ndarray
     _auto_resized: bool
     height_map: int
     width_map: int
@@ -31,12 +31,12 @@ class ImageToMap:
     lines: np.ndarray
     boxes: List[Tuple[int, int, int, int]]
 
-    def __init__(self, image_source: cv2.Mat, auto_resized: bool = True) -> None:
+    def __init__(self, image_source: np.ndarray, auto_resized: bool = True) -> None:
         """
         Initializes the ImageToMap object.
 
         Args:
-            image_source (cv2.Mat): The source image.
+            image_source (np.ndarray): The source image.
             auto_resized (bool): Whether to auto-resize the map.
         """
         self._img_src = image_source
@@ -59,9 +59,10 @@ class ImageToMap:
         self.width_map = 0
         self.factor = 1.0
 
-        # To initialize lines as an empty NumPy array for detected line segments (typically shape (0, 1, 4) for lines with 4 coordinates)
+        # To initialize lines as an empty NumPy array for detected line segments
+        # (typically shape (0, 1, 4) for lines with 4 coordinates)
         self.lines = np.empty((0, 1, 4), dtype=np.float32)
-        self.boxes = []
+        self.boxes: list[tuple[int, int, int, int]] = []
 
     def launch(self) -> None:
         """
@@ -96,7 +97,7 @@ class ImageToMap:
         mask_people = cv2.morphologyEx(mask_people, cv2.MORPH_OPEN, kernel)
 
         # Setup SimpleBlobDetector parameters.
-        params = cv2.SimpleBlobDetector_Params()
+        params = cv2.SimpleBlobDetector_Params()  # type: ignore[attr-defined]
         # Change thresholds
         params.filterByArea = True
         params.maxArea = 2000
@@ -109,7 +110,7 @@ class ImageToMap:
         params.minCircularity = 0.75
 
         # Set up the detector with default parameters.
-        detector = cv2.SimpleBlobDetector_create(params)
+        detector = cv2.SimpleBlobDetector_create(params)  # type: ignore[attr-defined]
 
         if np.max(mask_people) != 0:
             scaled_mask_people = (255 -
@@ -233,17 +234,25 @@ class ImageToMap:
         """
         self.height_map = 750
 
-        print("original dim map : ({}, {})"
+        src_height = self._img_src_walls.shape[0]
+        if src_height == 0:
+            raise ValueError(
+                "The source image has no rows, so its height cannot be used "
+                "to compute the map scale. Check the image passed to "
+                "img_path: the wall detection step produced an empty image."
+            )
+
+        print("original dim map: ({}, {})"
               .format(self._img_src_walls.shape[1],
-                      self._img_src_walls.shape[0]))
+                      src_height))
         print("auto_resized = {}".format(self._auto_resized))
 
-        self.factor = self.height_map / self._img_src_walls.shape[0]
+        self.factor = self.height_map / src_height
         if not self._auto_resized:
             self.factor = 1.0
-            self.height_map = self._img_src_walls.shape[0]
+            self.height_map = src_height
         self.width_map = int(round(self.factor * self._img_src_walls.shape[1]))
-        print("Used dim map : ({}, {}) with factor {}"
+        print("Used dim map: ({}, {}) with factor {}"
               .format(self.width_map, self.height_map, self.factor))
 
         print("Code to add in map_xxx.py:")
@@ -304,7 +313,12 @@ class ImageToMap:
 
         self.lines = lines_corrected
 
-    def align_segments(self, segments: np.ndarray, distance_threshold: int = 5, endpoint_threshold: int = 10) -> np.ndarray:
+    def align_segments(
+        self,
+        segments: np.ndarray,
+        distance_threshold: int = 5,
+        endpoint_threshold: int = 10,
+    ) -> np.ndarray:
         """
         Aligns nearly identical horizontal and vertical segments.
 
@@ -321,10 +335,10 @@ class ImageToMap:
         for segment in segments:
             x1, y1, x2, y2 = segment[0]
 
-            if abs(y1 - y2) < abs(x1 - x2) and x1 > x2:  # horizontal
+            if abs(y1 - y2) < abs(x1 - x2) and x1 > x2: # horizontal
                 x1, x2 = x2, x1
                 y1, y2 = y2, y1
-            elif abs(y1 - y2) > abs(x1 - x2) and y1 > y2:  # vertical
+            elif abs(y1 - y2) > abs(x1 - x2) and y1 > y2: # vertical
                 x1, x2 = x2, x1
                 y1, y2 = y2, y1
 
@@ -348,14 +362,22 @@ class ImageToMap:
                 ox1, oy1, ox2, oy2 = other_segment
 
                 # Vérifie si les segments sont horizontaux et presque identiques
-                if abs(y1 - y2) <= 2 and abs(y1 - oy1) <= distance_threshold and abs(y2 - oy2) <= distance_threshold:
+                if (
+                    abs(y1 - y2) <= 2
+                    and abs(y1 - oy1) <= distance_threshold
+                    and abs(y2 - oy2) <= distance_threshold
+                ):
                     if abs(x1 - ox1) <= endpoint_threshold:
                         x1 = min(x1, ox1)  # (x1 + ox1) // 2
                     if abs(x2 - ox2) <= endpoint_threshold:
                         x2 = max(x2, ox2)  # ((x2 + ox2) // 2
 
                 # Vérifie si les segments sont verticaux et presque identiques
-                elif abs(x1 - x2) <= 2 and abs(x1 - ox1) <= distance_threshold and abs(x2 - ox2) <= distance_threshold:
+                elif (
+                    abs(x1 - x2) <= 2
+                    and abs(x1 - ox1) <= distance_threshold
+                    and abs(x2 - ox2) <= distance_threshold
+                ):
                     if abs(y1 - oy1) <= endpoint_threshold:
                         y1 = min(y1, oy1)  # ((y1 + oy1) // 2
                     if abs(y2 - oy2) <= endpoint_threshold:
@@ -381,7 +403,7 @@ class ImageToMap:
         cv2.imshow("thresh_img_box", thresh_img)
 
         contours_poly = []
-        self.boxes = []
+        self.boxes: list[tuple[int, int, int, int]] = []
 
         for i, curve in enumerate(contours):
             perimeter = cv2.arcLength(curve=curve, closed=True)
@@ -411,7 +433,7 @@ class ImageToMap:
                     cv2.isContourConvex(approx_poly)):
                 # print("approx_poly", approx_poly)
                 contours_poly.append(approx_poly)
-                self.boxes.append(box)
+                self.boxes.append((box[0], box[1], box[2], box[3]))
                 # print("box", box)
 
         only_boxes_image = np.zeros((thresh_img.shape[0],
@@ -452,10 +474,8 @@ class ImageToMap:
         f.write("This file was generated by the tool 'image_to_map.py' in "
                 "the directory tools.\n")
         f.write(
-            "This tool permits to create this kind of file by providing it "
-            "an image of the\n")
-        f.write(
-            "map we want to create.\n")
+            "This tool creates this kind of file from an image of the map "
+            "we want to create.\n")
         f.write("\"\"\"\n")
 
         f.write("import sys\n")
@@ -469,11 +489,11 @@ class ImageToMap:
         f.write("from swarm_rescue.simulation.elements.normal_wall import NormalWall, "
                 "NormalBox\n\n\n")
 
-        f.write("# Dimension of the map : ({}, {})\n"
+        f.write("# Dimension of the map: ({}, {})\n"
                 .format(self.width_map,
                         self.height_map))
 
-        f.write("# Dimension factor : {}\n".format(self.factor))
+        f.write("# Dimension factor: {}\n".format(self.factor))
 
         f.write("def add_boxes(playground):\n")
 
@@ -527,30 +547,30 @@ class ImageToMap:
                     x1 = x0
 
                 # Correct orientation
-                if orient == 0 and x0 > x1:  # horizontal
+                if orient == 0 and x0 > x1: # horizontal
                     x0, x1 = x1, x0  # swap
 
-                if orient == 1 and y0 > y1:  # vertical
+                if orient == 1 and y0 > y1: # vertical
                     y0, y1 = y1, y0  # swap
 
-                if orient == 2 and x0 > x1:  # oblique
+                if orient == 2 and x0 > x1: # oblique
                     x0, x1 = x1, x0  # swap
                     y0, y1 = y1, y0  # swap
 
                 # Correct size
                 correction = 4
-                if orient == 0:  # horizontal
+                if orient == 0: # horizontal
                     x0 -= correction
                     x1 += correction
 
-                if orient == 1:  # vertical
+                if orient == 1: # vertical
                     y0 -= correction
                     y1 += correction
 
-                if orient == 2:  # oblique
+                if orient == 2: # oblique
                     x0 -= correction
                     x1 += correction
-                    if y1 > y0:  # oblique
+                    if y1 > y0: # oblique
                         y0 -= correction
                         y1 += correction
                     else:
@@ -591,6 +611,8 @@ def main():
     should_auto_resized = False
     # img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
     img = cv2.imread(img_path)
+    if img is None:
+        raise FileNotFoundError(f"Could not read image: {img_path}")
     image_to_map = ImageToMap(image_source=img, auto_resized=should_auto_resized)
     image_to_map.launch()
 

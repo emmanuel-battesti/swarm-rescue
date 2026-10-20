@@ -1,10 +1,11 @@
+/docker/tmp
 /mes_dots
 switch_solutions.sh
 all_launch.sh
 solutions_mine
 data_website.txt
 /env
-/docs
+/docs_private
 src/swarm_rescue/tools/generated_code.py
 src/swarm_rescue/various
 src/swarm_rescue/solutions_off
@@ -14,6 +15,10 @@ __pycache__
 *.profile
 *.calltree
 swarm_rescue.egg-info
+submission_guidelines.pdf
+.ollamassist
+mon_tree
+
 
 # Temporary and binary files
 *~
@@ -25,10 +30,10 @@ swarm_rescue.egg-info
 *.orig
 *.log
 *.pot
-__pycache__/*
 .cache/*
 .*.swp
-*/.ipynb_checkpoints/*
+**/__pycache__/
+**/.ipynb_checkpoints/
 .DS_Store
 
 # Project files
@@ -69,3 +74,6 @@ MANIFEST
 .venv*/
 .conda*/
 .python-version
+
+# Timestamped benchmark output files from bench_ray_compute
+*_bench_ray_compute_result*.txt

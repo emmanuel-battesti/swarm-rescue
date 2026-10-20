@@ -1,5 +1,7 @@
 import pathlib
 import sys
+import warnings
+
 import numpy as np
 import pytest
 
@@ -27,7 +29,13 @@ def test_normalize_angle():
     assert np.allclose(normalize_angle(angles), np.array([0.1, 0.5, -0.3, 2.7]))
 
     assert np.isnan(normalize_angle(np.nan))
-    assert np.isnan(normalize_angle(np.inf))
+    # `inf % (2 * pi)` is what numpy flags as an invalid value, while `nan`
+    # propagates silently. The warning is emitted by some numpy builds only,
+    # so the expectation is stated on the result (NaN); see also
+    # test_normalize_angle_warning_handling below.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        assert np.isnan(normalize_angle(np.inf))
 
     # Test multiples of pi
     assert normalize_angle(np.pi) == pytest.approx(-np.pi)
@@ -43,6 +51,29 @@ def test_normalize_angle():
     # Test very large values
     assert -np.pi < normalize_angle(1e10) < np.pi
     assert -np.pi < normalize_angle(-1e10) < np.pi
+
+
+def test_normalize_angle_warning_handling():
+    """`inf` must give NaN, with or without numpy's `invalid value` warning.
+
+    Whether numpy emits `RuntimeWarning: invalid value encountered in
+    remainder` for `inf % (2 * pi)` depends on the numpy version and on the
+    scalar/array code path taken (it is absent on some builds, e.g. numpy
+    2.5 on macOS arm64). Asserting the warning itself therefore makes the test
+    platform-dependent, so we assert the documented behavior (NaN) and only
+    check the warning when numpy happens to emit one.
+    """
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        result = normalize_angle(np.array([np.nan, np.inf]))
+
+    assert np.all(np.isnan(result))
+
+    remainder_warnings = [
+        w for w in caught if "remainder" in str(w.message) and "invalid" in str(w.message)
+    ]
+    for warning in remainder_warnings:
+        assert issubclass(warning.category, RuntimeWarning)
 
 
 def test_sign():

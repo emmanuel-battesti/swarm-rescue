@@ -46,7 +46,7 @@ class InteractiveAnchored(EmbodiedEntity, ABC):
         for pm_shape in self._pm_shapes:
             pm_shape.sensor = True
 
-        self._anchor = None
+        self._anchor: Optional[PhysicalEntity] = None
 
     def get_sprite(self, zoom: float = 1, use_color_uid: bool = None) -> arcade.Sprite:
         """
@@ -82,10 +82,15 @@ class InteractiveAnchored(EmbodiedEntity, ABC):
             pm_shape.body = self._pm_body
 
     @property
-    def anchor(self):
+    def anchor(self) -> PhysicalEntity:
         """
         Returns the anchor entity.
+
+        A device is always attached to an anchor before it is used, so the
+        `None` initial value only exists between construction and
+        `set_anchor()`.
         """
+        assert self._anchor is not None, "This element has no anchor yet."
         return self._anchor
 
     def set_anchor(self, anchor: PhysicalEntity):

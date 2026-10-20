@@ -8,6 +8,8 @@ def show_image(img_path: str) -> None:
         img_path (str): Path to the image file.
     """
     img1 = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    if img1 is None:
+        raise FileNotFoundError(f"Could not read image: {img_path}")
     cv2.imshow("img1", img1)
     cv2.waitKey(0)
 

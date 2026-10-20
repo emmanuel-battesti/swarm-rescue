@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
 """
-COMPREHENSIVE Test suite covering ALL entity removal scenarios
-Tests all paths through playground.remove() including recursive calls
+Removal scenarios for Playground.remove(), including the recursive paths.
+
+`remove()` walks into related entities before doing its own work: an Agent
+pulls in its base, a DronePart pulls in its devices, a PhysicalElement pulls
+in its interactives and releases whatever grasps it. Removing a tree of
+entities must therefore mark every one of them, and removing them again must
+stay a no-op.
+
+These tests complement `test_remove_protection.py`, which focuses on the
+idempotence of a second removal.
 """
 import pathlib
 import sys
@@ -13,7 +21,6 @@ from swarm_rescue.simulation.gui_map.closed_playground import ClosedPlayground
 from swarm_rescue.simulation.gui_map.map_abstract import MapAbstract
 from swarm_rescue.simulation.elements.wounded_person import WoundedPerson
 from swarm_rescue.simulation.elements.rescue_center import RescueCenter
-from swarm_rescue.simulation.elements.normal_wall import NormalBox
 from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
 from swarm_rescue.simulation.utils.misc_data import MiscData
 
@@ -29,7 +36,9 @@ class DummyDrone(DroneAbstract):
 
 class MyMapTest(MapAbstract):
     """Test map with basic playground setup"""
-    def __init__(self, drone_type: Type[DroneAbstract] = DummyDrone, with_rescue_center: bool = True):
+    def __init__(
+        self, drone_type: Type[DroneAbstract] = DummyDrone, with_rescue_center: bool = True
+    ):
         super().__init__(drone_type=drone_type)
 
         # PARAMETERS MAP
@@ -48,247 +57,158 @@ class MyMapTest(MapAbstract):
 
 
 def test_7_agent_with_base_recursive_removal():
-    """Test 7: Agent removal triggers recursive base removal"""
-    print("\n" + "="*80)
-    print("TEST 7: Agent removal with recursive base removal")
-    print("="*80)
-
+    """Removing an Agent also removes its base."""
     the_map = MyMapTest()
     playground = the_map.playground
 
-    # Create a drone (Agent with base)
     misc_data = MiscData(size_area=(1000, 1000), number_drones=1)
     drone = DummyDrone(identifier=0, misc_data=misc_data)
     playground.add(drone, ((100, 100), 0))
 
-    print(f"✓ Created drone (Agent with base)")
-    print(f"  - Agents: {len(playground._agents)}")
-    print(f"  - Elements: {len(playground._elements)}")
-    print(f"  - drone.base exists: {drone.base is not None}")
+    assert drone.base is not None
+    base = drone.base
+    assert base.removed is False
 
-    # First removal
-    print(f"\n→ First removal of drone (definitive=False)...")
     playground.remove(drone, definitive=False)
 
-    print(f"✓ First removal succeeded")
-    print(f"  - drone.removed: {drone.removed}")
-    print(f"  - drone.base.removed: {drone.base.removed}")
+    # The recursion into the base is the point of this test.
+    assert drone.removed is True
+    assert base.removed is True, "Removing an Agent must remove its base too"
 
-    # Second removal - should be protected
-    print(f"\n→ Second removal attempt (should be protected)...")
-    try:
-        playground.remove(drone, definitive=False)
-        print(f"✓ Second removal succeeded without crash!")
-        print(f"  - drone.removed: {drone.removed}")
-        print(f"  - drone.base.removed: {drone.base.removed}")
-        print("✓ TEST 7 PASSED - Recursive removal protection works for Agent+base!")
-    except Exception as e:
-        print(f"✗ TEST 7 FAILED with error: {e}")
-        raise
-
+    # ...and doing it again stays a no-op.
+    playground.remove(drone, definitive=False)
+    assert drone.removed is True
+    assert base.removed is True
 
 
 def test_8_physical_element_with_interactives():
-    """Test 8: PhysicalElement with interactives triggers recursive removal"""
-    print("\n" + "="*80)
-    print("TEST 8: PhysicalElement with interactives removal")
-    print("="*80)
-
+    """A PhysicalElement is removed together with its interactives."""
     the_map = MyMapTest()
     playground = the_map.playground
 
     wp = WoundedPerson(rescue_center=the_map.rescue_center)
     playground.add(wp, ((100, 100), 0))
 
-    print(f"✓ Created WoundedPerson")
-    print(f"  - Has interactives: {len(wp.interactives)}")
+    interactives = list(wp.interactives)
+    assert interactives, "The scenario needs a wounded person with interactives"
 
-    # First removal
     playground.remove(wp, definitive=False)
-    print(f"✓ First removal: wp.removed = {wp.removed}")
+    assert wp.removed is True
 
-    # Second removal with interactives already removed
-    try:
-        playground.remove(wp, definitive=False)
-        print(f"✓ Second removal succeeded!")
-        print("✓ TEST 8 PASSED - Interactives handled correctly!")
-    except Exception as e:
-        print(f"✗ TEST 8 FAILED: {e}")
-        raise
+    for interactive in interactives:
+        assert interactive.removed is True, \
+            "Removing a PhysicalElement must remove its interactives too"
 
+    # Second removal is still a no-op.
+    playground.remove(wp, definitive=False)
+    assert wp.removed is True
 
 
 def test_9_remove_then_definitive_remove():
-    """Test 9: Remove with definitive=False, then try with definitive=True"""
-    print("\n" + "="*80)
-    print("TEST 9: Remove (definitive=False) then Remove (definitive=True)")
-    print("="*80)
-
+    """Going from non-definitive to definitive drops the entity for good."""
     the_map = MyMapTest()
     playground = the_map.playground
 
     wp = WoundedPerson(rescue_center=the_map.rescue_center)
     playground.add(wp, ((100, 100), 0))
 
-    print(f"✓ Created WoundedPerson")
-    print(f"  - Elements: {len(playground._elements)}")
-    print(f"  - wp in _elements: {wp in playground._elements}")
-
-    # First: remove without definitive
     playground.remove(wp, definitive=False)
-    print(f"✓ First remove (definitive=False)")
-    print(f"  - wp.removed: {wp.removed}")
-    print(f"  - wp in _elements: {wp in playground._elements}")
+    assert wp in playground._elements
+    assert wp.uid in playground._uids_to_entities
 
-    # Second: remove with definitive=True on already-removed entity
-    print(f"\n→ Second remove (definitive=True) on already-removed entity...")
-    try:
-        playground.remove(wp, definitive=True)
-        print(f"✓ Second remove succeeded!")
-        print(f"  - wp.removed: {wp.removed}")
-        print(f"  - wp in _elements: {wp in playground._elements}")
-        print("✓ TEST 9 PASSED - Can call definitive on already-removed entity!")
-    except Exception as e:
-        print(f"✗ TEST 9 FAILED: {e}")
-        raise
+    # Escalating to definitive on an already-removed entity must work.
+    playground.remove(wp, definitive=True)
 
+    assert wp.removed is True
+    assert wp not in playground._elements, \
+        "A definitive removal drops the entity, even after a non-definitive one"
+    assert wp.uid not in playground._uids_to_entities
 
 
 def test_10_definitive_then_non_definitive():
-    """Test 10: Remove with definitive=True, then try with definitive=False"""
-    print("\n" + "="*80)
-    print("TEST 10: Remove (definitive=True) then Remove (definitive=False)")
-    print("="*80)
-
+    """The reverse order is safe too: definitive then non-definitive."""
     the_map = MyMapTest()
     playground = the_map.playground
 
     wp = WoundedPerson(rescue_center=the_map.rescue_center)
     playground.add(wp, ((100, 100), 0))
 
-    print(f"✓ Created WoundedPerson")
-
-    # First: remove with definitive
     playground.remove(wp, definitive=True)
-    print(f"✓ First remove (definitive=True)")
-    print(f"  - wp.removed: {wp.removed}")
-    print(f"  - wp in _elements: {wp in playground._elements}")
+    assert wp not in playground._elements
+    assert wp.uid not in playground._uids_to_entities
 
-    # Second: remove without definitive on already-removed entity
-    print(f"\n→ Second remove (definitive=False) on already-removed entity...")
-    try:
-        playground.remove(wp, definitive=False)
-        print(f"✓ Second remove succeeded!")
-        print("✓ TEST 10 PASSED - Can call non-definitive on definitively-removed entity!")
-    except Exception as e:
-        print(f"✗ TEST 10 FAILED: {e}")
-        raise
+    # Must not raise, and must not resurrect the entity.
+    playground.remove(wp, definitive=False)
 
+    assert wp.removed is True
+    assert wp not in playground._elements
+    assert wp.uid not in playground._uids_to_entities
 
 
 def test_11_multiple_entities_with_cross_references():
-    """Test 11: Multiple entities with potential cross-references"""
-    print("\n" + "="*80)
-    print("TEST 11: Multiple entities removal with cross-references")
-    print("="*80)
-
+    """A batch of entities can all be removed twice."""
     the_map = MyMapTest()
     playground = the_map.playground
 
-    # Create multiple entities
     entities = []
     for i in range(5):
         wp = WoundedPerson(rescue_center=the_map.rescue_center)
         entities.append(wp)
-        playground.add(wp, ((100 * (i+1), 100), 0))
+        playground.add(wp, ((100 * (i + 1), 100), 0))
 
-    print(f"✓ Created 5 WoundedPersons")
-
-    # Remove all with definitive=False
     for wp in entities:
         playground.remove(wp, definitive=False)
 
-    print(f"✓ All removed (definitive=False)")
-    print(f"  - All marked removed: {all(e.removed for e in entities)}")
+    assert all(e.removed for e in entities), "Every entity must be marked removed"
 
-    # Try to remove them all again
-    print(f"\n→ Attempting to remove all again...")
-    try:
-        for wp in entities:
-            playground.remove(wp, definitive=False)
-        print(f"✓ All second removals succeeded!")
-        print("✓ TEST 11 PASSED - Multiple entity removal protection works!")
-    except Exception as e:
-        print(f"✗ TEST 11 FAILED: {e}")
-        raise
+    elements_after_first = len(playground._elements)
 
+    for wp in entities:
+        playground.remove(wp, definitive=False)
+
+    assert all(e.removed for e in entities)
+    assert len(playground._elements) == elements_after_first, \
+        "The second pass must not change the playground any further"
 
 
 def test_12_rescue_center_removal():
-    """Test 12: Test with different entity type (RescueCenter)"""
-    print("\n" + "="*80)
-    print("TEST 12: RescueCenter entity removal")
-    print("="*80)
-
-    the_map = MyMapTest()
+    """A RescueCenter is removable, and idempotently so."""
+    the_map = MyMapTest(with_rescue_center=False)
     playground = the_map.playground
 
-    # Create a rescue center
     rescue_center = RescueCenter(size=(100, 100))
     playground.add(rescue_center, ((0, 0), 0))
 
-    print(f"✓ Created RescueCenter")
-    print(f"  - Elements: {len(playground._elements)}")
+    assert rescue_center.removed is False
 
-    # First removal
     playground.remove(rescue_center, definitive=False)
-    print(f"✓ First removal: rescue_center.removed = {rescue_center.removed}")
+    assert rescue_center.removed is True
+    assert rescue_center in playground._elements
 
-    # Second removal
-    try:
-        playground.remove(rescue_center, definitive=False)
-        print(f"✓ Second removal succeeded!")
-        print("✓ TEST 12 PASSED - Works with RescueCenter entities!")
-    except Exception as e:
-        print(f"✗ TEST 12 FAILED: {e}")
-        raise
-
+    playground.remove(rescue_center, definitive=False)
+    assert rescue_center.removed is True
+    assert rescue_center in playground._elements
 
 
 def test_13_edge_case_cleanup_on_empty():
-    """Test 13: Cleanup on already-cleaned playground"""
-    print("\n" + "="*80)
-    print("TEST 13: Double cleanup (edge case)")
-    print("="*80)
-
+    """cleanup() on a playground whose only entity is already removed."""
     the_map = MyMapTest()
     playground = the_map.playground
 
     wp = WoundedPerson(rescue_center=the_map.rescue_center)
     playground.add(wp, ((100, 100), 0))
 
-    print(f"✓ Created entities")
+    playground.remove(wp, definitive=False)
+    assert wp.uid in playground._uids_to_entities
 
-    # First cleanup
-    print(f"✓ First cleanup succeeded")
-    print(f"  - Elements: {len(playground._elements)}")
+    playground.cleanup()
 
-    # Second cleanup on empty playground
-    print(f"\n→ Second cleanup on already-cleaned playground...")
-    try:
-        print(f"✓ Second cleanup succeeded!")
-        print("✓ TEST 13 PASSED - Double cleanup doesn't crash!")
-    except Exception as e:
-        print(f"✗ TEST 13 FAILED: {e}")
-        raise
+    assert wp.uid not in playground._uids_to_entities
+    assert wp not in playground._elements
 
 
 def test_14_alternating_remove_patterns():
-    """Test 14: Alternating removal patterns (non-definitive only)"""
-    print("\n" + "="*80)
-    print("TEST 14: Alternating removal attempts")
-    print("="*80)
-
+    """Alternating non-definitive removal attempts over several entities."""
     the_map = MyMapTest()
     playground = the_map.playground
 
@@ -296,122 +216,41 @@ def test_14_alternating_remove_patterns():
     for i in range(4):
         wp = WoundedPerson(rescue_center=the_map.rescue_center)
         entities.append(wp)
-        playground.add(wp, ((100 * (i+1), 100), 0))
+        playground.add(wp, ((100 * (i + 1), 100), 0))
 
-    print(f"✓ Created 4 entities")
-
-    # Pattern: all with definitive=False first
     for wp in entities:
         playground.remove(wp, definitive=False)
 
-    print(f"✓ Removed all with definitive=False")
+    elements_after_first = len(playground._elements)
 
-    # Try to remove all again (still non-definitive)
-    print(f"\n→ Attempting to remove all again (non-definitive)...")
-    try:
-        for wp in entities:
-            playground.remove(wp, definitive=False)
-        print(f"✓ All second removals succeeded!")
-        print("✓ TEST 14 PASSED - Multiple removal attempts work!")
-    except Exception as e:
-        print(f"✗ TEST 14 FAILED: {e}")
-        raise
+    for wp in entities:
+        playground.remove(wp, definitive=False)
 
+    assert all(e.removed for e in entities)
+    assert len(playground._elements) == elements_after_first
 
 
 def test_15_definitive_removal_bug():
-    """Test 15: DISCOVERED BUG - definitive removal twice causes KeyError"""
-    print("\n" + "="*80)
-    print("TEST 15: KNOWN BUG - Double definitive removal (should be fixed)")
-    print("="*80)
+    """A double definitive removal must not raise KeyError.
 
+    Regression test: `_remove_from_mappings()` used to `pop()` the uid
+    unconditionally, so a second definitive removal raised `KeyError`. It now
+    returns early when the uid is already gone.
+    """
     the_map = MyMapTest()
     playground = the_map.playground
 
     wp = WoundedPerson(rescue_center=the_map.rescue_center)
     playground.add(wp, ((100, 100), 0))
 
-    print(f"✓ Created WoundedPerson")
-
-    # First definitive removal
     playground.remove(wp, definitive=True)
-    print(f"✓ First remove (definitive=True)")
-    print(f"  - wp in _elements: {wp in playground._elements}")
-    print(f"  - wp.uid in _uids_to_entities: {wp.uid in playground._uids_to_entities}")
+    assert wp.uid not in playground._uids_to_entities
 
-    # Second definitive removal - THIS WILL FAIL with current code
-    print(f"\n→ Second remove (definitive=True) - testing for KeyError bug...")
-    try:
-        playground.remove(wp, definitive=True)
-        print(f"✓ Second remove succeeded! BUG IS FIXED!")
-        print("✓ TEST 15 PASSED - Double definitive removal protected!")
-    except KeyError as e:
-        print(f"⚠ TEST 15 EXPECTED FAILURE - KeyError as expected: {e}")
-        print(f"  This is a KNOWN BUG that needs fixing in _remove_from_mappings()")
-        print(f"  Solution: Check if entity.uid exists before pop()")
-        # This should not happen anymore since we fixed it
-        assert False, f"KeyError should not occur with the fix: {e}"
-    except Exception as e:
-        print(f"✗ TEST 15 UNEXPECTED ERROR: {e}")
-        raise
+    # Must not raise KeyError.
+    playground.remove(wp, definitive=True)
 
+    assert wp.removed is True
+    assert wp not in playground._elements
+    assert wp.uid not in playground._uids_to_entities
 
-
-def run_comprehensive_tests():
-    """Run all comprehensive tests"""
-    print("\n" + "="*80)
-    print("COMPREHENSIVE TEST SUITE - ALL REMOVAL SCENARIOS")
-    print("="*80)
-
-    tests = [
-        ("Agent recursive removal", test_7_agent_with_base_recursive_removal),
-        ("PhysicalElement with interactives", test_8_physical_element_with_interactives),
-        ("Non-def → Definitive", test_9_remove_then_definitive_remove),
-        ("Definitive → Non-def", test_10_definitive_then_non_definitive),
-        ("Multiple cross-refs", test_11_multiple_entities_with_cross_references),
-        ("RescueCenter entity removal", test_12_rescue_center_removal),
-        ("Double cleanup", test_13_edge_case_cleanup_on_empty),
-        ("Alternating patterns", test_14_alternating_remove_patterns),
-        ("Double definitive BUG", test_15_definitive_removal_bug),
-    ]
-
-    passed = 0
-    failed = 0
-
-    for test_name, test_func in tests:
-        try:
-            test_func()
-            passed += 1
-        except Exception as e:
-            print(f"\n✗✗✗ {test_name} FAILED ✗✗✗")
-            print(f"Error: {e}")
-            import traceback
-            traceback.print_exc()
-            failed += 1
-
-    print("\n" + "="*80)
-    print("COMPREHENSIVE TEST RESULTS")
-    print("="*80)
-    print(f"✓ Passed: {passed}")
-    print(f"✗ Failed: {failed}")
-    print(f"Total: {passed + failed}")
-
-    if failed == 0:
-        print("\n🎉🎉🎉 ALL COMPREHENSIVE TESTS PASSED! 🎉🎉🎉")
-        print("\nCoverage includes:")
-        print("  ✓ Agent with recursive base removal")
-        print("  ✓ PhysicalElement with interactives")
-        print("  ✓ Switching between definitive modes")
-        print("  ✓ Multiple entities with cross-references")
-        print("  ✓ Different entity types (WoundedPerson, Box)")
-        print("  ✓ Edge cases (double cleanup, empty playground)")
-        print("  ✓ Complex removal patterns")
-        return 0
-    else:
-        print(f"\n❌ {failed} TEST(S) FAILED")
-        return 1
-
-
-if __name__ == "__main__":
-    sys.exit(run_comprehensive_tests())
 

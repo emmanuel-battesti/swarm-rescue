@@ -34,7 +34,7 @@ def grasper_grasps_wounded(arbiter: pymunk.Arbiter, _, data):
 
     Args:
         arbiter (pymunk.Arbiter): The collision arbiter.
-        _ : Unused.
+        _: Unused.
         data: Dictionary containing the playground.
 
     Returns:

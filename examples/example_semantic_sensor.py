@@ -94,10 +94,9 @@ class MyDroneSemantic(DroneAbstract):
               not found_rescue_center):
             self.state = self.Activity.SEARCHING_RESCUE_CENTER
 
-        print("state: {}, can_grasp: {}, grasped wounded persons: {}"
-              .format(self.state.name,
-                      self.grasper.can_grasp,
-                      self.grasper.grasped_wounded_persons))
+        print(f"state={self.state.name:<24}  "
+              f"can_grasp={self.grasper.can_grasp}  "
+              f"grasped={self.grasper.grasped_wounded_persons}")
 
         ##########
         # COMMANDS FOR EACH STATE
@@ -170,7 +169,7 @@ class MyDroneSemantic(DroneAbstract):
     def process_semantic_sensor(self):
         """
         According to his state in the state machine, the Drone will move
-        towards a wound person or the rescue center
+        toward a wounded person or the rescue center
         """
         command = {"forward": 0.5,
                    "lateral": 0.0,
@@ -295,7 +294,7 @@ class MyMapSemantic(MapAbstract):
 def main():
     the_map = MyMapSemantic(drone_type=MyDroneSemantic)
 
-    # draw_semantic_rays : enable the visualization of the semantic rays
+    # draw_semantic_rays: enable the visualization of the semantic rays
     gui = GuiSR(the_map=the_map,
                 draw_semantic_rays=True,
                 use_keyboard=False,

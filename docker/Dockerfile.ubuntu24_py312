@@ -1,0 +1,25 @@
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install minimal tooling and libraries needed for graphics and builds
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ca-certificates curl gnupg dirmngr gpg software-properties-common \
+       build-essential pkg-config \
+       libjpeg-dev zlib1g-dev libtiff-dev libfreetype6-dev liblcms2-dev libwebp-dev libopenjp2-7-dev \
+       libegl-mesa0 libgl1 libgl1-mesa-dri xvfb \
+    && rm -rf /var/lib/apt/lists/*
+
+# Ensure Python 3.12 and pip are installed (Ubuntu 24.04 includes Python 3.12)
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends python3.12 python3.12-venv python3.12-dev python3-pip python3-tk; \
+    rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user to run commands
+RUN useradd -m -s /bin/bash devuser
+USER devuser
+WORKDIR /home/devuser/work
+
+# Default entrypoint - drop to a shell
+ENTRYPOINT ["/bin/bash"]

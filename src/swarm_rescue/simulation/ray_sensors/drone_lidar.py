@@ -4,7 +4,9 @@ from typing import Optional
 import numpy as np
 
 from swarm_rescue.simulation.ray_sensors.distance_sensor import DistanceSensor, compute_ray_angles
-from swarm_rescue.simulation.utils.constants import RESOLUTION_LIDAR_SENSOR, FOV_LIDAR_SENSOR, MAX_RANGE_LIDAR_SENSOR
+from swarm_rescue.simulation.utils.constants import (
+    RESOLUTION_LIDAR_SENSOR, FOV_LIDAR_SENSOR, MAX_RANGE_LIDAR_SENSOR
+)
 from swarm_rescue.simulation.utils.utils_noise import GaussianNoise
 
 
@@ -18,12 +20,14 @@ class DroneDistanceSensor(DistanceSensor):
     values, and draw the lidar sensor.
     """
 
-    def __init__(self, noise: bool = True, **kwargs):
+    def __init__(self, noise: bool = True, rng=None, **kwargs):
         """
         Initialize the DroneDistanceSensor.
 
         Args:
             noise (bool): Whether to apply noise to the sensor.
+            rng (np.random.Generator): Optional generator for the sensor
+            noise. None (the default) comes from the global numpy RNG.
             **kwargs: Additional keyword arguments.
         """
         super().__init__(invisible_when_grasped=True, **kwargs)
@@ -31,7 +35,8 @@ class DroneDistanceSensor(DistanceSensor):
         self._noise = noise
         self._std_dev_noise = 2.5
         self._noise_model = (
-            GaussianNoise(mean_noise=0, std_dev_noise=self._std_dev_noise))
+            GaussianNoise(mean_noise=0, std_dev_noise=self._std_dev_noise,
+                          rng=rng))
 
         # 'ray_angles' is an array which contains the angles of the laser rays
         # of the sensor
@@ -42,6 +47,18 @@ class DroneDistanceSensor(DistanceSensor):
         self._null_sensor[:] = np.nan
 
         self._values = self._default_value
+
+    def set_noise_rng(self, rng) -> None:
+        """
+        Set the generator the sensor noise comes from.
+
+        Called by the playground when it claims the drone: None leaves the
+        noise on the global numpy RNG.
+
+        Args:
+            rng (np.random.Generator): The generator to draw noise from.
+        """
+        self._noise_model.set_rng(rng)
 
     def fov_rad(self) -> float:
         """
@@ -86,6 +103,11 @@ class DroneDistanceSensor(DistanceSensor):
         """
         Draws the rays of lidar sensor.
         """
+        if self.is_switched_off:
+            # `is_switched_off`, not `_disabled`: a wreck's lidar stops for good,
+            # while `_disabled` only lasts the step a zone switched it off.
+            return
+
         if self._hitpoints is not None:
             super().draw()
 
@@ -122,13 +144,16 @@ class DroneLidar(DroneDistanceSensor):
     - max range (maximum range of the sensor): 300 pix
     """
 
-    def __init__(self, noise: bool = True, invisible_elements=None, **kwargs):
+    def __init__(self, noise: bool = True, invisible_elements=None,
+                 rng=None, **kwargs):
         """
         Initialize the DroneLidar.
 
         Args:
             noise (bool): Whether to apply noise.
             invisible_elements: Elements invisible to the lidar.
+            rng (np.random.Generator): Optional generator for the sensor
+            noise. None (the default) comes from the global numpy RNG.
             **kwargs: Additional keyword arguments.
         """
         super().__init__(normalize=False,
@@ -137,4 +162,5 @@ class DroneLidar(DroneDistanceSensor):
                          max_range=MAX_RANGE_LIDAR_SENSOR,
                          invisible_elements=invisible_elements,
                          noise=noise,
+                         rng=rng,
                          **kwargs)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "swarm-rescue"
-version = "5.1.3"
+version = "6.0.0"
 description = "Set up a team of drones to rescue wounded people in different locations..."
 readme = "README.md"
 authors = [
@@ -14,28 +14,35 @@ maintainers = [
     { name = "Emmanuel Battesti", email = "emmanuel.battesti@ensta.fr" }
 ]
 license = {file = "LICENSE"}
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 keywords = ["drones", "rescue", "autonomous", "swarm"]
 dependencies = [
     "fpdf>=1.7.2",
     "opencv-contrib-python>=4.10.0.84",
     "pandas>=2.0.3",
-    "pathlib2>=2.3.7.post1",
-    "arcade==2.6.17",
-    "cerberus>=1.3.4",
+    # 3.3.3 is the last release of the 3.x series: arcade pins its own
+    # deps strictly (pyglet~=2.1.5, pillow~=11.3.0, pymunk~=6.9.0), so
+    # nothing after it can be installed today anyway.
+    "arcade>=3.3.3",
     "scikit-image>=0.21.0",
     "matplotlib>=3.7.5",
     "PyYAML>=6.0.2",
-    "numpy>=1.24.4",
-    "pyqtgraph",
-    "PySide6"
+    # opencv 5.x requires numpy>=2, so this is the reachable floor.
+    "numpy>=2.0",
+    "pyqtgraph>=0.13.0",
+    "PySide6>=6.5",
+    # Imported directly by the code, previously only pulled in transitively
+    # through arcade.
+    "pillow>=11.0",
+    "pymunk>=6.9.0",
+    "pyglet>=2.1.5",
 ]
 classifiers = [
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Operating System :: OS Independent",
 ]
 
@@ -50,7 +57,11 @@ dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "coverage",
-    "gprof2dot"
+    "gprof2dot",
+    "ruff>=0.16.0",
+    "mypy>=1.11.0",
+    # Type stubs: needed to type-check, not to run.
+    "pandas-stubs>=2.0"
 ]
 other_solution = [
     "python-statemachine>=2.3.6",
@@ -67,6 +78,7 @@ other_solution = [
     "resources/character_v2.png",
     "resources/stone_texture_g_04.png",
     "resources/rescue_center.png",
+    "resources/window_icon_*.png",
     "solutions/*.yml",
     "simulation/ray_sensors/shaders/*.glsl"
 ]
@@ -85,3 +97,55 @@ package-dir = {"" = "src"}
 where = ["src"]
 include = ["*"]
 exclude = ["swarm_rescue.solutions_mine*"]
+
+# --- Static analysis -------------------------------------------------------
+# ruff: fast linter. `ruff check --fix` applies safe fixes only.
+# `ruff format` is deliberately NOT enforced: the existing style is manual.
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests", "examples"]
+extend-exclude = ["**/__pycache__", ".venv", "docker/tmp"]
+
+[tool.ruff.lint]
+# E4/E7/E9 = syntax + import errors; F = pyflakes (unused imports, redefs...).
+# "I" (isort) is intentionally left out: the codebase was never import-sorted,
+# so enabling it would bury the actionable F/E9 errors under reordering noise.
+select = ["E4", "E7", "E9", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+# The map-class imports in these two files ARE the lookup table.
+"src/swarm_rescue/launcher.py" = ["F401", "F811"]
+"src/swarm_rescue/tools/check_map.py" = ["F401"]
+# Tests import helpers for their side effects / re-export.
+"tests/*" = ["F401", "F811", "F841"]
+# examples are standalone scripts
+"examples/*" = ["F401", "F811", "F841"]
+# f-strings without placeholders (F541): kept, they document intent in logs
+"src/swarm_rescue/simulation/gui_map/gui_sr.py" = ["F541"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["swarm_rescue"]
+
+# mypy: gradual typing. Not strict yet - the goal is to ratchet the count
+# down, not to gate CI on day one.
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+# Report errors inside unannotated function bodies too (the maps rely on this).
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+# These are pervasive-by-design in this codebase (Optional members set later
+# in map __init__), so enabling them now would bury the actionable errors.
+# Flip them on once the `assignment`/`union-attr` backlog is cleared.
+disable_error_code = ["assignment", "index", "call-overload", "operator", "var-annotated"]
+exclude = ['(^|/)(docker/tmp|\.venv|build|dist)/']
+files = ["src/swarm_rescue", "examples"]
+
+[[tool.mypy.overrides]]
+# Solutions are participant submissions with their own conventions.
+module = ["swarm_rescue.solutions_mine.*"]
+ignore_errors = true
+

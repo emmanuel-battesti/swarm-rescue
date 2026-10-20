@@ -1,8 +1,7 @@
 import os
-from typing import Tuple, List, Dict, Any, Optional
+from typing import Tuple, Optional
 
 import yaml
-from cerberus import Validator
 
 from swarm_rescue.simulation.elements.sensor_disablers import ZoneType
 
@@ -123,7 +122,8 @@ class EvalPlan:
         Create an EvalPlan instance from a YAML configuration file.
 
         Args:
-            config_path (Optional[str]): Path to the YAML configuration file. If None, uses default config.
+            config_path (Optional[str]): Path to the YAML configuration file. If None,
+                uses default config.
 
         Returns:
             bool: True if loaded successfully, False otherwise.
@@ -162,7 +162,9 @@ class EvalPlan:
             # Process zones configuration
             zones_config = tuple()
             if "zones_config" in config and config["zones_config"]:
-                zones_config = tuple(zone_types[zone] for zone in config["zones_config"] if zone in zone_types)
+                zones_config = tuple(
+                    zone_types[zone] for zone in config["zones_config"] if zone in zone_types
+                )
 
             # Create and add evaluation configuration
             eval_config = EvalConfig(
@@ -181,12 +183,13 @@ class EvalPlan:
         Load evaluation plan configuration from a YAML file.
 
         Args:
-            config_path (Optional[str]): Path to the YAML configuration file. If None, uses default config.
+            config_path (Optional[str]): Path to the YAML configuration file. If None,
+                uses default config.
 
         Returns:
             dict: Loaded configuration data.
         """
-        if not os.path.exists(config_path):
+        if config_path is None or not os.path.exists(config_path):
             print(f"Config file not found: {config_path}")
             return {}
         with open(config_path, 'r') as file:

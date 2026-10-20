@@ -35,7 +35,8 @@ class ExternalSensor(Sensor, ABC):
             fov (float): Field of view of the external_sensor (in degrees).
             resolution (int): Resolution of the external_sensor.
             max_range (float): Maximum range of the external_sensor.
-            invisible_elements (Optional[List[EmbodiedEntity] or EmbodiedEntity]): Elements invisible to the external_sensor.
+            invisible_elements (Optional[List[EmbodiedEntity] or EmbodiedEntity]): Elements
+                invisible to the external_sensor.
             invisible_when_grasped (bool): If True, external_sensor is invisible when grasped.
             **kwargs: Additional keyword arguments.
         """
@@ -116,6 +117,8 @@ class ExternalSensor(Sensor, ABC):
         Args:
             elem (EmbodiedEntity): The entity to add.
         """
+        if elem in self._temporary_invisible:
+            return
         self._temporary_invisible.append(elem)
         self._require_invisible_update = True
 
@@ -126,6 +129,8 @@ class ExternalSensor(Sensor, ABC):
         Args:
             elem (EmbodiedEntity): The entity to remove.
         """
+        if elem not in self._temporary_invisible:
+            return
         self._temporary_invisible.remove(elem)
         self._require_invisible_update = True
 

@@ -24,6 +24,9 @@ from swarm_rescue.maps.map_final_2023_24_03 import MapFinal_2023_24_03
 from swarm_rescue.maps.map_final_2024_25_01 import MapFinal_2024_25_01
 from swarm_rescue.maps.map_final_2024_25_02 import MapFinal_2024_25_02
 from swarm_rescue.maps.map_final_2024_25_03 import MapFinal_2024_25_03
+from swarm_rescue.maps.map_final_2025_26_01 import MapFinal_2025_26_01
+from swarm_rescue.maps.map_final_2025_26_02 import MapFinal_2025_26_02
+from swarm_rescue.maps.map_final_2025_26_03 import MapFinal_2025_26_03
 from swarm_rescue.maps.map_medium_01 import MapMedium01
 from swarm_rescue.maps.map_medium_02 import MapMedium02
 from swarm_rescue.maps.map_test_special_zones import MapTestSpecialZones
@@ -72,16 +75,53 @@ class Launcher:
     video_capture_enabled: bool
     result_path: Optional[str]
     data_saver: DataSaver
+    seed: Optional[int]
 
-    def __init__(self, config_path: Optional[str] = None) -> None:
+    def __init__(self, config_path: Optional[str] = None, seed: Optional[int] = None) -> None:
         """
         Initializes the Launcher.
 
         Args:
             config_path (Optional[str]): Path to YAML configuration file for evaluation plan.
+            seed (Optional[int]): Base seed for the simulation. When set, each
+                round derives its own seed from it (``seed + num_round``), so a
+                whole evaluation is reproducible. None (the default) leaves the
+                evaluation non-reproducible.
         """
         self.team_info = TeamInfo()
 
+        self.seed = seed
+        self._setup_eval_plan(config_path)
+
+        self.number_drones = None
+        self.max_timestep_limit = None
+        self.max_walltime_limit = None
+        self.number_wounded_persons = None
+        self.size_area = None
+
+        self.score_manager = None
+
+        # Set this value to True to generate stat data and pdf report
+        stat_saving_enabled = self.eval_plan.stat_saving_enabled
+        # Set this value to True to generate a video of the mission
+        self.video_capture_enabled = self.eval_plan.video_capture_enabled
+
+        self.result_path = None
+        if stat_saving_enabled or self.video_capture_enabled:
+            rpc = ResultPathCreator(self.team_info)
+            self.result_path = rpc.path
+        self.data_saver = DataSaver(team_info=self.team_info,
+                                    result_path=self.result_path,
+                                    enabled=stat_saving_enabled)
+
+    def _setup_eval_plan(self, config_path: Optional[str]) -> None:
+        """Load and validate the evaluation plan.
+
+        This method sets `self.eval_plan` and `self.eval_plan_ok`. It behaves
+        exactly like the original inline code: it attempts to load the provided
+        YAML config or the default file, prints helpful errors, and exits on
+        fatal problems.
+        """
         # Create an EvalPlan from YAML configuration if provided
         self.eval_plan = EvalPlan()
         self.eval_plan_ok = True
@@ -119,33 +159,13 @@ class Launcher:
                 self.eval_plan_ok = False
                 exit(1)
 
-        self.number_drones = None
-        self.max_timestep_limit = None
-        self.max_walltime_limit = None
-        self.number_wounded_persons = None
-        self.size_area = None
-
-        self.score_manager = None
-
-        # Set this value to True to generate stat data and pdf report
-        stat_saving_enabled = self.eval_plan.stat_saving_enabled
-        # Set this value to True to generate a video of the mission
-        self.video_capture_enabled = self.eval_plan.video_capture_enabled
-
-        self.result_path = None
-        if stat_saving_enabled or self.video_capture_enabled:
-            rpc = ResultPathCreator(self.team_info)
-            self.result_path = rpc.path
-        self.data_saver = DataSaver(team_info=self.team_info,
-                                    result_path=self.result_path,
-                                    enabled=stat_saving_enabled)
-
     def one_round(
         self,
         eval_config: EvalConfig,
         num_round: int,
         hide_solution_output: bool = False,
         headless: bool = False,
+        seed: Optional[int] = None,
     ) -> Optional[Tuple[float, float, int, int, float, int, float, float, bool, bool]]:
         """
         Runs a single round of the session.
@@ -162,9 +182,14 @@ class Launcher:
             num_round (int): The round number.
             hide_solution_output (bool): Whether to hide solution output.
             headless (bool): Whether to run in headless mode.
+            seed (Optional[int]): Seed for this round. Forwarded to the map,
+                which uses it for the random placements and for the entity
+                UIDs read by the lidar. None keeps the round
+                non-reproducible.
 
         Returns:
-            Optional[Tuple]: Various statistics and results from the round, or None if map class not found.
+            Optional[Tuple]: Various statistics and results from the round, or None if
+                map class not found.
         """
 
         # Retrieve the class object from the global namespace using its name
@@ -177,7 +202,9 @@ class Launcher:
             return None
 
         # Instantiate the map class with the provided zones configuration
-        the_map = map_class(drone_type=MyDrone, zones_config=eval_config.zones_config)
+        the_map = map_class(drone_type=MyDrone,
+                            zones_config=eval_config.zones_config,
+                            seed=seed)
 
         self.number_drones = the_map.number_drones
         self.max_timestep_limit = the_map.max_timestep_limit
@@ -246,6 +273,10 @@ class Launcher:
                 sys.stdout.close()
                 sys.stdout = original_stdout
 
+        if my_gui.has_crashed:
+            has_crashed = True
+            error_msg = my_gui.error_msg
+
         if has_crashed:
             print(error_msg)
 
@@ -300,22 +331,31 @@ class Launcher:
         """
         ok = True
 
-        print(f"--------------------------------------------------------------------------------------------")
+        print("-" * 92)
 
         for eval_config in self.eval_plan.list_eval_config:
             gc.collect()
             print("")
 
-            if not isinstance(eval_config.zones_config, Tuple) and not isinstance(eval_config.zones_config[0], Tuple):
-                raise ValueError("Invalid eval_config.zones_config. It should be a tuple of tuples of ZoneType.")
+            zones_config = eval_config.zones_config
+            if not isinstance(zones_config, tuple) and not isinstance(zones_config[0], tuple):
+                raise ValueError(
+                    "Invalid eval_config.zones_config. It should be a tuple of tuples of ZoneType."
+                )
 
-            print(f"--------------------------------------------------------------------------------------------")
+            print("-" * 92)
             for num_round in range(eval_config.nb_rounds):
-                print(f"--------------------------------------------------------------------------------------------")
-                print(f"* Map: {eval_config.map_name}, special zones: {eval_config.zones_name_casual}, "
+                print("-" * 92)
+                print(f"* Map: {eval_config.map_name}, "
+                      f"special zones: {eval_config.zones_name_casual}, "
                       f"round: {num_round + 1}/{eval_config.nb_rounds}")
                 gc.collect()
-                result = self.one_round(eval_config, num_round + 1, hide_solution_output, headless)
+                # Each round derives its own seed from the base seed, so that
+                # rounds differ from one another while the whole evaluation
+                # stays reproducible.
+                round_seed = None if self.seed is None else self.seed + num_round
+                result = self.one_round(eval_config, num_round + 1, hide_solution_output,
+                                        headless, seed=round_seed)
                 if result is None:
                     return False
                 (percent_drones_destroyed, mean_drones_health, elapsed_timestep,
@@ -323,6 +363,7 @@ class Launcher:
                  score_health_returned, elapsed_walltime,
                  is_max_walltime_limit_reached, has_crashed) = result
 
+                assert self.score_manager is not None
                 result_score = self.score_manager.compute_score(rescued_number,
                                                                 score_exploration,
                                                                 score_health_returned,
@@ -340,7 +381,7 @@ class Launcher:
                     f"elapse timestep: {elapsed_timestep}/{self.max_timestep_limit} steps, "
                     f"time to rescue all: {full_rescue_timestep} steps."
                     f"\n\t\tpercentage of drones destroyed: {percent_drones_destroyed:.1f} %, "
-                    f"mean percentage of drones health : {mean_drones_health_percent:.1f} %."
+                    f"mean percentage of drones health: {mean_drones_health_percent:.1f} %."
                     f"\n\t\tround score: {round_score:.1f}%, "
                     f"frequency: {elapsed_timestep / elapsed_walltime:.2f} steps/s.")
                 if is_max_walltime_limit_reached:
@@ -361,13 +402,14 @@ class Launcher:
                                                round_score)
 
                 if has_crashed:
-                    print(f"\t* WARNING, this program have crashed !")
+                    print(f"\t* ERROR: Map {eval_config.map_name} (round {num_round + 1}) has crashed / finished with an error!")
+                    print("\t* WARNING, this program has crashed !")
                     ok = False
                     if stop_at_first_crash:
                         self.data_saver.generate_pdf_report()
                         return ok
 
-        print(f"--------------------------------------------------------------------------------------------")
+        print("-" * 92)
         self.data_saver.generate_pdf_report()
 
         return ok
@@ -380,9 +422,13 @@ if __name__ == "__main__":
     parser.add_argument("--hide_solution_output", "-o", action="store_true", help="Hide print output of the solution")
     parser.add_argument("--headless", "-H", action="store_true", help="Run evaluations without opening a display window (suitable for servers)")
     parser.add_argument("--config", "-c", type=str, help="Path to evaluation plan YAML configuration file")
+    parser.add_argument("--seed", type=int, default=None,
+                        help="Base seed for the simulation. When set, the evaluation is "
+                             "reproducible: each round derives its own seed (seed + round "
+                             "number). Omit for the previous non-reproducible behavior.")
     args = parser.parse_args()
 
-    launcher = Launcher(config_path=args.config)
+    launcher = Launcher(config_path=args.config, seed=args.seed)
     success = launcher.go(stop_at_first_crash=args.stop_at_first_crash,
                           hide_solution_output=args.hide_solution_output,
                           headless=args.headless)

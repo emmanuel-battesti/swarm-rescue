@@ -49,7 +49,7 @@ class MyDrone(DroneAbstract):
                    "rotation": rotation}
 
         if self.is_inside_return_area != self.last_is_inside_return_area:
-            print("is_inside_return_area : ", self.is_inside_return_area)
+            print(f"is_inside_return_area: {self.is_inside_return_area}")
             self.last_is_inside_return_area = self.is_inside_return_area
 
         return command
@@ -100,8 +100,6 @@ def main():
 
     gui.run()
 
-    score_health_returned = the_map.compute_score_health_returned()
-    print("score_health_returned = ", score_health_returned)
 
 
 if __name__ == '__main__':

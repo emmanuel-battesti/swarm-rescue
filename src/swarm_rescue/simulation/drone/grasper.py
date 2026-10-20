@@ -69,7 +69,7 @@ class Grasper(Device):
             self._add_joints(wounded)
             wounded.grasped_by.append(self)
 
-            for sensor in self._anchor.agent.external_sensors:
+            for sensor in self.agent.external_sensors:
                 if sensor.invisible_grasped:
                     sensor.add_to_temporary_invisible(wounded)
 
@@ -98,30 +98,32 @@ class Grasper(Device):
         # joint_position = (self._anchor.pm_body.position + entity.pm_body.position) * 0.5
         joint_position = 0.3 * self._anchor.pm_body.position + 0.7 * wounded.pm_body.position
 
-        joint = pymunk.PivotJoint(self._anchor.pm_body, wounded.pm_body, tuple(joint_position)) # type: ignore[arg-type]
+        joint = pymunk.PivotJoint(self._anchor.pm_body, wounded.pm_body, tuple(joint_position))
         joint.collide_bodies = False
 
         # grasp_joints = [j_1, j_2, j_3, j_4]
         grasp_joints = [joint]
         self._grasp_joints[wounded] = grasp_joints
-        self._anchor.playground.space.add(*grasp_joints)
+        playground = self.anchor.playground
+        assert playground is not None, "The grasper is not in a playground."
+        playground.space.add(*grasp_joints)
 
         # draw_options = pymunk.pygame_util.DrawOptions(screen)
         # space.debug_draw(draw_options)
 
-    def _release_grasping(self) -> None:
+    def release_all_persons(self) -> None:
         """
         Release all currently grasped wounded persons.
         """
         for wounded in list(self._grasped_wounded_persons):
-            self.release(wounded)
+            self.release_one_person(wounded)
 
         self._can_grasp = False
 
         assert not self._grasped_wounded_persons
         assert not self._grasp_joints
 
-    def release(self, wounded: WoundedPerson) -> None:
+    def release_one_person(self, wounded: WoundedPerson) -> None:
         """
         Release a specific wounded person.
 
@@ -130,16 +132,17 @@ class Grasper(Device):
         """
         wounded.grasped_by.remove(self)
 
-        # Handle sensors if anchor still exists
-        if self._anchor and hasattr(self._anchor, 'agent'):
-            for sensor in self._anchor.agent.external_sensors:
+        # Handle sensors if the anchor still belongs to an agent
+        anchor = self._anchor
+        if anchor is not None and getattr(anchor, "agent", None) is not None:
+            for sensor in self.agent.external_sensors:
                 if sensor.invisible_grasped:
                     sensor.remove_from_temporary_invisible(wounded)
 
         # Remove joints from physics space if anchor and playground still exist
         joints = self._grasp_joints.pop(wounded)
-        if self._anchor and hasattr(self._anchor, 'playground') and self._anchor.playground:
-            self._anchor.playground.space.remove(*joints)
+        if anchor is not None and anchor.playground is not None:
+            anchor.playground.space.remove(*joints)
 
         self._grasped_wounded_persons.remove(wounded)
 
@@ -147,7 +150,7 @@ class Grasper(Device):
         """
         Reset the grasper and release all grasped persons.
         """
-        self._release_grasping()
+        self.release_all_persons()
         super().reset()
 
     def apply_commands(self) -> None:
@@ -157,6 +160,6 @@ class Grasper(Device):
         command_value = self.grasp_controller.command_value
 
         if not command_value:
-            self._release_grasping()
+            self.release_all_persons()
         else:
             self._can_grasp = True

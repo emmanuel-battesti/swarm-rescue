@@ -1,14 +1,21 @@
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
 
 import arcade
+import arcade.hitbox
 import pymunk
 
 from swarm_rescue.resources import path_resources
 from swarm_rescue.simulation.elements.physical_element import PhysicalElement
 from swarm_rescue.simulation.elements.wounded_person import WoundedPerson
-from swarm_rescue.simulation.gui_map.collision_handlers import get_colliding_entities
-from swarm_rescue.simulation.gui_map.playground import Playground
+from swarm_rescue.simulation.collision_handlers import get_colliding_entities
 from swarm_rescue.simulation.utils.definitions import CollisionTypes
+from swarm_rescue.simulation.utils.texture_cache import load_texture_cached
+
+if TYPE_CHECKING:
+    # `Playground` is only used as an annotation on a *local* variable, and
+    # those are never evaluated at runtime (PEP 526). Importing the
+    # presentation package here would make the model depend on it for nothing.
+    from swarm_rescue.simulation.gui_map.playground import Playground
 
 
 def wounded_rescue_center_collision(arbiter: pymunk.Arbiter, _, data):
@@ -17,7 +24,7 @@ def wounded_rescue_center_collision(arbiter: pymunk.Arbiter, _, data):
 
     Args:
         arbiter (pymunk.Arbiter): The collision arbiter.
-        _ : Unused.
+        _: Unused.
         data: Dictionary containing the playground.
 
     Returns:
@@ -56,17 +63,27 @@ class RescueCenter(PhysicalElement):
         height = size[1]
         orig_x = int((800 - width) / 2)
         orig_y = int((800 - height) / 2)
-        texture: arcade.Texture = arcade.load_texture(file_name=filename,
-                                                      x=orig_x,
-                                                      y=orig_y,
-                                                      width=width,
-                                                      height=height)
+
+        # The full texture is loaded, then cropped to the sub-region.
+        hit_box_algo = arcade.hitbox.PymunkHitBoxAlgorithm(detail=1.0)
+        full_texture: arcade.Texture = load_texture_cached(
+            file_path=filename,
+            hit_box_algorithm=hit_box_algo,
+        )
+        texture: arcade.Texture = full_texture.crop(
+            x=orig_x,
+            y=orig_y,
+            width=width,
+            height=height,
+        )
         super().__init__(texture=texture, **kwargs)
 
         # Friction normally goes between 0 (no friction) and 1.0 (high friction)
         # Friction is between two objects in contact. It is important to remember
         # in top-down games that friction moving along the 'floor' is controlled
         # by damping.
+        # elasticity: How bouncy this object is. 0 is no bounce.
+        # Values of 1.0 and higher may behave badly.
         # See: https://api.arcade.academy/en/latest/examples/pymunk_demo_top_down.html
         for pm_shape in self._pm_shapes:
             pm_shape.elasticity = 0.1
@@ -84,7 +101,8 @@ class RescueCenter(PhysicalElement):
 
     def activate(self, entity: WoundedPerson) -> None:
         """
-        Activate the rescue center for a wounded person, reward the drone, and remove the wounded person.
+        Activate the rescue center for a wounded person, reward the drone, and
+        remove the wounded person.
 
         Args:
             entity (WoundedPerson): The wounded person to rescue.
@@ -102,7 +120,8 @@ class RescueCenter(PhysicalElement):
                 agent.reward += entity.reward / grasped_by_size
                 agent.grasper.reset()
         else:
-            agent = self._playground.get_closest_drone(self)
+            # Get the closest drone agent to the rescue center.
+            agent = min(self._playground.agents, key=lambda a: self.position.get_dist_sqrd(a.true_position()))
             agent.reward += entity.reward
 
         self._playground.remove(entity)

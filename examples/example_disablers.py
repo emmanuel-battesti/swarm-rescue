@@ -118,7 +118,7 @@ def main():
     else:
         filename_video_capture = None
 
-    # enable_visu_noises : to enable the visualization. It will show also a
+    # enable_visu_noises: to enable the visualization. It will show also a
     # demonstration of the integration of odometer values, by drawing the
     # estimated path in red. The green circle shows the position of drone
     # according to the gps sensor and the compass.

@@ -49,31 +49,42 @@ class MyDronePid(DroneAbstract):
         """
         The Drone will turn for a fix angle
         """
+        # The drone must reason from its sensors, not from the ground truth:
+        # true_position() and true_angle() raise TrueStateAccessError inside
+        # control(). Use measured_gps_position() / measured_compass_angle(),
+        # which are noisy and can return None when a disabler zone is active.
+        measured_angle = self.measured_compass_angle()
+        measured_position = self.measured_gps_position()
+
+        if measured_angle is None:
+            # Without the compass we do not know our orientation, so we stop
+            # instead of turning blindly.
+            return {"forward": 0.0, "rotation": 0.0}
+
         self.iter_path += 1
-        if self.iter_path % 3 == 0:
-            position = np.array([self.true_position()[0],
-                                 self.true_position()[1]])
-            angle = self.true_angle()
-            pose = Pose(position=position, orientation=angle)
+        if self.iter_path % 3 == 0 and measured_position is not None:
+            pose = Pose(position=np.asarray(measured_position),
+                        orientation=measured_angle)
             self.path_done.append(pose)
 
         self.counter += 1
         if self.counter % self.counter_change_direction == 0:
             self.angle_setpoint = normalize_angle(self.angle_setpoint +
                                                   np.pi / 2)
-            print("*******************************")
+            print("-" * 60)
 
-        diff_angle = normalize_angle(self.angle_setpoint - self.true_angle())
+        diff_angle = float(normalize_angle(self.angle_setpoint - measured_angle))
 
-        deriv_diff_angle = normalize_angle(diff_angle - self.prev_diff_angle)
+        deriv_diff_angle = float(normalize_angle(diff_angle - self.prev_diff_angle))
         Kp = 9.0
         Kd = 0.6
         rotation = Kp * diff_angle + Kd * deriv_diff_angle
 
         rotation = clamp(rotation, -1.0, 1.0)
-        print("counter", self.counter, "angle", self.true_angle(),
-              "diff_angle", diff_angle, "deriv_diff_angle", deriv_diff_angle,
-              "sign(diff_angle)", math.copysign(1.0, diff_angle))
+        print(f"counter={self.counter:4d}  angle={measured_angle:+.3f}  "
+              f"diff_angle={diff_angle:+.3f}  "
+              f"deriv_diff_angle={deriv_diff_angle:+.3f}  "
+              f"sign={math.copysign(1.0, diff_angle):+.0f}")
 
         forward = 0.5
         command = {"forward": forward,
@@ -87,13 +98,13 @@ class MyDronePid(DroneAbstract):
         self.draw_path(path=self.path_done, color=(255, 0, 255))
         self.draw_direction()
 
-    def draw_path(self, path: Path(), color: Tuple[int, int, int]):
+    def draw_path(self, path: Path, color: Tuple[int, int, int]) -> None:
         length = path.length()
         # print(length)
         pt2 = None
         for ind_pt in range(length):
             pose = path.get(ind_pt)
-            pt1 = pose.position + self._half_size_array
+            pt1 = pose.position
             # print(ind_pt, pt1, pt2)
             if ind_pt > 0:
                 arcade.draw_line(float(pt2[0]),
@@ -105,7 +116,6 @@ class MyDronePid(DroneAbstract):
 
     def draw_direction(self):
         pt1 = np.array([self.true_position()[0], self.true_position()[1]])
-        pt1 = pt1 + self._half_size_array
         pt2 = pt1 + 250 * np.array([math.cos(self.true_angle()),
                                     math.sin(self.true_angle())])
         color = (255, 64, 0)

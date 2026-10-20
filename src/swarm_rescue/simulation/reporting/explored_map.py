@@ -1,5 +1,5 @@
 import math
-from typing import List, Dict, Tuple
+from typing import List, Optional
 
 import cv2
 import numpy as np
@@ -54,7 +54,8 @@ def fill_empty_blob_of_wall(map_img) -> np.ndarray:
         # No connected components found, return the original image
         return map_img
 
-    # Find the index of the biggest component. Label 0 is the wall (background, here) so we start at 1
+    # Find the index of the biggest component. Label 0 is the wall (background, here)
+    # so we start at 1
     biggest_area_index = np.argmax(areas) + 1
 
     filled_wall_map = ((label_ids == biggest_area_index).astype("uint8")) * 255
@@ -109,19 +110,19 @@ class ExploredMap:
         """
         Initializes the ExploredMap object with empty maps and counters.
         """
-        # img_playground : colored image of the playground without wounded
+        # img_playground: colored image of the playground without wounded
         # persons and without drones
         self._img_playground = np.zeros((0, 0))
-        # map_playground : black and white map of the playground without
+        # map_playground: black and white map of the playground without
         # wounded persons and drones
         self._map_playground = np.zeros((0, 0))
         self._map_shape = (0, 0)
 
-        # _map_explo_lines : map of the point visited by drones (all positions
+        # _map_explo_lines: map of the point visited by drones (all positions
         # of the drones)
         # Initialize _map_explo_lines with 255 (white)
         self._map_explo_lines = np.ones((0, 0))
-        # _map_explo_zones : map of the zone explored by drones
+        # _map_explo_zones: map of the zone explored by drones
         # Initialize _map_explo_zones with zeros (black)
         self._map_explo_zones = np.zeros((0, 0))
         # Dictionary to store the positions of the drones
@@ -131,18 +132,73 @@ class ExploredMap:
 
         self._count_explored_pixels = 0
 
+        # Playground seen the last time the walls were rendered. Kept so that
+        # `score()` can still work when it is called before any drone moved,
+        # and so that `initialize_walls()` can be called with no argument.
+        self._remembered_playground = None
+
         # Flag to indicate if the map has been initialized or not
         self.initialized = False
+
+    def attach_playground(self, playground: Playground) -> None:
+        """
+        Record which playground this explored map measures, without rendering.
+
+        The walls are *not* rendered here: a map assigns its playground before
+        adding the walls to it, so rendering at this point would capture an
+        empty map. The walls are rendered later, on the first `update_drones`
+        or `score`.
+
+        Args:
+            playground (Playground): The playground this map measures.
+        """
+        self._remembered_playground = playground
+
+    def _resolve_playground(self) -> Optional[Playground]:
+        """
+        Return the playground this explored map belongs to, if it is known.
+
+        Returns:
+            Optional[Playground]: The playground, or None when neither
+            `attach_playground` nor `initialize_walls` has provided one.
+        """
+        return self._remembered_playground
+
+    def _ensure_initialized(self, drones: Optional[List[DroneAbstract]] = None) -> None:
+        """
+        Initialize the walls if that has not been done yet.
+
+        This is what removes the need for every map to call
+        `initialize_walls` by hand. It is called from `update_drones` and from
+        `score`, the only two entry points that need the walls.
+
+        Args:
+            drones (Optional[List[DroneAbstract]]): The drones seen by the
+                caller, used to find the playground when none is remembered.
+        """
+        if self.initialized:
+            return
+
+        playground = self._remembered_playground
+
+        if playground is None and drones:
+            # Every entity knows its playground, so a single drone is enough.
+            playground = drones[0].playground
+
+        if playground is None:
+            return
+
+        self.initialize_walls(playground)
 
     def reset(self) -> None:
         """
         Resets all the maps and counters to zero.
         """
-        # _map_explo_lines : map of the point visited by drones (all positions
+        # _map_explo_lines: map of the point visited by drones (all positions
         # of the drones)
         # Initialize _map_explo_lines with 255 (white)
         self._map_explo_lines = np.ones(self._map_shape, np.uint8) * 255
-        # _map_explo_zones : map of the zone explored by drones
+        # _map_explo_zones: map of the zone explored by drones
         # Initialize _map_explo_zones with zeros (black)
         self._map_explo_zones = np.zeros(self._map_shape, np.uint8)
         self._explo_pts = dict()
@@ -160,7 +216,13 @@ class ExploredMap:
         Returns:
             np.ndarray: The color image of the playground.
         """
-        view = TopDownView(playground=playground, zoom=1)
+        # `only_static_geometry` is what makes the result independent of *when*
+        # this is called: the drones and the wounded persons are excluded on
+        # purpose, instead of relying on the caller not having added them yet.
+        # Without it, the same map rendered after the drones were placed would
+        # differ from the same map rendered before.
+        view = TopDownView(playground=playground, zoom=1,
+                           only_static_geometry=True)
         view.update_and_draw_in_framebuffer()
         # self._img_playground have float values between 0 and 1
         # The image should be flip and the color channel permuted
@@ -168,15 +230,33 @@ class ExploredMap:
         self._img_playground = cv2.cvtColor(self._img_playground, cv2.COLOR_BGR2RGB)
         return self._img_playground
 
-    def initialize_walls(self, playground: Playground) -> None:
+    def initialize_walls(self, playground: Optional[Playground] = None) -> None:
         """
         From _img_playground, it creates a black and white image of the walls
         saved in _map_playground.
         Creates an image of the playground without drones and wounded persons.
 
+        It is called automatically by `update_drones` and `score`, so a map
+        does not have to call it to get an exploration score. It stays public so
+        that a map can still initialize the explored map while it is being
+        built, and it is idempotent: calling it twice on the same playground
+        gives the same walls.
+
         Args:
-            playground (Playground): The playground instance.
+            playground (Optional[Playground]): The playground instance. None
+                (the default) takes it from the drones seen by
+                `update_drones`, or from `_remembered_playground` when the
+                score is computed before any drone moved.
         """
+        if playground is None:
+            playground = self._resolve_playground()
+
+        if playground is None:
+            # No playground known yet. Not an error: `update_drones` will call
+            # this again as soon as it sees a drone.
+            return
+
+        self._remembered_playground = playground
         self.initialized = True
         img_playground = self._create_image_walls(playground)
 
@@ -186,11 +266,11 @@ class ExploredMap:
         self._map_playground = fill_empty_blob_of_wall(map_playground_tmp)
         self._map_shape = self._map_playground.shape
 
-        # _map_explo_lines : map of the point visited by drones (all positions
+        # _map_explo_lines: map of the point visited by drones (all positions
         # of the drones)
         # Initialize _map_explo_lines with 255 (white)
         self._map_explo_lines = np.ones(self._map_shape, np.uint8) * 255
-        # _map_explo_zones : map of the zone explored by drones
+        # _map_explo_zones: map of the zone explored by drones
         # Initialize _map_explo_zones with zeros (black)
         self._map_explo_zones = np.zeros(self._map_shape, np.uint8)
 
@@ -201,6 +281,10 @@ class ExploredMap:
         Args:
             drones (List[DroneAbstract]): List of drones.
         """
+        # A map that never called `initialize_walls` still gets its walls here,
+        # so no caller has to remember to do it.
+        self._ensure_initialized(drones)
+
         if not self.initialized:
             return
 
@@ -254,7 +338,7 @@ class ExploredMap:
         Display _map_explo_lines and _map_explo_zones.
         """
         if not self.initialized:
-            print("warning : explored_map was not initialized, "
+            print("warning: explored_map was not initialized, "
                   "cannot display map !")
             return
 
@@ -417,8 +501,12 @@ class ExploredMap:
         Returns:
             float: Exploration score (0 to 1).
         """
+        # Same as in `update_drones`: a map that never called
+        # `initialize_walls` still gets a real score here.
+        self._ensure_initialized()
+
         if not self.initialized:
-            return 0
+            return 0.0
 
         # Computing map
         self._process_positions()
@@ -432,7 +520,10 @@ class ExploredMap:
 
         # Handle the case where there are no reachable pixels
         if count_reachable_pixels == 0:
-            print("Warning: No reachable pixels found in the map. Returning exploration score of 0.")
+            print(
+                "Warning: No reachable pixels found in the map. "
+                "Returning exploration score of 0."
+            )
             return 0.0
 
         score = self._count_explored_pixels / count_reachable_pixels

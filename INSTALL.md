@@ -1,6 +1,5 @@
-
-# Table of Content
-- [Table of Content](#table-of-content)
+# Table of Contents
+- [Table of Contents](#table-of-contents)
 - [Introduction](#introduction)
 - [Installation on macOS](#installation-on-macos)
 - [Installation on Ubuntu (recommended)](#installation-on-ubuntu-recommended)
@@ -20,6 +19,7 @@
   - [Check software versions](#check-software-versions)
   - [Find OpenGL version on Ubuntu](#find-opengl-version-on-ubuntu)
   - [Update Mesa library](#update-mesa-library)
+  - [Shader behaviour in headless environments (CI, containers, no display)](#shader-behaviour-in-headless-environments-ci-containers-no-display)
 - [Python IDE](#python-ide)
 - [Contact](#contact)
 
@@ -31,7 +31,7 @@ This installation procedure has been successfully tested on **Ubuntu** and **Win
 
 Installation on **macOS systems** is challenging and is **not officially supported**. *Swarm-Rescue* requires a recent version of *OpenGL* to function properly. However, recent versions of macOS no longer use *OpenGL* and instead rely on Apple's *Metal* graphics framework.
 
-In any case, the code has had to be adapted for macOS in the past, resulting in significant performance degradation compared to Ubuntu systems. If you must use macOS, refer to [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders)
+In any case, the code has had to be adapted for macOS in the past, resulting in significant performance degradation compared to Ubuntu systems. If you must use macOS, refer to [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders).
 
 # Installation on Ubuntu (recommended)
 
@@ -62,14 +62,20 @@ sudo apt install git git-gui gitk libjpeg-dev zlib1g-dev
 
 ## *Python* installation
 
-*Swarm-Rescue* requires **Python 3.8 or higher**. Python 3.8 is the default version on Ubuntu 20.04.
+*Swarm-Rescue* requires **Python 3.10 or higher**.
+
+> **Note:** Ubuntu 20.04 ships Python 3.8 by default, which is **not** supported anymore: the
+> *Arcade* 3.x dependency requires Python >= 3.10. On Ubuntu 20.04 you must install a newer
+> interpreter (for example with `pyenv`, or the *deadsnakes* PPA).
+
+Then install a Python >= 3.10 interpreter. With `pyenv`:
 
 ```bash
-sudo apt update
-sudo apt install python3 python3-venv python3-dev python3-pip 
+curl -fsSL https://pyenv.run | bash
+pyenv install 3.12
 ```
 
-Verify your Python version:
+Verify your Python version (it must be 3.10 or higher):
 ```bash
 python3 --version
 ```
@@ -99,7 +105,8 @@ Set up an isolated Python environment for the project:
 
 ```bash
 cd swarm-rescue
-python3 -m venv .venv
+# Use your Python 3.10+ interpreter explicitly (e.g. python3.12 with pyenv)
+python3.12 -m venv .venv
 ```
 It creates a *.venv* directory where all dependencies are installed.
 
@@ -124,7 +131,7 @@ python3 -m pip install --editable .
 Verify everything works by running the launcher:
 
 ```bash
-python3 ./src/swarm_rescue/launcher.py
+python src/swarm_rescue/launcher.py
 ```
 
 # Installation on Windows 10/11 with WSL2
@@ -143,7 +150,7 @@ Then simply follow the Ubuntu installation instructions: [Installation on Ubuntu
 
 # Installation on Windows 10/11 with GitBash
 
-This installation procedure has been tested on Windows 11 (october 2025)
+This installation procedure has been tested on Windows 11 (October 2025)
 
 ## **Warning** for Windows users
 
@@ -172,8 +179,8 @@ If problems persist, you have several solutions:
 ## *Python* installation
 
 - Open the following link in your web browser: https://www.python.org/downloads/windows/
-- The program will **not** work with a Python version greater than or equal to 3.12. (3.13.7 aug. 14 2025)
-- Don't choose the latest version of Python, but choose version 3.11.9. Currently (10/2023), it is "*Python 3.11.9 - April 2, 2024*".
+- The program requires **Python 3.10 or higher**.
+- This procedure was validated with **Python 3.11** on Windows. Versions above 3.11 have not been tested on Windows yet: they should work, and any issue is worth reporting.
 - For modern machines, you must select the *Windows installer (64-bit)*.
 - Once the installer is downloaded, run the Python installer.
 - **Important**: you need to check the "**Add python.exe to path**" check box to include the interpreter in the execution path.
@@ -193,7 +200,7 @@ The *Git Bash* terminal will be your primary interface for project work.
 ## Configure *Git Bash*
 
 - Run the *Git Bash* terminal.
-- **Warning**, by default you may **not** be in your home directory. So to get there, just type `cd`.
+- **Warning**, by default, you may **not** be in your home directory. So to get there, just type `cd`.
 - If everything works, the command `python --version` should show the installed Python version, for example: `Python 3.11.9`.
 
 ## Install this *swarm-rescue* repository
@@ -239,24 +246,56 @@ python -m pip install --editable .
 Test the installation:
 
 ```bash
-python ./src/swarm_rescue/launcher.py
+python src/swarm_rescue/launcher.py
 ```
+
+> **Headless environments (CI, containers, no display):** shader tests are
+> unreliable when OpenGL falls back to Mesa's software renderer. See
+> [Shader behaviour in headless environments](#shader-behaviour-in-headless-environments-ci-containers-no-display).
+
 # Troubleshooting
 
 ## Deactivation of OpenGL shaders
 
-Shaders are GPU-accelerated programs written in GLSL that significantly improve performance. However, compatibility issues may require disabling them.
+Shaders are GPU-accelerated programs written in GLSL that significantly improve performance. However, compatibility issues may require disabling them. You can control shader usage in three ways (preferred order):
 
-To disable shaders:
-1. Open file *src/swarm_rescue/spg_overlay/gui_map/closed_playground.py*
-2. Navigate to line 37
-3. Change parameter `use_shaders` from *True* to *False*
+1. Environment variable (recommended for quick sessions or CI):
 
-**Note**: This reduces performance, especially with multiple drones.
+```bash
+# Disable shaders globally for the process
+export SWARM_RESCUE_USE_SHADERS=false
+# Run the launcher
+python src/swarm_rescue/launcher.py
+```
+
+2. Per-map parameter (apply only to a specific map instance):
+
+```text
+# Example (replace <YourDroneClass> with the drone class you use):
+from swarm_rescue.maps.map_intermediate_01 import MapIntermediate01
+map_cpu = MapIntermediate01(drone_type=<YourDroneClass>, use_shaders=False)
+```
+
+3. Python API (programmatic, useful in tests):
+
+```python
+from swarm_rescue.simulation.utils.shader_config import ShaderConfig
+# Force CPU mode for the duration of the process or test
+ShaderConfig.force_cpu_mode()
+# Reset auto-detection later if needed
+ShaderConfig.reset()
+```
+
+**Note:** editing the source code to change defaults is discouraged. Prefer the three mechanisms above to change shader mode. Disabling shaders reduces performance (especially with many drones) but increases compatibility on systems with problematic GPU/OpenGL drivers.
 
 ## Check software versions
 
-*Swarm-Rescue* requires OpenGL 4.40 or higher. Use this script to verify your system:
+*Swarm-Rescue* requires **OpenGL 3.3 core** or higher to open the Arcade window.
+GPU-accelerated sensors additionally need **OpenGL 4.4**, because the compute
+shader (`id_compute.glsl`) declares `#version 440`. Without 4.4, disable the
+shaders as described in [Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders).
+Use this script to verify your system:
+
 ```bash
 python src/swarm_rescue/tools/opengl_info.py
 ```
@@ -278,12 +317,61 @@ glxinfo | grep "OpenGL version"
 
 ## Update Mesa library
 
-Under Linux or WSL2, to update the Mesa library to the lastest (but not-official) version:
+Under Linux or WSL2, to update the Mesa library to the latest (but unofficial) version:
 ```bash
 sudo add-apt-repository ppa:kisak/kisak-mesa
 sudo apt update
 sudo apt upgrade
 ```
+
+## Shader behaviour in headless environments (CI, containers, no display)
+
+The shader path is **unreliable when the test suite runs without a real GPU**,
+which is the case for most CI runners and containers. The symptom that shows up
+there is `tests/test_sensor_consistency.py::test_lidar_shader_vs_cpu_similarity`
+failing intermittently, with the shader reporting a hit at distance 0 where the
+CPU measures a wall 200-300 px away.
+
+> **Note:** this is **not** the same failure as the Windows one described above.
+> That one is reported by users running on real GPUs and reports "lidar
+> detecting through walls"; nothing reproduced here matches that behavior, and
+> it has a different mechanism. Do not assume one fix covers the other.
+
+**Why:** without a display, OpenGL falls back to Mesa's **software** renderer
+(`llvmpipe` or `softpipe`). Compute shaders then run on the CPU through Mesa
+instead of on the GPU. Measured on this project, the object id the shader reads
+back can come back off by one, which is enough to make a drone detect its own
+base as an obstacle at zero range. `xvfb-run` is not a workaround, it is exactly
+what triggers the fallback:
+
+```bash
+$ .venv/bin/python -c "import arcade, pyglet; w = arcade.Window(50,50,visible=False); \
+    print(pyglet.gl.gl_info.get_renderer()); w.close()"
+AMD RENOIR (DRM 3.42.0)      # a real GPU: the shader tests are reliable
+llvmpipe (LLVM 12.0.0)       # software rendering: the shader tests are not
+```
+
+**Check this first** whenever a shader test fails on a machine you believe to be
+correct, or before reporting a shader bug:
+
+```bash
+python src/swarm_rescue/tools/opengl_info.py
+glxinfo -B | grep -i renderer
+```
+
+If the renderer contains `llvmpipe` or `softpipe`, there is no GPU in use and the
+failure is expected: run the suite on a machine with a real GPU, or disable
+shaders with the mechanisms described in
+[Deactivation of OpenGL shaders](#deactivation-of-opengl-shaders). Note that
+`tests/test_shader_config.py` already skips GPU tests on CI for this reason.
+
+The shader now tolerates that one-unit drift when matching invisible ids, which
+makes the suite pass under `llvmpipe`. That is a mitigation for the measured
+symptom, not a repair of the driver: an id read wrong is still wrong whenever it
+identifies a visible entity.
+
+> This failure mode is **not** a sign of a broken installation and does not
+> affect the CPU fallback path used for the actual competition runs.
 
 # Python IDE
 
@@ -298,4 +386,3 @@ For questions about installation or code:
 
 **Email**: emmanuel . battesti at ensta . fr  
 **Discord**: Available on the project's Discord server
-

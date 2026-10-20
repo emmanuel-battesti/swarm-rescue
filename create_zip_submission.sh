@@ -8,9 +8,9 @@ check_field() {
   fi
 }
 
-# Check if req.txt exists
-if [ ! -f req.txt ]; then
-  echo "Warning: req.txt not found in this directory. Generation of the submission ZIP file is not possible."
+# Check if pyproject.toml exists
+if [ ! -f pyproject.toml ]; then
+  echo "Warning: pyproject.toml not found in this directory. Generation of the submission ZIP file is not possible."
   exit 1
 fi
 
@@ -32,7 +32,7 @@ team_name=$(grep 'team_name:' src/swarm_rescue/solutions/team_info.yml | awk '{p
 team_members=$(grep 'team_members:' src/swarm_rescue/solutions/team_info.yml | awk -F': ' '{print $2}')
 
 # Format the team number with leading zeros if necessary
-formatted_team_number=$(printf "%03d" $team_number)
+formatted_team_number=$(printf "%03d" "$team_number")
 
 # Validate the extracted fields
 check_field "$team_name" "Team name"
@@ -43,7 +43,7 @@ echo "Team number: $formatted_team_number"
 echo "Team name: $team_name"
 echo "Team members: $team_members"
 echo "Do you confirm this information? (y/n)"
-read confirmation
+read -r confirmation
 
 if [ "$confirmation" != "y" ]; then
   echo "Please modify your team_info.yml file to correct the information and try again. Generation of the submission ZIP file is not possible."
@@ -55,7 +55,7 @@ echo "Please choose an evaluation step from the following options (a, b, or c):"
 echo "a) intermediate01"
 echo "b) intermediate02"
 echo "c) final"
-read evalstep_choice
+read -r evalstep_choice
 
 # Set the evaluation step based on user input
 case $evalstep_choice in
@@ -92,9 +92,9 @@ if ! (cd src/swarm_rescue/solutions && zip -r ../../../"$zip_file" .); then
   exit 1
 fi
 
-# Update the zip file to include req.txt
-if ! zip -u "$zip_file" req.txt; then
-  echo "Error: Failed to update the ZIP file with req.txt. Generation of the submission ZIP file is not possible."
+# Update the zip file to include pyproject.toml
+if ! zip -u "$zip_file" pyproject.toml; then
+  echo "Error: Failed to update the ZIP file with pyproject.toml. Generation of the submission ZIP file is not possible."
   exit 1
 fi
 

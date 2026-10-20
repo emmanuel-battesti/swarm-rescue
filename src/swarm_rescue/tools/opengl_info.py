@@ -47,7 +47,7 @@ def get_windows_version() -> None:
 
     try:
         # Exécuter la commande pour obtenir la version de Windows via cmd.exe
-        if "microsoft-standard" in platform.uname().release:  # Détection de WSL
+        if "microsoft-standard" in platform.uname().release: # Détection de WSL
             # Change le répertoire courant vers un chemin valide
             os.chdir("/mnt/c")  # Change vers le disque C: monté sous WSL
 
@@ -72,7 +72,14 @@ def get_opengl_info() -> None:
         # Afficher des informations sur OpenGL
         print("OpenGL Vendor:", context.info.VENDOR)
         print("OpenGL Renderer:", context.info.RENDERER)
-        print("OpenGL Version:", context.gl_version)
+        # `MAJOR_VERSION` / `MINOR_VERSION` are filled in when the GL context
+        # is created, not declared on the stub type, so read them dynamically.
+        major = getattr(context.info, "MAJOR_VERSION", None)
+        minor = getattr(context.info, "MINOR_VERSION", None)
+        if major is not None and minor is not None:
+            print("OpenGL Version:", f"{major}.{minor}")
+        else:
+            print("OpenGL Version: unknown")
         # print("GLSL Version:", context.info.glsl_version)
     except Exception as e:
         print("Erreur lors de la récupération des informations OpenGL:", e)
@@ -95,7 +102,10 @@ def get_mesa_version() -> None:
                 print("Version shading language:", line.split(":")[1].strip())
     except FileNotFoundError:
         if platform.system() == "Linux":
-            print("Erreur : 'glxinfo' n'est pas installé. Veuillez l'installer avec la commande suivante :")
+            print(
+                "Erreur : 'glxinfo' n'est pas installé. Veuillez l'installer avec la "
+                "commande suivante :"
+            )
             print("sudo apt install mesa-utils")
         else:
             print("Erreur : 'glxinfo' n'est pas disponible sur ce système.")

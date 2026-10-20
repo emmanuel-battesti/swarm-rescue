@@ -1,5 +1,6 @@
 import csv
 import os
+from typing import Optional
 
 import cv2
 
@@ -7,10 +8,11 @@ from swarm_rescue.simulation.reporting.evaluation import EvalConfig
 from swarm_rescue.simulation.reporting.evaluation_pdf_report import EvaluationPdfReport
 from swarm_rescue.simulation.reporting.stats_computation import StatsComputation
 from swarm_rescue.simulation.reporting.team_info import TeamInfo
+from swarm_rescue.simulation.reporting.data_website_writer import DataWebsiteWriter
 
 
 # from datetime import datetime
-# from pathlib2 import Path
+# from pathlib import Path
 
 
 class DataSaver:
@@ -41,7 +43,8 @@ class DataSaver:
         _stats_filename: The filename of the CSV file for storing the statistics.
     """
 
-    def __init__(self, team_info: TeamInfo, result_path: str = None, enabled: bool = True):
+    def __init__(self, team_info: TeamInfo, result_path: Optional[str] = None,
+                 enabled: bool = True):
         """
         Initializes the DataSaver object. It creates the directory and CSV file
         for storing the results. It also creates an instance of the
@@ -73,13 +76,24 @@ class DataSaver:
         """
         Generates the PDF report using the EvaluationPdfReport object.
         """
-        if not self._enabled:
+        if not self._enabled or self._result_path is None:
             return
 
         stat_computation = StatsComputation(self._team_info, self._result_path)
         stat_computation.process()
         pdf_report = EvaluationPdfReport(self._team_info, self._result_path)
         pdf_report.generate_pdf(stat_computation)
+        # Write website data using the dedicated writer (separate concern)
+        try:
+            DataWebsiteWriter.write(stat_computation, self._team_info, result_path=self._result_path)
+        except Exception:
+            # keep behavior robust: do not fail the report if writing fails
+            print("Warning: failed to write data_website.txt via DataWebsiteWriter")
+        # Also print the website data to stdout for convenience (non-fatal)
+        try:
+            DataWebsiteWriter.print_data(stat_computation, self._team_info)
+        except Exception:
+            print("Warning: failed to print data_website via DataWebsiteWriter")
 
     def _create_stats_file(self) -> None:
         """
@@ -88,8 +102,11 @@ class DataSaver:
         self._stats_filename = (self._result_path +
                                 f"/team{self._team_info.team_number_str_padded}"
                                 f"_stats.csv")
-        file = open(self._stats_filename, 'w')
-        file.close()
+        # Truncate the file to create it. `with` guarantees the descriptor is
+        # released even if the call raises.
+        with open(self._stats_filename, 'w'):
+            pass
+        assert self._stats_filename is not None
         if os.path.getsize(self._stats_filename) == 0:
             self._add_line([('Group', 'Id Config', 'Map', 'Zones',
                              "Zones Casual", 'Config Weight', 'Round',
@@ -110,11 +127,12 @@ class DataSaver:
         if self._stats_filename is None:
             self._create_stats_file()
 
-        file = open(self._stats_filename, 'a')
-        obj = csv.writer(file)
-        for element in data:
-            obj.writerow(element)
-        file.close()
+        # `with` so a malformed row cannot leak the descriptor: a competition
+        # run appends to this file once per round.
+        with open(self._stats_filename, 'a') as file:
+            obj = csv.writer(file)
+            for element in data:
+                obj.writerow(element)
 
     def save_one_round(self,
                        eval_config: EvalConfig,
@@ -155,6 +173,9 @@ class DataSaver:
             crashed_value = 100.0
         else:
             crashed_value = 0.0
+
+        if elapsed_walltime <= 0:
+            elapsed_walltime = 0.01
 
         data = [(self._team_info.team_number,
                  eval_config.id_config,

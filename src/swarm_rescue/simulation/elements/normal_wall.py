@@ -3,6 +3,7 @@ import random
 from typing import Tuple
 
 import arcade
+import arcade.hitbox
 import numpy as np
 import pymunk
 from PIL import Image
@@ -10,6 +11,7 @@ from PIL import Image
 from swarm_rescue.resources import path_resources
 from swarm_rescue.simulation.elements.physical_element import PhysicalElement
 from swarm_rescue.simulation.utils.definitions import CollisionTypes
+from swarm_rescue.simulation.utils.texture_cache import load_texture_cached
 
 
 class ColorWall(PhysicalElement):
@@ -54,25 +56,29 @@ class ColorWall(PhysicalElement):
 
         self.wall_coordinates = (position.x, position.y), angle
 
+        hit_box_algo = arcade.hitbox.PymunkHitBoxAlgorithm(detail=1.0)
+
         if color is not None:
             img = Image.new("RGBA",
                             (int(wall_thickness), int(length)), color)
+            # Texture built directly from the generated image.
             texture = arcade.Texture(
-                name=f"Wall_{int(position.x)}_{int(position.y)}_{int(math.degrees(angle))}_{length}",
                 image=img,
-                hit_box_algorithm="Detailed",
-                hit_box_detail=1,
+                hit_box_algorithm=hit_box_algo,
             )
         elif file_name is not None:
             w_img = 2000
             h_img = 2000
             x = random.randint(0, int(w_img - length - 1))
             y = random.randint(0, int(h_img - wall_thickness - 1))
-            texture = arcade.load_texture(file_name=file_name,
-                                          x=x,
-                                          y=y,
-                                          width=length,
-                                          height=wall_thickness)
+            # The full texture is loaded, then cropped to the wall region.
+            # The full texture is shared between every wall (see texture_cache);
+            # `crop` below returns a new one, so the walls stay independent.
+            full_texture = load_texture_cached(
+                file_path=file_name,
+                hit_box_algorithm=hit_box_algo,
+            )
+            texture = full_texture.crop(x=x, y=y, width=int(length), height=int(wall_thickness))
         else:
             raise ValueError('Either color or file_name must be provided')
 
@@ -177,14 +183,14 @@ class NormalBox(ColorWall):
         """
         # self.color = (200, 240, 230)
 
-        if width > height:  # horizontal box
+        if width > height: # horizontal box
             correction = 0.5 * height
             pos_start = (up_left_point[0] +
                          correction, up_left_point[1] - 0.5 * height)
             pos_end = (up_left_point[0] +
                        width - correction, up_left_point[1] - 0.5 * height)
             wall_thickness = height
-        else:  # vertical box
+        else: # vertical box
             correction = 0.5 * width
             pos_start = (up_left_point[0] +
                          0.5 * width, up_left_point[1] - correction)

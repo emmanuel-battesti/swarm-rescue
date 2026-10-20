@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
-
-from pathlib2 import Path
+from pathlib import Path
+from typing import Optional
 
 
 class ResultPathCreator:
@@ -20,7 +20,7 @@ class ResultPathCreator:
 
         self._team_info = team_info
         self._directory = str(Path.home()) + '/results_swarm_rescue'
-        self._result_path = None
+        self._result_path: Optional[str] = None
 
         self._create_path_name()
         self._make_dir()
@@ -35,6 +35,7 @@ class ResultPathCreator:
         self._result_path = (self._directory
                              + f'/team{self._team_info.team_number_str_padded}'
                                f'_{date.strftime("%y%m%d_%Hh%Mmin%Ss")}')
+        assert self._result_path is not None
 
     def _make_dir(self) -> None:
         """
@@ -45,8 +46,9 @@ class ResultPathCreator:
         except FileExistsError as error:
             print(error)
 
+        result_path = self.path
         try:
-            os.makedirs(self._result_path)
+            os.makedirs(result_path)
         except FileExistsError as error:
             print(error)
 
@@ -58,4 +60,5 @@ class ResultPathCreator:
         Returns:
             str: The result path.
         """
+        assert self._result_path is not None, "The path has not been created yet."
         return self._result_path

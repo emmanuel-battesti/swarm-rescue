@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pandas
 from pandas import DataFrame
 
@@ -37,12 +39,13 @@ class StatsComputation:
         self.mean_computation_freq = 0
         self.mean_drones_health_percent = 0
         self.percent_drones_destroyed = 0
-        self.df_configs = None
-        self.df_detailed = None
-        self.df_summary = None
-        self.df_graph_scores = None
-        self.df_screenshots = None
-        self.df_data_website = None
+        # Filled in by `compute_stats()`; `None` only before it runs.
+        self.df_configs: Optional[DataFrame] = None
+        self.df_detailed: Optional[DataFrame] = None
+        self.df_summary: Optional[DataFrame] = None
+        self.df_graph_scores: Optional[DataFrame] = None
+        self.df_screenshots: Optional[DataFrame] = None
+        self.df_data_website: Optional[DataFrame] = None
 
         file = pandas.read_csv(self._result_path +
                                f'/team{self._team_info.team_number_str_padded}'
@@ -67,9 +70,13 @@ class StatsComputation:
         """
         Compute the mean computation frequency.
         """
-        df_freq = (self.dataframe["Elapsed Time Step"]
-                   / self.dataframe["Real Time Elapsed"])
-        self.mean_computation_freq = df_freq.mean()
+        valid_time = self.dataframe["Real Time Elapsed"] > 0
+        if valid_time.any():
+            df_freq = (self.dataframe.loc[valid_time, "Elapsed Time Step"]
+                       / self.dataframe.loc[valid_time, "Real Time Elapsed"])
+            self.mean_computation_freq = df_freq.mean()
+        else:
+            self.mean_computation_freq = 0.0
 
     def _compute_drones_health(self) -> None:
         """
@@ -99,8 +106,7 @@ class StatsComputation:
                                               'Round': 'Round n°',
                                               'Rescued Percent': 'Rescued Sc.',
                                               'Exploration Score': 'Explo Score',
-                                              'Health Return Score': 'Return Score'},
-                                     copy=True)
+                                              'Health Return Score': 'Return Score'})
 
         self.df_detailed["Rescued Sc."] = (
             self.df_detailed["Rescued Sc."].apply(lambda x: f"{x:.1f} %"))
@@ -124,8 +130,7 @@ class StatsComputation:
         df2 = df2.reset_index()
 
         self.df_summary = df2.rename(columns={'Id Config': 'Config n°',
-                                              'Round Score': 'Config Score'},
-                                     copy=True)
+                                              'Round Score': 'Config Score'})
         self.df_summary["Config Score"] = (
             self.df_summary["Config Score"].apply(lambda x: f"{x:.1f} %"))
 
@@ -167,8 +172,7 @@ class StatsComputation:
 
         self.df_data_website = df2.rename(
             columns={'Zones Casual': 'Configuration',
-                     'Round Score': 'Config Score'},
-            copy=True)
+                     'Round Score': 'Config Score'})
         self.df_data_website["Rescued Percent"] = (
             self.df_data_website["Rescued Percent"].apply(lambda x: f"{x:.0f}"))
         self.df_data_website["Exploration Score"] = (

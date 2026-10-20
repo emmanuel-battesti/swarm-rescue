@@ -128,9 +128,6 @@ def main():
 
     gui.run()
 
-    score_health_returned = the_map.compute_score_health_returned()
-    print("score_health_returned = ", score_health_returned)
-
 
 if __name__ == '__main__':
     main()

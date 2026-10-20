@@ -43,7 +43,7 @@ class MyDroneKeyboard(DroneAbstract):
                                  "grasper": 0}
 
         if self.is_inside_return_area != self.last_inside:
-            print("is_inside_return_area : ", self.is_inside_return_area)
+            print(f"is_inside_return_area: {self.is_inside_return_area}")
             self.last_inside = self.is_inside_return_area
 
         return command
@@ -99,25 +99,25 @@ class MyMapKeyboard(MapAbstract):
 
 def print_keyboard_man():
     print("How to use the keyboard to direct the drone?")
-    print("\t- up / down key : forward and backward")
-    print("\t- left / right key : turn left / right")
-    print("\t- shift + left/right key : left/right lateral movement")
-    print("\t- W key : grasp wounded person")
-    print("\t- L key : display (or not) the lidar sensor")
-    print("\t- S key : display (or not) the semantic sensor")
-    print("\t- P key : draw position from GPS sensor")
-    print("\t- C key : draw communication between drones")
-    print("\t- M key : print messages between drones")
-    print("\t- Q key : exit the program")
-    print("\t- R key : reset")
+    print("\t- up / down key: forward and backward")
+    print("\t- left / right key: turn left / right")
+    print("\t- shift + left/right key: left/right lateral movement")
+    print("\t- W key: grasp wounded person")
+    print("\t- L key: display (or not) the lidar sensor")
+    print("\t- S key: display (or not) the semantic sensor")
+    print("\t- P key: draw position from GPS sensor")
+    print("\t- C key: draw communication between drones")
+    print("\t- M key: print messages between drones")
+    print("\t- Q key: exit the program")
+    print("\t- R key: reset")
 
 
 def main():
     print_keyboard_man()
     the_map = MyMapKeyboard(drone_type=MyDroneKeyboard)
 
-    # draw_lidar_rays : enable the visualization of the lidar rays
-    # draw_semantic_rays : enable the visualization of the semantic rays
+    # draw_lidar_rays: enable the visualization of the lidar rays
+    # draw_semantic_rays: enable the visualization of the semantic rays
     gui = GuiSR(the_map=the_map,
                 draw_lidar_rays=True,
                 draw_semantic_rays=True,
@@ -125,8 +125,6 @@ def main():
                 )
     gui.run()
 
-    score_health_returned = the_map.compute_score_health_returned()
-    print("score_health_returned = ", score_health_returned)
 
 
 if __name__ == '__main__':

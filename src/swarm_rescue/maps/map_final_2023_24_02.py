@@ -1,9 +1,8 @@
 import gc
 import math
 import pathlib
-import random
 import sys
-from typing import List, Type
+from typing import List, Type, Optional
 
 # Insert the parent directory of the current file's directory into sys.path.
 # This allows Python to locate modules that are one level above the current
@@ -27,8 +26,12 @@ from swarm_rescue.maps.walls_final_2023_24_02 import add_walls, add_boxes
 
 class MapFinal_2023_24_02(MapAbstract):
 
-    def __init__(self, drone_type: Type[DroneAbstract], zones_config: ZonesConfig = ()):
-        super().__init__(drone_type, zones_config)
+    def __init__(self,
+                 drone_type: Type[DroneAbstract],
+                 zones_config: ZonesConfig = (),
+                 use_shaders: Optional[bool] = None,
+                 seed: Optional[int] = None):
+        super().__init__(drone_type, zones_config, seed=seed)
         self._max_timestep_limit = 7200
         self._max_walltime_limit = 1440  # In seconds
 
@@ -70,20 +73,22 @@ class MapFinal_2023_24_02(MapAbstract):
         for i in range(self._number_drones):
             x = sx + (float(i) % nb_per_side) * dist_inter_drone
             y = sy + math.floor(float(i) / nb_per_side) * dist_inter_drone
-            angle = random.uniform(-math.pi, math.pi)
+            angle = self._rng.uniform(-math.pi, math.pi)
             self._drones_pos.append(((x, y), angle))
 
         self._drones: List[DroneAbstract] = []
 
-        self._playground = ClosedPlayground(size=self._size_area)
+        self._playground = ClosedPlayground(
+            size=self._size_area,
+            use_shaders=use_shaders,
+            seed=self._seed
+        )
 
         self._playground.add(self._return_area, self._return_area_pos)
         self._playground.add(self._rescue_center, self._rescue_center_pos)
 
         add_walls(self._playground)
         add_boxes(self._playground)
-
-        self._explored_map.initialize_walls(self._playground)
 
         # DISABLER ZONES
         if ZoneType.KILL_ZONE in self._zones_config:
@@ -110,11 +115,11 @@ class MapFinal_2023_24_02(MapAbstract):
 def main():
     eval_plan = EvalPlan()
 
-    zones_config: ZonesConfig = ()
+    zones_config = ()
     eval_config = EvalConfig(map_name="MapFinal_2023_24_02", zones_config=zones_config)
     eval_plan.add(eval_config=eval_config)
 
-    zones_config: ZonesConfig = (ZoneType.KILL_ZONE,)
+    zones_config = (ZoneType.KILL_ZONE,)
     eval_config = EvalConfig(map_name="MapFinal_2023_24_02", zones_config=zones_config)
     eval_plan.add(eval_config=eval_config)
 
@@ -123,6 +128,9 @@ def main():
 
         # Retrieve the class object from the global namespace using its name
         map_class = globals().get(one_eval.map_name)
+        if map_class is None:
+            print(f"Unknown map type '{one_eval.map_name}', skipping.")
+            continue
         # Instantiate the map class with the provided zones configuration
         the_map = map_class(drone_type=DroneMotionless, zones_config=one_eval.zones_config)
 

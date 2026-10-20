@@ -57,11 +57,26 @@ class Sensor(PocketDevice):
 
         super().__init__(color=SENSOR_COLOR, **kwargs)
 
-        self._values = None
+        # Concretely an ndarray, a float or a list depending on the sensor;
+        # typed as Any so subclasses can narrow it in their own API.
+        self._values: Any = None
 
         self._normalize = normalize
 
         self._noise = False
+
+    def set_noise_rng(self, rng) -> None:
+        """
+        Hand a random generator to the sensor's noise model.
+
+        Called by the playground when it claims the agent, so that a seeded
+        run replays its noisy readings. The default implementation does
+        nothing: sensors without a noise model, or with one wired differently,
+        ignore it.
+
+        Args:
+            rng (np.random.Generator): The generator to draw noise from.
+        """
 
     def update(self) -> None:
         """
@@ -100,7 +115,7 @@ class Sensor(PocketDevice):
 
     @property
     @abstractmethod
-    def _default_value(self) -> np.ndarray:
+    def _default_value(self) -> Any:
         """
         Returns the default value for the sensor.
         """

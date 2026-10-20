@@ -1,15 +1,12 @@
-import platform
-from typing import Tuple
+from typing import Tuple, Optional
 
-from swarm_rescue.simulation.drone.agent import Agent
 from swarm_rescue.simulation.drone.drone_abstract import (drone_collision_wall,
                                                           drone_collision_drone)
-from swarm_rescue.simulation.elements.embodied import EmbodiedEntity
 from swarm_rescue.simulation.elements.normal_wall import NormalWall
 from swarm_rescue.simulation.elements.rescue_center import wounded_rescue_center_collision
 from swarm_rescue.simulation.elements.return_area import return_area_collision
 from swarm_rescue.simulation.elements.sensor_disablers import disabler_zone_disables_device
-from swarm_rescue.simulation.gui_map.collision_handlers import grasper_grasps_wounded
+from swarm_rescue.simulation.collision_handlers import grasper_grasps_wounded
 from swarm_rescue.simulation.gui_map.playground import Playground
 from swarm_rescue.simulation.utils.definitions import CollisionTypes
 
@@ -35,30 +32,39 @@ class ClosedPlayground(Playground):
         _height: The height of the playground.
     """
 
-    def __init__(self, size: Tuple[int, int], border_thickness: int = 6):
+    def __init__(self,
+                 size: Tuple[int, int],
+                 border_thickness: int = 6,
+                 use_shaders: Optional[bool] = None,
+                 seed: Optional[int] = None,
+                 window=None):
         """
         Initialize the ClosedPlayground.
 
         Args:
             size (Tuple[int, int]): Size of the playground (width, height).
             border_thickness (int): Thickness of the border walls.
+            use_shaders (Optional[bool]): Whether to use shaders for rendering.
+                If None, auto-detected by Playground (see ShaderConfig).
+            seed (Optional[int]): Seed for the random number generator, used to
+                assign entity UIDs. UIDs identify the entities hit by the
+                sensors, so seeding them is what makes a round replayable.
+            window: An existing window to draw in. None (the default) creates
+                an invisible one that this playground closes itself; passing
+                one in keeps it alive for the caller to close.
         """
         background = (220, 220, 220)
-        use_shaders = True
-        if platform.system() == "Darwin":
-            use_shaders = False
+
 
         super().__init__(size=size,
-                         seed=None,
+                         seed=seed,
                          background=background,
-                         use_shaders=use_shaders)
-
-        assert isinstance(self.size[0], int)
-        assert isinstance(self.size[1], int)
+                         use_shaders=use_shaders,
+                         window=window)
 
         self._walls_creation(border_thickness)
 
-        # print(f"Version OpenGL : {self._window.ctx.gl_version}")
+        # print(f"Version OpenGL: {self._window.ctx.gl_version}")
 
     def _walls_creation(self, border_thickness: int) -> None:
         """
@@ -67,7 +73,9 @@ class ClosedPlayground(Playground):
         Args:
             border_thickness (int): Thickness of the border walls.
         """
-        width, height = self.size
+        size = self.size
+        assert size is not None
+        width, height = size
         h = height / 2
         w = width / 2
         o = border_thickness / 2
@@ -110,14 +118,3 @@ class ClosedPlayground(Playground):
                              CollisionTypes.DRONE,
                              return_area_collision)
 
-    def get_closest_drone(self, entity: EmbodiedEntity) -> Agent:
-        """
-        Get the closest drone agent to a given entity.
-
-        Args:
-            entity (EmbodiedEntity): The entity to compare distances to.
-
-        Returns:
-            Agent: The closest agent.
-        """
-        return min(self.agents, key=lambda a: entity.position.get_dist_sqrd(a.true_position()))

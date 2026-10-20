@@ -72,7 +72,12 @@ class PhysicalEntity(EmbodiedEntity, ABC):
         if not self._mass:
             return pymunk.Body(body_type=pymunk.Body.STATIC)
 
-        vertices = self._base_sprite.get_hit_box()
+        # hit_box returns a HitBox object; extract the list of points
+        # (tuple/list of tuples (x, y)) via .points
+        vertices = self._base_sprite.hit_box.points
+
+        # Pymunk computes the moment of inertia from the vertices relative to
+        # the center of mass.
         moment = pymunk.moment_for_poly(self._mass, vertices)
 
         return pymunk.Body(self._mass, moment, body_type=pymunk.Body.DYNAMIC)

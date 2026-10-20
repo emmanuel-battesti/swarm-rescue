@@ -47,7 +47,7 @@ class MyDroneLidarCommunication(DroneAbstract):
         In this example, we only use the sensors sensor and the communication to move the drone
         The idea is to make the drones move like a school of fish.
         The sensors will help avoid running into walls.
-        The communication will allow to know the position of the drones in the vicinity, to then correct its own
+        The communication lets a drone learn the position of its neighbors, then correct its own
         position to stay at a certain distance and have the same orientation.
 
         Returns:
@@ -106,10 +106,10 @@ class MyDroneLidarCommunication(DroneAbstract):
         near_angle_raw = 0
         min_dist = 1000
         if size != 0:
-            # far_angle_raw : angle with the longer distance
+            # far_angle_raw: angle with the longer distance
             far_angle_raw = ray_angles[np.argmax(values)]
             min_dist = min(values)
-            # near_angle_raw : angle with the nearest distance
+            # near_angle_raw: angle with the nearest distance
             near_angle_raw = ray_angles[np.argmin(values)]
 
         far_angle = far_angle_raw
@@ -211,8 +211,8 @@ class MyDroneLidarCommunication(DroneAbstract):
             # if you are far away, you get closer
             # heading < 0: at left
             # heading > 0: at right
-            # base.angular_vel_controller : -1:left, 1:right
-            # we are trying to align : diff_angle -> 0
+            # base.angular_vel_controller: -1:left, 1:right
+            # we are trying to align: diff_angle -> 0
             command_comm["rotation"] = sign(diff_angle)
 
             # Desired distance between drones

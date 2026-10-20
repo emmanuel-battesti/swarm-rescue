@@ -63,6 +63,8 @@ class MyDrone(DroneAbstract):
         if self.identifier == 0:
             self.process_semantic_sensor()
 
+        return {"forward": 0.0, "lateral": 0.0, "rotation": 0.0, "grasper": 0}
+
 
 class MyMap(MapAbstract):
     def __init__(self, drone_type: Type[DroneAbstract]):

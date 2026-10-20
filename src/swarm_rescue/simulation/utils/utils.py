@@ -158,7 +158,7 @@ def bresenham(start: tuple, end: tuple) -> np.ndarray:
     dx = x2 - x1
     dy = y2 - y1
     is_steep = abs(dy) > abs(dx)  # determine how steep the line is
-    if is_steep:  # rotate line
+    if is_steep: # rotate line
         x1, y1 = y1, x1
         x2, y2 = y2, x2
     # swap start and end points if necessary and store swap state
@@ -181,10 +181,9 @@ def bresenham(start: tuple, end: tuple) -> np.ndarray:
         if error < 0:
             y += y_step
             error += dx
-    if swapped:  # reverse the list if the coordinates were swapped
+    if swapped: # reverse the list if the coordinates were swapped
         points.reverse()
-    points = np.array(points)
-    return points
+    return np.array(points)
 
 
 def circular_kernel(radius: int) -> np.ndarray:

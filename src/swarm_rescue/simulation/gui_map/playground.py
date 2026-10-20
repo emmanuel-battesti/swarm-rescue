@@ -16,15 +16,14 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Tuple, Union
 
 import arcade
-import matplotlib.pyplot as plt
 import numpy as np
 import pymunk
-import pymunk.matplotlib_util
 
 from swarm_rescue.simulation.drone.agent import Agent
 from swarm_rescue.simulation.drone.communicator import Communicator, Message
 from swarm_rescue.simulation.drone.controller import CommandsDict
 from swarm_rescue.simulation.drone.drone_part import DronePart
+from swarm_rescue.simulation.drone.grasper import Grasper
 from swarm_rescue.simulation.drone.interactive_anchored import InteractiveAnchored
 from swarm_rescue.simulation.ray_sensors.ray_compute import RayCompute
 from swarm_rescue.simulation.ray_sensors.ray_sensor import RaySensor
@@ -32,13 +31,17 @@ from swarm_rescue.simulation.drone.sensor import Sensor, SensorValue
 from swarm_rescue.simulation.elements.embodied import EmbodiedEntity
 from swarm_rescue.simulation.elements.entity import Entity
 from swarm_rescue.simulation.elements.physical_element import PhysicalElement
-from swarm_rescue.simulation.elements.scene_element import SceneElement
+from swarm_rescue.simulation.gui_map.top_down_view import TopDownView
+from swarm_rescue.simulation.simulation_stepper import SimulationStepper
+from swarm_rescue.simulation.entity_registry import EntityRegistry
 from swarm_rescue.simulation.utils.definitions import (
     PYMUNK_STEPS,
     SPACE_DAMPING,
     CollisionTypes,
 )
 from swarm_rescue.simulation.utils.position import Coordinate
+from swarm_rescue.simulation.utils.constants import ENABLE_WINDOW_RESIZING
+from swarm_rescue.simulation.utils.shader_config import ShaderConfig
 
 # pylint: disable=unused-argument
 # pylint: disable=line-too-long
@@ -50,6 +53,37 @@ AllSentMessagesDict = Dict[Agent, Dict[Communicator, Tuple[TargetCommunicator, M
 ObservationsDict = Dict[Agent, Dict[Sensor, SensorValue]]
 ReceivedMessagesDict = Dict[Agent, Dict[Communicator, Tuple[Communicator, Message]]]
 RewardsDict = Dict[Agent, float]
+
+
+def _needs_repositioning(element) -> bool:
+    """
+    Whether `Playground.reset()` must put an element back in its initial place.
+
+    Two independent reasons, kept as separate tests because they do not cover
+    the same entities:
+
+    - the entity actually moved. `moved` is defined on `EmbodiedEntity`, and
+      is True as soon as it has been displaced (or is a moving dynamic body).
+    - the entity is a `PhysicalEntity` with a mass, so something could have
+      pushed it around. `movable` only exists on `PhysicalEntity`, which is why
+      the isinstance test guards it.
+
+    Args:
+        entity: The element to check.
+
+    Returns:
+        bool: True if the element must be moved back.
+    """
+    if not isinstance(element, EmbodiedEntity):
+        return False
+
+    if element.moved:
+        return True
+
+    if isinstance(element, PhysicalElement) and element.movable:
+        return True
+
+    return False
 
 
 class Playground:
@@ -77,7 +111,8 @@ class Playground:
             background: Optional[
                 Union[Tuple[int, int, int], List[int], Tuple[int, int, int, int]]
             ] = None,
-            use_shaders: bool = True,
+            use_shaders: Optional[bool] = None,
+            window: Optional[arcade.Window] = None,
     ):
         """
         Initialize the Playground.
@@ -86,11 +121,24 @@ class Playground:
             size (Optional[Tuple[int, int]]): Size of the playground (width, height).
             seed (Optional[int]): Seed for the random number generator.
             background (Optional[Tuple[int, int, int] or List[int] or Tuple[int, int, int, int]]): Background color.
-            use_shaders (bool): Whether to use shaders for rendering.
+            use_shaders (Optional[bool]): Whether to use shaders for rendering.
+                If None, uses ShaderConfig.get_use_shaders() for auto-detection.
+            window (Optional[arcade.Window]): An existing window to draw in.
+                Defaults to a new invisible 1x1 window owned by the playground.
+                Passing one in is what lets a caller own the window's lifetime
+                -- see `close_window`.
         """
 
         # Random number generator for replication, rewind, etc.
         self._rng = np.random.default_rng(seed)
+        self._seed = seed
+
+        # We need an independent generator for the sensor noise. It is derived from the
+        # same seed, so that a seeded run will replay its noisy readings, too. However, it
+        # is kept apart from the other generator `_rng`: the generated UIDs must not shift
+        # when a sensor consumes a different amount of generated noise.
+        # The value "None" leaves the noise on the global RNG.
+        self._noise_rng = np.random.default_rng(seed)
 
         # By default, size is infinite and center is at (0,0)
         self._center = (0, 0)
@@ -102,46 +150,70 @@ class Playground:
 
         self._background = background
 
-        # Initialization of the pymunk space, modelling all the physics
+        # Initialization of the pymunk space, modeling all the physics
         self._space = self._initialize_space()
 
-        # Lists containing elements in the playground
-        self._elements: List[SceneElement] = []
-        self._agents: List[Agent] = []
-
-        # Cache variables for performance optimization
-        self._cached_agents: List[Agent] = []
-        self._cached_elements: List[SceneElement] = []
-        self._agents_cache_needs_update = True
-        self._elements_cache_needs_update = True
+        # Who exists, and how to find them again by uid or by shape.
+        #
+        # The lists, the caches and the lookup tables live in the registry, not
+        # here: answering "who is in the world" has nothing to do with the
+        # window this class also owns. See simulation/entity_registry.py.
+        self._registry = EntityRegistry()
 
         # Private attributes for managing interactions in playground
         self._timestep: int = 0
 
-        # Mappings
-        self._shapes_to_entities: Dict[pymunk.Shape, EmbodiedEntity] = {}
-        self._name_to_agents: Dict[str, Agent] = {}
-        self._uids_to_entities: Dict[int, Entity] = {}
+        # The step loop lives in its own object; this attribute is the handle.
+        self._stepper = SimulationStepper(self)
 
         self._handle_interactions()
         self._views = []
 
-        # Arcade window necessary to create contexts, views, sensors and gui
-        self._window = arcade.Window(width=1, height=1, visible=False, antialiasing=True)  # type: ignore
-        self._window.ctx.blend_func = self._window.ctx.ONE, self._window.ctx.ZERO
+        # Arcade window necessary to create contexts, views, sensors and gui.
+        #
+        # The playground accepts one instead of always creating it, so that the
+        # caller can decide the lifetime: a caller that passes a window keeps
+        # it, and `close_window()` leaves it alone. When no window is passed,
+        # the playground creates a throwaway invisible one and closes it itself.
+        self._owns_window = window is None
+
+        if window is None:
+            self._window = arcade.Window(
+                width=1, height=1, visible=False, antialiasing=True,
+                resizable=ENABLE_WINDOW_RESIZING
+            )
+            # Prevent the window from being resized too small
+            self._window.set_minimum_size(320, 240)
+        else:
+            self._window = window
+
 
         self._ray_compute = None
-        self._use_shaders = use_shaders
+        # Use ShaderConfig for smart shader detection
+        self._use_shaders = ShaderConfig.get_use_shaders(override=use_shaders)
 
-    def debug_draw(self, plt_width: int = 10, center: Optional[Tuple[float, float]] = None, size: Optional[Tuple[int, int]] = None) -> None:
+    def debug_draw(
+        self,
+        plt_width: int = 10,
+        center: Optional[Tuple[float, float]] = None,
+        size: Optional[Tuple[int, int]] = None,
+    ) -> None:
         """
         Draw the playground using matplotlib for debugging.
+
+        `matplotlib` is imported here rather than at module level: it costs
+        about half a second to import, `debug_draw()` is called by hand from a
+        debugger, and every other module that needs the playground should not
+        pay for it.
 
         Args:
             plt_width (int): Width of the plot.
             center (Optional[Tuple[float, float]]): Center of the plot.
             size (Optional[Tuple[int, int]]): Size of the plot.
         """
+        import matplotlib.pyplot as plt
+        import pymunk.matplotlib_util
+
         if not center:
             center = self._center
 
@@ -192,13 +264,38 @@ class Playground:
         Returns:
             RayCompute: The RayCompute instance.
         """
-        if not self._ray_compute:
+        if self._ray_compute is None:
             assert self._size
             self._ray_compute = RayCompute(
-                self, self._size, self._center, zoom=1, use_shader=self._use_shaders
+                self.ctx,
+                self._create_uid_view(),
+                use_shader=self._use_shaders,
             )
 
+        assert self._ray_compute is not None
         return self._ray_compute
+
+    def _create_uid_view(self) -> TopDownView:
+        """
+        Build the offscreen view the ray sensors read the entity uids from.
+
+        This is the seam between the two layers. `Playground` is part of the
+        presentation, so it is allowed to know about `TopDownView`; `RayCompute`
+        is part of the model and only receives the `UidProvider` contract. The
+        alternative -- having `RayCompute` build its own view -- is what let a
+        window resize corrupt the physics.
+        """
+        assert self._size
+        return TopDownView(
+            self,
+            self._size,
+            self._center,
+            zoom=1,
+            use_color_uid=True,
+            draw_interactive=False,
+            draw_transparent=False,
+            draw_zone=False,
+        )
 
     @property
     def background(self):
@@ -213,6 +310,21 @@ class Playground:
         Returns the random number generator.
         """
         return self._rng
+
+    @property
+    def noise_rng(self) -> np.random.Generator:
+        """
+        Returns the generator the sensor noise comes from.
+
+        Seeded from the playground seed (offset, so it does not overlap the
+        UID stream); unseeded when the playground is. Sensors that want their
+        noise to replay with the run should use this generator instead of the
+        global numpy RNG.
+
+        Returns:
+            np.random.Generator: The noise generator.
+        """
+        return self._noise_rng
 
     @property
     def size(self) -> Optional[Tuple[int, int]]:
@@ -276,39 +388,6 @@ class Playground:
     # Entities
     ###############
 
-    def _get_identifier(self, entity: Entity):
-        """
-        Generate a unique identifier and name for an entity.
-
-        Args:
-            entity (Entity): The entity to identify.
-
-        Returns:
-            tuple: (uid, name)
-        """
-        uid = None
-        background_uid = (
-                self._background[0]
-                + self._background[1] * 256
-                + self._background[2] * 256 * 256
-        )
-
-        while True:
-            new_uid = self._rng.integers(0, 2 ** 24)
-
-            if new_uid not in self._uids_to_entities and new_uid != background_uid:
-                uid = new_uid
-                break
-
-        name = entity.name
-        if not name:
-            name = type(entity).__name__ + "_" + str(uid)
-
-        if name in [ent.name for ent in self.elements]:
-            raise ValueError("Entity with this name already in Playground")
-
-        return uid, name
-
     def get_entity_from_uid(self, uid: int) -> Entity:
         """
         Retrieve an entity from its unique identifier.
@@ -319,7 +398,9 @@ class Playground:
         Returns:
             Entity: The entity.
         """
-        return self._uids_to_entities[uid]
+        entity = self._registry.get_entity_from_uid(uid)
+        assert entity is not None, f"No entity for uid {uid}"
+        return entity
 
     @property
     def agents(self) -> List[Agent]:
@@ -329,25 +410,75 @@ class Playground:
         Returns:
             List[Agent]: The agents.
         """
-        # Cache the result to avoid recalculating every time
-        if not hasattr(self, '_cached_agents') or self._agents_cache_needs_update:
-            self._cached_agents = [agent for agent in self._agents if not agent.removed]
-            self._agents_cache_needs_update = False
-        return self._cached_agents
+        return self._registry.agents
 
     @property
-    def elements(self) -> List[SceneElement]:
+    def elements(self) -> List[Entity]:
         """
         Returns the list of scene elements currently in the playground.
 
         Returns:
-            List[SceneElement]: The elements.
+            List[Entity]: The elements.
         """
-        # Cache the result to avoid recalculating every time
-        if not hasattr(self, '_cached_elements') or self._elements_cache_needs_update:
-            self._cached_elements = [elem for elem in self._elements if not elem.removed]
-            self._elements_cache_needs_update = False
-        return self._cached_elements
+        return self._registry.elements
+
+    @property
+    def _elements(self) -> List[Entity]:
+        """
+        Every element ever added, including the ones flagged as removed.
+
+        This is the *raw* list, not `elements`. The difference matters: a
+        non-definitive `remove()` leaves the entity in here so that a sensor
+        reading taken during the step can still be resolved, while `elements`
+        already hides it. Both views are needed.
+
+        Returns:
+            List[Entity]: The registered elements, removed ones included.
+        """
+        return self._registry._elements
+
+    @property
+    def _uids_to_entities(self) -> Dict[int, Entity]:
+        """
+        The uid lookup table, kept as a property for the existing callers.
+
+        A non-definitive removal keeps its uid here on purpose, for the same
+        reason it keeps the element.
+
+        Returns:
+            Dict[int, Entity]: uid -> entity.
+        """
+        return self._registry.uids_to_entities
+
+    def _agents_with_removals(self) -> List[Agent]:
+        """
+        The agents, *including* the ones flagged as removed.
+
+        `step()` needs this: an agent removed mid-step still has to be told the
+        step ended, or its last action is never applied.
+
+        Returns:
+            List[Agent]: Every agent ever added and not definitively removed.
+        """
+        return self._registry._agents
+
+    @property
+    def _background_uid(self) -> int:
+        """
+        The uid the background color encodes to.
+
+        An entity must never receive it: the uid image is cleared with the
+        background color, so such an entity would be invisible to every
+        sensor while still having a valid uid.
+
+        Returns:
+            int: The background uid.
+        """
+        return (
+            self._background[0]
+            + self._background[1] * 256
+            + self._background[2] * 256 * 256
+        )
 
     ###############
     # STEP
@@ -360,8 +491,6 @@ class Playground:
             pymunk_steps: int = PYMUNK_STEPS,
     ):
         """
-        Update the Playground.
-
         Updates the Playground.
         Time moves by one unit of time.
 
@@ -372,157 +501,42 @@ class Playground:
 
         Returns:
             tuple: (messages, rewards)
+
         Notes:
+            The loop itself lives in `SimulationStepper`, which also documents
+            the order of the phases. This method stays as the entry point every
+            caller already uses.
+
             pymunk_steps only influences the micro-steps that
             the physical engine is taking to render
             the movement of objects and collisions.
             From an external point of view,
             one unit of time passes independent on the number
             of pymunk_steps.
-
         """
-        mess, rew = None, None
-
-        self._pre_step()
-
-        self._apply_commands(all_commands)
-
-        for _ in range(pymunk_steps):
-            self.space.step(1.0 / pymunk_steps)
-
-        self._compute_observations()
-
-        self._post_step()
-
-        rew = {agent: agent.reward for agent in self._agents}
-        if all_messages:
-            mess = self._transmit_messages(all_messages)
-
-        self._timestep += 1
-
-        return mess, rew
-
-    def _pre_step(self) -> None:
-        """
-        Perform pre-step updates for all elements and agents.
-        """
-        for element in self.elements:
-            element.pre_step()
-
-        for agent in self.agents:
-            agent.pre_step()
-
-    def _post_step(self) -> None:
-        """
-        Perform post-step updates for all elements and agents.
-        """
-        for element in self.elements:
-            element.post_step()
-
-        for agent in self.agents:
-            agent.post_step()
-
-    def _apply_commands(self, all_commands: Optional[Dict[Agent, CommandsDict]] = None) -> None:
-        """
-        Apply commands to all agents.
-
-        Args:
-            all_commands (Optional[Dict[Agent, CommandsDict]]): Commands for agents.
-        """
-        if not all_commands:
-            return
-
-        for agent, commands_dict in all_commands.items():
-            agent.receive_commands(commands_dict)
-
-        for agent in self._agents:
-            agent.apply_commands()
-
-    def _transmit_messages(self, all_messages: Optional[AllSentMessagesDict] = None):
-        """
-        Transmit messages between communicators.
-
-        Args:
-            all_messages (Optional[AllSentMessagesDict]): Messages to transmit.
-
-        Returns:
-            dict: Received messages.
-        """
-        msgs = {agent: {} for agent in self.agents}
-
-        all_sent_messages = [
-            (agent, comm_source, target)
-            for agent, comms_dict in all_messages.items()
-            for comm_source, target in comms_dict.items()
-        ]
-
-        for agent, comm_source, target in all_sent_messages:
-
-            assert comm_source.agent is agent
-
-            comm_target, message = target
-            msg = comm_source.send(message)
-
-            if not msg:
-                continue
-
-            if isinstance(comm_target, list):
-                for targ in comm_target:
-                    assert isinstance(targ, Communicator)
-                    received_msg = targ.receive(comm_source, msg)
-
-                    if received_msg:
-                        msgs[targ.agent][targ] = (comm_source, received_msg)
-
-            elif isinstance(comm_target, Communicator):
-                received_msg = comm_target.receive(comm_source, msg)
-
-                if received_msg:
-                    msgs[comm_target.agent][comm_target] = (comm_source, received_msg)
-
-            elif comm_target is None:
-                for agent2 in self.agents:
-                    for comm in agent2.communicators:
-                        received_msg = comm.receive(comm_source, msg)
-                        if received_msg:
-                            msgs[comm.agent][comm] = (comm_source, received_msg)
-
-            else:
-                raise ValueError
-
-        return msgs
-
-    def _compute_observations(self) -> None:
-        """
-        Compute observations for all agents.
-
-        Returns:
-            dict: Observations for each agent.
-        """
-        if self._ray_compute:
-            self._ray_compute.update_sensors()
-
-        for agent in self.agents:
-            agent.compute_observations()
+        return self._stepper.step(
+            all_commands=all_commands,
+            all_messages=all_messages,
+            pymunk_steps=pymunk_steps,
+        )
 
     def reset(self):
         """
         Reset the Playground to its initial state.
         """
-        # reset elements that are still in playground
-        for element in self._elements:
+        # Reset elements that are still in the playground.
+        #
+        # The raw list, not `elements`: an element flagged as removed but not
+        # definitively removed is exactly the case below that has to be put
+        # back, and `elements` hides those.
+        for element in list(self._elements):
 
             if isinstance(element, Entity) and element.temporary:
                 self.remove(element, definitive=True)
             elif isinstance(element, Entity) and element.removed:
                 self.add(element, from_removed=True)
-            elif isinstance(element, PhysicalElement) and element.movable:
-                assert element.initial_coordinates
-                element.move_to(
-                    element.initial_coordinates,
-                    element.allow_overlapping,
-                )
-            elif isinstance(element, EmbodiedEntity) and element.moved:
+            elif _needs_repositioning(element):
+                assert isinstance(element, EmbodiedEntity)
                 assert element.initial_coordinates
                 element.move_to(
                     element.initial_coordinates,
@@ -531,7 +545,7 @@ class Playground:
 
             element.reset()
 
-        for agent in self._agents:
+        for agent in self._agents_with_removals():
             agent.reset()
             if agent.removed:
                 self.add(agent, from_removed=True)
@@ -547,7 +561,8 @@ class Playground:
 
         self._timestep = 0
 
-        self._compute_observations()
+        # Sensors must report the restored world, not the pre-reset one.
+        self._stepper._compute_observations()
 
 
     def add(
@@ -570,6 +585,7 @@ class Playground:
         entity.playground = self
 
         if from_removed:
+            assert isinstance(entity, EmbodiedEntity)
             initial_coordinates = entity.initial_coordinates
             allow_overlapping = entity.allow_overlapping
 
@@ -581,6 +597,8 @@ class Playground:
         self._add_to_views(entity)
 
         if isinstance(entity, Agent):
+            if self._seed is not None:
+                self._wire_sensor_noise(entity)
             self.add(
                 entity.base,
                 initial_coordinates=initial_coordinates,
@@ -607,6 +625,24 @@ class Playground:
                     from_removed=from_removed,
                 )
 
+    def _wire_sensor_noise(self, agent: Agent) -> None:
+        """
+        Hand the playground's noise generator to every sensor of the agent.
+
+        The sensors are built in the drone's constructor, before the drone
+        knows which playground it lands in, so the generator cannot be passed
+        there; wiring them here, when the playground claims the agent, is the
+        first moment both sides exist. A seeded playground gives a generator
+        derived from its seed (offset from the UID stream), so the noisy
+        readings replay with the run; an unseeded one leaves each sensor on
+        the global numpy RNG, the historical behavior.
+
+        Args:
+            agent (Agent): The agent whose sensors are to be wired.
+        """
+        for sensor in agent.sensors:
+            sensor.set_noise_rng(self._noise_rng)
+
     def _add_to_space(self, entity, initial_coordinates, allow_overlapping):
         """
         Add the entity to the pymunk space.
@@ -618,6 +654,8 @@ class Playground:
         """
         # Mark the entity as not removed
         entity.removed = False
+
+        self._registry.mark_changed(entity)
 
         # Add shapes directly for InteractiveAnchored entities without moving them
         # because they are anchored to a fixed position
@@ -652,27 +690,12 @@ class Playground:
 
     def _add_to_mappings(self, entity):
         """
-        Add the entity to internal mappings.
+        Record the entity in the registry, and give it a uid and a name.
 
         Args:
             entity: The entity to map.
         """
-        entity.uid, entity.name = self._get_identifier(entity)
-
-        self._uids_to_entities[entity.uid] = entity
-
-        if isinstance(entity, Agent):
-            self._agents.append(entity)
-            self._name_to_agents[entity.name] = entity
-            self._agents_cache_needs_update = True
-
-        elif isinstance(entity, SceneElement):
-            self._elements.append(entity)
-            self._elements_cache_needs_update = True
-
-        if isinstance(entity, EmbodiedEntity):
-            for pm_shape in entity.pm_shapes:
-                self._shapes_to_entities[pm_shape] = entity
+        self._registry.register(entity, self._rng, self._background_uid)
 
     def _add_to_views(self, entity):
         """
@@ -695,12 +718,11 @@ class Playground:
             entity: The entity to remove.
             definitive (bool): Whether to remove definitively.
         """
-        if not entity.removed:
-            self._remove_from_space(entity)
-            self._remove_from_views(entity)
+        if isinstance(entity, Grasper) and not entity.removed:
+            entity.release_all_persons()
 
-        if definitive:
-            self._remove_from_mappings(entity)
+        if isinstance(entity, RaySensor) and self._ray_compute:
+            self._ray_compute.remove(entity)
 
         if isinstance(entity, Agent):
             self.remove(entity.base, definitive)
@@ -714,58 +736,145 @@ class Playground:
             for interactive in entity.interactives:
                 self.remove(interactive, definitive)
 
-            for grasper in entity.grasped_by:
-                grasper.release(entity)
+            for grasper in list(entity.grasped_by):
+                grasper.release_one_person(entity)
+
+        if not entity.removed:
+            self._remove_from_space(entity)
+            self._remove_from_views(entity)
+
+        if definitive:
+            self._remove_from_mappings(entity)
 
         entity.removed = True
+
+        self._registry.mark_changed(entity)
 
     def _remove_from_space(self, entity):
         """
         Remove the entity from the pymunk space.
 
+        Shapes that the space does not hold are skipped: pymunk asserts on them,
+        and an entity can legitimately be out of the space already --
+        `make_passable` takes a wreck out without removing it, and `cleanup`
+        walks it again afterward.
+
         Args:
             entity: The entity to remove.
         """
         if isinstance(entity, Agent):
             return
 
-        self._space.remove(*entity.pm_elements)
+        # pymunk keeps a shape and its body in two separate sets, so each kind
+        # has to be looked up in its own set: a shape left in `space.shapes` is
+        # asserted on, and so is a body. An entity can legitimately be half out
+        # already -- `make_passable` takes a wreck out of the space without
+        # removing it, and `cleanup` walks it again afterward.
+        present = []
+        for element in entity.pm_elements:
+            known = (self._space.shapes if isinstance(element, pymunk.Shape)
+                     else self._space.bodies)
+            if element in known:
+                present.append(element)
+
+        if present:
+            self._space.remove(*present)
+
+    def make_passable(self, entity) -> None:
+        """
+        Take an entity out of the physical space without removing it.
+
+        The entity keeps its sprites, so it is still drawn, and it keeps its uid,
+        so `hide_from_sensors` decides separately whether the sensors still see
+        it. This is what a drone out of health becomes: a wreck on the map that
+        nobody collides with any more.
+
+        Args:
+            entity (Entity): The entity to take out of the space.
+        """
+        if isinstance(entity, Agent):
+            entity = entity.base
+
+        if isinstance(entity, DronePart):
+            for device in entity.devices:
+                self._remove_from_space(device)
+            self._remove_from_space(entity)
+            return
+
+        self._remove_from_space(entity)
+
+    def hide_from_sensors(self, entity) -> None:
+        """
+        Take an entity out of the uid image, and nothing else.
+
+        The ray sensors read the uid image and nothing else, so dropping the
+        sprite from that one view is exactly what makes an entity invisible to
+        them, while it stays drawn on the map.
+
+        Args:
+            entity (Entity): The entity to hide from the sensors.
+        """
+        uid_view = self.uid_view
+        if uid_view is None:
+            return
+
+        if isinstance(entity, Agent):
+            entity = entity.base
+
+        if entity in uid_view.sprites:
+            uid_view.remove_as_sprite(entity)
+
+    def restore_collision_and_sensors(self, entity) -> None:
+        """
+        Undo `make_passable` and `hide_from_sensors`, as `reset` does.
+
+        Args:
+            entity (Entity): The entity to put back in the world.
+        """
+        if isinstance(entity, Agent):
+            entity = entity.base
+
+        if not entity.removed:
+            # pymunk tracks shapes and bodies in two separate sets and asserts on
+            # anything it already holds, so an entity that is only half out of the
+            # space -- which is what `make_passable` leaves behind -- is put back
+            # one element at a time. Adding only what is missing also leaves a
+            # drone that never died untouched.
+            missing = []
+            for element in entity.pm_elements:
+                known = (self._space.shapes if isinstance(element, pymunk.Shape)
+                         else self._space.bodies)
+                if element not in known:
+                    missing.append(element)
+
+            if missing:
+                self._space.add(*missing)
+
+        uid_view = self.uid_view
+        if uid_view is not None and entity not in uid_view.sprites:
+            uid_view.add_as_sprite(entity)
+
+    @property
+    def uid_view(self):
+        """
+        The view the ray sensors read, or None when there is no ray sensor.
+
+        A dedicated accessor because the uid view must never be confused with a
+        display one: its colors *are* the entity identifiers, so a sprite
+        swapped there invents a uid that belongs to nothing.
+        """
+        if self._ray_compute is None:
+            return None
+        return self._ray_compute.uid_provider
 
     def _remove_from_mappings(self, entity):
         """
-        Remove the entity from internal mappings.
+        Forget the entity for good.
 
         Args:
-            entity: The entity to remove.
+            entity: The entity to forget.
         """
-        assert entity.uid
-
-        # Protection: if already removed from mappings, skip
-        if entity.uid not in self._uids_to_entities:
-            return
-
-        self._uids_to_entities.pop(entity.uid)
-
-        if isinstance(entity, Agent):
-            if entity in self._agents:
-                self._agents.remove(entity)
-                self._agents_cache_needs_update = True
-
-            assert entity.name
-            if entity.name in self._name_to_agents:
-                self._name_to_agents.pop(entity.name)
-
-        elif isinstance(entity, SceneElement):
-            if entity in self._elements:
-                self._elements.remove(entity)
-                self._elements_cache_needs_update = True
-
-        if not isinstance(entity, Agent):
-            for pm_shape in entity.pm_shapes:
-                if pm_shape in self._shapes_to_entities:
-                    self._shapes_to_entities.pop(pm_shape)
-
-        entity.playground = None
+        self._registry.unregister(entity)
 
     def _remove_from_views(self, entity):
         """
@@ -786,6 +895,8 @@ class Playground:
         Args:
             view: The view to add.
         """
+        self._views.append(view)
+
         for entity in self.elements:
             view.add_as_sprite(entity)
 
@@ -798,8 +909,6 @@ class Playground:
 
             for device in agent.base.devices:
                 view.add_as_sprite(device)
-
-        self._views.append(view)
 
     def within_playground(
             self,
@@ -820,9 +929,10 @@ class Playground:
             return True
 
         if isinstance(entity, Agent):
-            for part in entity.parts:
-                if not self.within_playground(part):
-                    return False
+            # An agent is a single physical part (its base) since the drone
+            # model was simplified: see `Agent.base`.
+            if not self.within_playground(entity.base):
+                return False
 
         if entity:
             position = entity.position
@@ -877,10 +987,11 @@ class Playground:
                and elem.shape not in entity.pm_shapes
         ]
 
-        if isinstance(entity, DronePart):
-            agent_shapes = []
-            for part in entity.agent.parts:
-                agent_shapes += part.pm_shapes
+        if isinstance(entity, DronePart) and entity.agent is not None:
+            # Ignore the shapes of the agent the part belongs to: an agent is a
+            # single physical part (its base) since the drone model was
+            # simplified, so its shapes are the base's.
+            agent_shapes = list(entity.agent.base.pm_shapes)
 
             overlaps = [elem for elem in overlaps if elem.shape not in agent_shapes]
 
@@ -910,17 +1021,36 @@ class Playground:
         Returns:
             EmbodiedEntity: The associated entity.
         """
-        assert shape in self._shapes_to_entities
-
-        entity = self._shapes_to_entities[shape]
+        entity = self._registry.get_entity_from_shape(shape)
+        assert entity is not None, (
+            "This pymunk shape belongs to no entity the playground knows. "
+            "That happens when the entity was removed while the collision was "
+            "still queued."
+        )
+        assert isinstance(entity, EmbodiedEntity), (
+            f"Shape of {entity!r} has no physical body."
+        )
 
         return entity
 
     def _handle_interactions(self) -> None:
         """
         Set up collision interactions for the playground.
+
+        Subclasses must implement this. It is called from __init__, and an
+        empty implementation is silent: the playground then has no collision
+        handler at all, so the drones pass through the walls, nothing can be
+        grasped and nobody can be rescued, with no error to point at the
+        cause. Failing loudly here turns that into an obvious mistake.
+
+        Raises:
+            NotImplementedError: Always, unless overridden.
         """
-        ...
+        raise NotImplementedError(
+            f"{type(self).__name__} must implement _handle_interactions() "
+            f"to register its collision handlers. See ClosedPlayground for "
+            f"an example."
+        )
 
     def cleanup(self):
         """
@@ -932,30 +1062,27 @@ class Playground:
         calling `close_window()` when desired. This avoids closing a global
         window used by other tests or components.
         """
+        # Drop the RayCompute object (and its sensor list) before removing
+        # entities, so that Playground.remove() does not attempt to touch
+        # GPU buffers via ray_compute.remove() during cleanup. This matters
+        # in particular when cleanup() is called after the GUI window (and
+        # its GL context) has already been closed.
+        self._ray_compute = None
+
         # Clear all entities
-        for agent in self._agents.copy():
+        for agent in self._agents_with_removals().copy():
             self.remove(agent, definitive=True)
 
-        for element in self._elements.copy():
+        for element in self._registry._elements.copy():
             self.remove(element, definitive=True)
 
-        # Clear caches
-        self._cached_agents.clear()
-        self._cached_elements.clear()
-
-        # Clear all mappings
-        self._shapes_to_entities.clear()
-        self._name_to_agents.clear()
-        self._uids_to_entities.clear()
+        # The lists, the caches and the lookup tables all at once.
+        self._registry.clear()
 
         # Clear views
         self._views.clear()
 
         # Note: Do NOT close the window here. Call close_window() explicitly when needed.
-
-        # Clear ray compute
-        if self._ray_compute:
-            self._ray_compute = None
 
     def close_window(self) -> None:
         """
@@ -963,8 +1090,15 @@ class Playground:
 
         This is separated from `cleanup()` so tests and other callers can
         clean internal resources without closing a shared/global window.
+
+        A window that was *passed in* at construction is not closed here: the
+        playground never created it, so it is not the playground's to close. The
+        caller that supplied it stays responsible for it.
         """
         if hasattr(self, '_window') and self._window:
+            if not self._owns_window:
+                return
+
             try:
                 self._window.close()
             except Exception:

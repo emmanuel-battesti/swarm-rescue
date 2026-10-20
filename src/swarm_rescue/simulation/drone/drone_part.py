@@ -15,7 +15,7 @@ from swarm_rescue.simulation.drone.grasper import Grasper
 from swarm_rescue.simulation.elements.physical_entity import PhysicalEntity
 
 if TYPE_CHECKING:
-    from swarm_rescue.simulation.utils.position import Coordinate
+    from swarm_rescue.simulation.utils.position import Coordinate, CoordinateSampler
     from swarm_rescue.simulation.drone.agent import Agent
 
 CommandDict = Dict[Command, Union[float, int]]
@@ -80,9 +80,9 @@ class DronePart(PhysicalEntity, ABC):
         else:
             raise ValueError("Not implemented")
 
-    def move_to(  # pylint: disable=arguments-differ
+    def move_to(  # type: ignore[override]  # pylint: disable=arguments-differ
             self,
-            coordinates: Coordinate,
+            coordinates: Union[Coordinate, CoordinateSampler],
             move_anchors: bool = False,
             **kwargs,
     ) -> None:

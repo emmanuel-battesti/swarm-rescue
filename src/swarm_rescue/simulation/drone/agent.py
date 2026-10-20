@@ -81,6 +81,7 @@ class Agent(Entity):
     @property
     def base(self) -> DroneBase:
         """Return the base of the agent."""
+        assert self._base is not None, "No base has been attached to this agent."
         return self._base
 
     @property
@@ -123,7 +124,7 @@ class Agent(Entity):
     def observations(self) -> dict:
         """Return a dictionary of sensor names to their current values."""
         return {
-            sens: sens.sensor_values
+            sens: sens.sensor_values  # type: ignore[attr-defined]
             for sens in self.base.devices
             if isinstance(sens, Sensor)
         }
@@ -140,7 +141,7 @@ class Agent(Entity):
     @property
     def _name_to_controller(self) -> dict:
         """Return a mapping from controller names to controller objects."""
-        return {contr.name: contr for contr in self.controllers}
+        return {contr.name: contr for contr in self.controllers if contr.name is not None}
 
     @property
     def communicators(self) -> list[Communicator]:
@@ -175,9 +176,23 @@ class Agent(Entity):
     ################
 
     @property
+    def is_dead(self) -> bool:
+        """
+        Whether this agent is destroyed.
+
+        A plain agent has no notion of health, so it is never dead; drones
+        override this with their real state.
+        """
+        return False
+
+    @property
     def default_commands(self) -> CommandsDict:
         """Return a dictionary of default commands for each controller."""
-        return {controller.name: controller.default for controller in self.controllers}
+        return {
+            controller.name: controller.default
+            for controller in self.controllers
+            if controller.name is not None
+        }
 
     def receive_commands(self, commands: CommandsDict) -> None:
         """
@@ -195,7 +210,17 @@ class Agent(Entity):
             controller.command = command
 
     def apply_commands(self) -> None:
-        """Apply commands to the base (and thus to the playground physics)."""
+        """
+        Apply commands to the base (and thus to the playground physics).
+
+        A destroyed drone is skipped: its commands come from a frozen set of
+        sensor values, and letting them through would keep flying a wreck. The
+        runner stops computing them, but the guard belongs here too -- this is
+        the single place where commands turn into forces, whoever sends them.
+        """
+        if self.is_dead:
+            return
+
         self.base.apply_commands()
 
     def get_random_commands(self) -> dict:

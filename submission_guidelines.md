@@ -3,6 +3,7 @@
 In order for your code to be evaluated smoothly, each participant must adhere to the following rules.
 
 Below, *evalstep* refers to:
+
 - *intermediate01*, for the first intermediate evaluation.
 - *intermediate02*, for the second intermediate evaluation.
 - *final*, for the final evaluation.
@@ -10,6 +11,7 @@ Below, *evalstep* refers to:
 ## Cleaning your code
 
 To ensure clarity and avoid unnecessary debugging information:
+
 * **Disable** as many console displays (print(...)) as possible.
 * **Hide or disable** debugging tools (e.g., OpenCV windows).
 * **Verify** that not forbidden functions or data (e.g., noiseless position information) are used.
@@ -17,6 +19,7 @@ To ensure clarity and avoid unnecessary debugging information:
 ## Verification Before Submission
 
 Test your solution thoroughly to ensure:
+
 * It works **without your local modifications** when using a clean installation of the *swarm_rescue* project.
 * Your code does not **crash unexpectedly or enter an infinite loop**, especially when drones cross **special zones** (e.g., no-com zone, no-GPS zone, or killing zone).
 
@@ -28,17 +31,19 @@ Place your code in a directory named *teamXXX_evalstep*, where XXX corresponds t
 ## Required Files
 
 Your submission must include the following files:
+
 * *my_drone_eval.py*: replace ```your_drone_class_name``` by your drone class name.
 ```Python
 class MyDroneEval(your_drone_class_name):
     pass
 ```
 * *team_info.yml*: ensure all fields are correctly completed, especially *team_number* and *team_members*.
-* *req.txt*: List any additional Python dependencies (one package per line). If there are no additional dependencies, include an empty `req.txt` file. Place this file at the project root.
+* *pyproject.toml*: the project's own `pyproject.toml`, updated with any additional Python dependencies your drone requires (added in the `dependencies` list). Keep the base dependencies unchanged: they are what makes the simulator work.
 
 ## Exclusions
 
 Do not include the following:
+
 * The entire *swarm_rescue* directory.
 * The *.venv* directory, which contains the virtual environment and can be very large (~1GB).
 
@@ -57,6 +62,7 @@ This script is designed to facilitate the creation and submission of ZIP files c
 
 ### Usage
 To use this script *create_zip_submission.sh*, follow these steps:
+
 * If not already done, make the script executable using the command: ```chmod +x create_zip_submission.sh```.
 * Run the script: ```./create_zip_submission.sh```
 * Follow the on-screen instructions to confirm team information and choose the evaluation step.

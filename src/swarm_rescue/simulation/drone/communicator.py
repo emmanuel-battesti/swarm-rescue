@@ -23,7 +23,8 @@ class Communicator(PocketDevice):
         However, it can only send one message at a time.
 
         Args:
-            transmission_range (Optional[float]): Communication range in pixels. None means infinite.
+            transmission_range (Optional[float]): Communication range in pixels.
+                None means infinite.
         """
 
         super().__init__(color=COMM_COLOR)
@@ -69,6 +70,16 @@ class Communicator(PocketDevice):
 
         self._comms_in_range.clear()
         for comm in valid_comms:
+            # A destroyed drone stops being a peer: its wreck stays on the map
+            # but it can no longer send or receive, so it must not be reported
+            # as a neighbor either. The per-step `_disabled` flag alone misses
+            # a drone killed by damage, which is taken out of the space and so
+            # is not touched by any disabling zone; the drone's own life
+            # is what decides. A communicator merely switched off by a No Com
+            # Zone is still in range, and stays listed here -- `draw_com()`
+            # filters it out when it draws the links.
+            if comm.agent.is_dead:
+                continue
             if self.in_transmission_range(comm):
                 self._comms_in_range.append(comm)
 
@@ -96,7 +107,7 @@ class Communicator(PocketDevice):
         Returns:
             bool: True if in range, False otherwise.
         """
-        dist = comm.position.get_distance(self.position) # type: ignore[arg-type]
+        dist = comm.position.get_distance(self.position)
 
         # If both have infinite range:
         if not (comm.transmission_range or self._transmission_range):
@@ -126,7 +137,7 @@ class Communicator(PocketDevice):
         Returns:
             Optional[Message]: The message if sent, None if disabled.
         """
-        if self._disabled:
+        if self.is_switched_off:
             return None
 
         return msg
@@ -142,7 +153,7 @@ class Communicator(PocketDevice):
         Returns:
             Optional[Message]: The message if received, None otherwise.
         """
-        if self._disabled or sender is self:
+        if self.is_switched_off or sender.is_switched_off or sender is self:
             return None
 
         if self.in_transmission_range(sender):

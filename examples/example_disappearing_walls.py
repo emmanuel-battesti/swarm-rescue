@@ -14,7 +14,7 @@ from swarm_rescue.simulation.utils.utils import normalize_angle
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "src"))
 
 from typing import List, Type
-from swarm_rescue.simulation.elements.disappearing_wall import DisappearingWall, DisappearingBox
+from swarm_rescue.simulation.elements.disappearing_wall import DisappearingWall
 from swarm_rescue.simulation.elements.rescue_center import RescueCenter
 from swarm_rescue.simulation.elements.wounded_person import WoundedPerson
 from swarm_rescue.simulation.gui_map.gui_sr import GuiSR
@@ -160,6 +160,8 @@ class MapWithOpeningDoors(MapAbstract):
         """Add the main permanent walls with gaps for doors."""
         from swarm_rescue.simulation.elements.normal_wall import NormalWall
 
+        assert self._playground is not None
+
         # Left room walls - vertical wall with gap for door at center
         wall_left_vertical_top = NormalWall(
             pos_start=(-200, 50),
@@ -237,6 +239,7 @@ class MapWithOpeningDoors(MapAbstract):
         self._playground.add(wall_bottom_right, wall_bottom_right.wall_coordinates)
 
     def _add_doors(self, thickness):
+        assert self._playground is not None
         """Add doors (disappearing walls) that open access to enclosed areas."""
 
         # Door 1: Left room access (opens after 150 timesteps)
@@ -295,13 +298,13 @@ def main():
     progressively to allow drones to access new areas and rescue wounded persons.
     The mission is complete when all 4 wounded persons are brought to the rescue center.
     """
-    print("Starting Door Opening Demo")
+    print("Door opening demo")
     print("Timeline:")
-    print("   150 timesteps: Left door opens")
-    print("   300 timesteps: Right door opens")
-    print("   450 timesteps: Top door opens")
-    print("   600 timesteps: Bottom door opens")
-    print("Mission: Navigate through opening doors to rescue 4 wounded persons!")
+    print("   150 timesteps: left door opens")
+    print("   300 timesteps: right door opens")
+    print("   450 timesteps: top door opens")
+    print("   600 timesteps: bottom door opens")
+    print("Mission: go through the opening doors and rescue 4 wounded persons.")
     print()
 
     # Create the map with opening doors
@@ -313,8 +316,7 @@ def main():
     # Run the simulation
     gui.run()
 
-    print("Simulation completed!")
-    print(f"Final score: {my_map.compute_score_health_returned()}")
+    print("Simulation completed.")
 
 
 if __name__ == '__main__':

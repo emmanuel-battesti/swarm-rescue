@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Set
+from typing import TYPE_CHECKING, Optional, Tuple, Set
 
 import arcade
 import pymunk
@@ -9,9 +9,13 @@ from swarm_rescue.simulation.drone.drone_abstract import DroneAbstract
 from swarm_rescue.simulation.drone.drone_base import DroneBase
 from swarm_rescue.simulation.elements.interactive_zone import InteractiveZone
 from swarm_rescue.simulation.elements.scene_element import SceneElement
-from swarm_rescue.simulation.gui_map.collision_handlers import get_colliding_entities
-from swarm_rescue.simulation.gui_map.playground import Playground
+from swarm_rescue.simulation.collision_handlers import get_colliding_entities
 from swarm_rescue.simulation.utils.definitions import CollisionTypes
+
+if TYPE_CHECKING:
+    # Only used to annotate a *local* variable, never evaluated at runtime
+    # (PEP 526). See the same note in rescue_center.py.
+    from swarm_rescue.simulation.gui_map.playground import Playground
 
 
 def return_area_collision(arbiter: pymunk.Arbiter, _, data):
@@ -20,7 +24,7 @@ def return_area_collision(arbiter: pymunk.Arbiter, _, data):
 
     Args:
         arbiter (pymunk.Arbiter): The collision arbiter.
-        _ : Unused.
+        _: Unused.
         data: Dictionary containing the playground.
 
     Returns:
@@ -32,16 +36,17 @@ def return_area_collision(arbiter: pymunk.Arbiter, _, data):
     assert isinstance(drone_base, DroneBase)
     assert isinstance(return_area, ReturnArea)
 
-    if isinstance(drone_base, DroneBase):
-        return_area.detect_one_drone(drone_base.agent)
+    agent = drone_base.agent
+    assert isinstance(agent, DroneAbstract)
+    return_area.detect_one_drone(agent)
 
     return True
 
 
 class ReturnArea(InteractiveZone, SceneElement):
     """
-    The ReturnArea class is a subclass of InteractiveZone and represents a zone in a playground where drones start and
-    end their exploration.
+    The ReturnArea class is a subclass of InteractiveZone and represents a zone in a
+    playground where drones start and end their exploration.
     """
 
     def __init__(
@@ -73,22 +78,19 @@ class ReturnArea(InteractiveZone, SceneElement):
             # Add text to an image
             img_draw.text((5, 5), text_to_draw, fill="black")
 
-        texture = arcade.Texture(
-            name=f"Return_area_{width}_{height}_{color}",
-            image=img,
-            hit_box_algorithm="Simple",
-            hit_box_detail=1,
-        )
-
         # On change un peu la hitbox pour que le drone soit complètement dans la zone
         # on fait donc en sorte que la hitbox soit un peu plus petite que le sprite.
         offset = 25
-        p1 = (-texture.image.width / 2 + offset, -texture.image.height / 2 + offset)
-        p2 = (texture.image.width / 2 - offset, -texture.image.height / 2 + offset)
-        p3 = (texture.image.width / 2 - offset, texture.image.height / 2 - offset)
-        p4 = (-texture.image.width / 2 + offset, texture.image.height / 2 - offset)
+        p1 = (-img.width / 2 + offset, -img.height / 2 + offset)
+        p2 = (img.width / 2 - offset, -img.height / 2 + offset)
+        p3 = (img.width / 2 - offset, img.height / 2 - offset)
+        p4 = (-img.width / 2 + offset, img.height / 2 - offset)
 
-        texture._hit_box_points = p1, p2, p3, p4
+        # Texture built directly from the generated image, with explicit hitbox points.
+        texture = arcade.Texture(
+            image=img,
+            hit_box_points=[p1, p2, p3, p4],
+        )
 
         super().__init__(texture=texture)
 

@@ -1,4 +1,5 @@
 import math
+from typing import Tuple
 
 import cv2
 import numpy as np
@@ -88,8 +89,10 @@ class Grid:
         world coordinates.
 
         Args:
-            x_0, y_0: Starting point coordinates in m.
-            x_1, y_1: End point coordinates in m.
+            x_0 (float): X of the starting point, in m.
+            y_0 (float): Y of the starting point, in m.
+            x_1 (float): X of the end point, in m.
+            y_1 (float): Y of the end point, in m.
             val: Value to add to each cell of the line.
         """
 
@@ -121,7 +124,7 @@ class Grid:
         dx = x_end - x_start
         dy = y_end - y_start
         is_steep = abs(dy) > abs(dx)  # determine how steep the line is
-        if is_steep:  # rotate line
+        if is_steep: # rotate line
             x_start, y_start = y_start, x_start
             x_end, y_end = y_end, x_end
         # swap start and end points if necessary and store swap state
@@ -152,14 +155,19 @@ class Grid:
         Add a value to an array of points, input coordinates in meters.
 
         Args:
-            points_x: X coordinates in m.
-            points_y: Y coordinates in m.
+            points_x: X coordinates in m. A scalar, or an array of them.
+            points_y: Y coordinates in m, matching `points_x`.
             val: Value to add to the cells of the points.
         """
 
         x_px, y_px = self._conv_world_to_grid(points_x, points_y)
 
-        if isinstance(points_x, int):
+        # Scalars must be handled before the array branch: `np.float64` (what
+        # indexing a numpy array yields, e.g. `pose.position[0]`) is not an
+        # `int` and not an `ndarray`, so an `isinstance(points_x, int)` test
+        # silently dropped every scalar float. `examples/example_mapping.py`
+        # relies on it to mark the drone's own cell as free.
+        if np.isscalar(points_x):
             if 0 <= x_px < self.x_max_grid and 0 <= y_px < self.y_max_grid:
                 self.grid[x_px, y_px] += val
         elif isinstance(points_x, np.ndarray):
@@ -172,33 +180,72 @@ class Grid:
             self.grid[x_px, y_px] += val
 
     def display(self, grid_to_display: np.ndarray,
-                robot_pose: Pose, title: str = "grid"):
+                robot_pose: Pose,
+                title: str = "grid",
+                scale: float = 1.0,
+                origin: Tuple[int, int] = (0, 0),
+                arrow_length_px: float = 25.0):
         """
         Screen display of grid and robot pose,
         using opencv (faster than the matplotlib version).
 
         Args:
-            grid_to_display (np.ndarray): Grid to display.
+            grid_to_display (np.ndarray): Grid to display, indexed [x, y].
             robot_pose (Pose): Robot pose.
             title (str): Window title.
+            scale (float): Number of pixels per grid cell. `display()` resizes
+                the grid accordingly, and uses the same factor to place the
+                robot marker. Pass it whenever the map is too small to read
+                (a coarse grid is typically 1 px/cell, which is unreadable), or
+                when displaying a cropped window.
+            origin (Tuple[int, int]): Grid coordinates of the top-left cell of
+                `grid_to_display`, so a cropped window can be displayed.
+            arrow_length_px (float): Length of the heading arrow, in pixels.
+                Drawn along the robot orientation, so it stays readable at any
+                zoom level.
         """
         img = grid_to_display.T
         img = img - img.min()
-        img = img / img.max() * 255
+        img_max = img.max()
+        if img_max > 0:
+            # A uniform grid (e.g. a brand new one) would divide by zero here.
+            img = img / img_max * 255
         img = np.uint8(img)
+
+        if scale != 1.0:
+            # `img` is (rows=y, cols=x) and cv2 wants (width, height), so the
+            # width is the x extent. Nearest neighbor keeps cell borders crisp,
+            # which matters when zooming in on a coarse occupancy grid.
+            new_size = (int(round(img.shape[1] * scale)),
+                        int(round(img.shape[0] * scale)))
+            img = cv2.resize(img, new_size, interpolation=cv2.INTER_NEAREST)
+
         img_color = cv2.applyColorMap(src=img, colormap=cv2.COLORMAP_JET)
 
-        pt2_x = robot_pose.position[0] + np.cos(robot_pose.orientation) * 20
-        pt2_y = robot_pose.position[1] + np.sin(robot_pose.orientation) * 20
-        pt2_x, pt2_y = self._conv_world_to_grid(pt2_x, pt2_y)
+        def _to_pixel(x_world, y_world):
+            """World coordinates -> (col, row) in the displayed image."""
+            x_cell, y_cell = self._conv_world_to_grid(x_world, y_world)
+            return (int(round((x_cell - origin[0]) * scale)),
+                    int(round((y_cell - origin[1]) * scale)))
 
-        pt1_x, pt1_y = (
-            self._conv_world_to_grid(robot_pose.position[0],
-                                     robot_pose.position[1]))
+        pt1 = _to_pixel(robot_pose.position[0], robot_pose.position[1])
 
-        pt1 = (int(pt1_x), int(pt1_y))
-        pt2 = (int(pt2_x), int(pt2_y))
+        # Heading in pixel space. World +Y is up, rows grow downwards, hence
+        # the minus sign on the sine.
+        pt2 = (int(round(pt1[0] + np.cos(robot_pose.orientation)
+                         * arrow_length_px)),
+               int(round(pt1[1] - np.sin(robot_pose.orientation)
+                         * arrow_length_px)))
+
+        # Marker radius and line thickness follow the zoom so the drone stays
+        # visible on a 1 px/cell overview as well as on a zoomed-in window.
+        thickness = max(1, int(round(arrow_length_px / 10.0)))
+        radius = max(2, int(round(arrow_length_px / 4.0)))
+
+        cv2.circle(img=img_color, center=pt1, radius=radius,
+                   color=(0, 255, 255), thickness=-1)
         cv2.arrowedLine(img=img_color, pt1=pt1, pt2=pt2,
-                        color=(0, 0, 255), thickness=2)
+                        color=(0, 0, 255), thickness=thickness)
+
         cv2.imshow(title, img_color)
         cv2.waitKey(1)

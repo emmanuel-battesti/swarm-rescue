@@ -81,10 +81,10 @@ class MyMapLidar(MapAbstract):
 def main():
     the_map = MyMapLidar(drone_type=MyDroneLidar)
 
-    # draw_lidar_rays : enable the visualization of the lidar rays
-    # enable_visu_noises : to enable the visualization. It will show also a
+    # draw_lidar_rays: enable the visualization of the lidar rays
+    # enable_visu_noises: to enable the visualization. It will show also a
     # demonstration of the integration of odometer values, by drawing the
-    # estimated path in red. The green circle shows the position of drone
+    # estimated path in red. The green circle shows the position of the drone
     # according to the gps sensor and the compass
     gui = GuiSR(the_map=the_map,
                 draw_lidar_rays=True,

@@ -9,7 +9,8 @@ from swarm_rescue.simulation.ray_sensors.ray_sensor import RaySensor
 # Helper function that computes the angles of the laser rays of the sensor in radians
 def compute_ray_angles(fov_rad: float, nb_rays: int) -> np.ndarray:
     """
-    Calculates the angles of the laser rays of a sensor based on the field of view and the number of rays.
+    Calculates the angles of the laser rays of a sensor based on the field of view and the
+    number of rays.
     Example Usage:
         fov_rad = math.pi / 2
         nb_rays = 5
@@ -55,25 +56,22 @@ class DistanceSensor(RaySensor):
         """
         Draws the distance sensor rays using Arcade.
         """
-        if self._disabled:
+        if self.is_switched_off:
             return
         view_xy = self._hitpoints[:, :2]
         center_xy = self._hitpoints[:, 6:8]
         dist = 1 - self._hitpoints[:, 9] / self._range
 
-        point_list = []
-        color_list = []
+        shapes = arcade.shape_list.ShapeElementList()
 
         for (view, center, d) in zip(view_xy, center_xy, dist):
             color_value = int(d * 255)
-            color = (color_value, color_value, color_value)
+            color = (color_value, color_value, color_value, 255)
 
-            point_list.append((center[0], center[1]))
-            point_list.append((view[0], view[1]))
-            color_list.append(color)
-            color_list.append(color)
+            line = arcade.shape_list.create_line(center[0], center[1], view[0], view[1], color, line_width=1)
+            shapes.append(line)
 
-        arcade.create_lines_with_colors(point_list, color_list).draw()
+        shapes.draw()
 
     @property
     def shape(self) -> tuple:

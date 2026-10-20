@@ -39,18 +39,21 @@ class MyDroneRandom(DroneAbstract):
         The Drone will move forward and turn for a random angle when an
         obstacle is hit
         """
-        if self._misc_data.max_timestep_limit is not None:
-            perc_timestep = self.elapsed_timestep / self._misc_data.max_timestep_limit * 100
+        misc_data = self._misc_data
+        assert misc_data is not None, "This drone was built without misc_data."
+
+        if misc_data.max_timestep_limit is not None:
+            perc_timestep = self.elapsed_timestep / misc_data.max_timestep_limit * 100
         else:
             perc_timestep = None
 
-        if self._misc_data.max_walltime_limit is not None:
-            perc_walltime = self.elapsed_walltime / self._misc_data.max_walltime_limit * 100
+        if misc_data.max_walltime_limit is not None:
+            perc_walltime = self.elapsed_walltime / misc_data.max_walltime_limit * 100
         else:
             perc_walltime = None
 
         if perc_timestep is not None and perc_walltime is not None:
-            print(f"% walltime = {perc_walltime:.1f}% and % timestep = {perc_timestep:.1f}%")
+            print(f"walltime: {perc_walltime:5.1f}%  timestep: {perc_timestep:5.1f}%")
 
         command_straight = {"forward": 1.0,
                             "rotation": 0.0}

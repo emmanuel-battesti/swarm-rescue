@@ -15,8 +15,8 @@ class KeyboardController:
         """
         Initialize the KeyboardController.
         """
-        # A dictionary that stores the current command values for forward movement, lateral movement, rotation,
-        # and the grasper.
+        # A dictionary that stores the current command values for forward movement,
+        # lateral movement, rotation, and the grasper.
         self._command: CommandsDict = {"forward": 0.0,
                                        "lateral": 0.0,
                                        "rotation": 0.0,
@@ -38,16 +38,25 @@ class KeyboardController:
             elif key == arcade.key.DOWN:
                 self._command["forward"] = -1.0
 
-            if not modifiers & arcade.key.MOD_SHIFT:
-                if key == arcade.key.LEFT:
-                    self._command["rotation"] = 1.0
-                elif key == arcade.key.RIGHT:
-                    self._command["rotation"] = -1.0
-            else:
-                if key == arcade.key.LEFT:
-                    self._command["lateral"] = 1.0
-                elif key == arcade.key.RIGHT:
-                    self._command["lateral"] = -1.0
+            if key == arcade.key.LEFT or key == arcade.key.RIGHT:
+                # Both lateral and rotation are driven by the same two keys:
+                # the plain key turns, Shift + key strafes. Both values are
+                # therefore reset before re-evaluating the modifiers, so that
+                # releasing (or pressing) Shift while the key is still held
+                # switches mode instead of leaving the previous one active.
+                self._command["lateral"] = 0.0
+                self._command["rotation"] = 0.0
+
+                if not modifiers & arcade.key.MOD_SHIFT:
+                    if key == arcade.key.LEFT:
+                        self._command["rotation"] = 1.0
+                    else:
+                        self._command["rotation"] = -1.0
+                else:
+                    if key == arcade.key.LEFT:
+                        self._command["lateral"] = 1.0
+                    else:
+                        self._command["lateral"] = -1.0
 
             if key == arcade.key.W:
                 self._command["grasper"] = 1

@@ -1,0 +1,51 @@
+# CI workflow for running tests across multiple OSes
+# Note: GitHub Actions runners do not reliably provide GPU/OpenGL
+# support (libEGL / drivers may be missing). Tests that require shaders
+# are skipped on CI (see tests using pytest.skipif(GITHUB_ACTIONS)).
+
+name: Test d'Installation Multi-OS
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  priority-check:
+    name: Vérification prioritaire (ubuntu-24.04, python 3.12)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup & Test
+        uses: ./.github/actions/setup-and-test
+        with:
+          python-version: '3.12'
+
+  build-and-test:
+    name: Tests matrix (s'exécute seulement si priorité OK)
+    needs: priority-check
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, windows-latest, macos-latest]
+        python-version: ['3.10', '3.12', '3.13']
+        exclude:
+          # Évite de surcharger la CI avec des combinaisons redondantes
+          - os: macos-latest
+            python-version: '3.10'
+        include:
+          # Test expérimental sur la version future
+          - os: ubuntu-24.04
+            python-version: '3.14'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup & Test
+        uses: ./.github/actions/setup-and-test
+        with:
+          python-version: ${{ matrix.python-version }}

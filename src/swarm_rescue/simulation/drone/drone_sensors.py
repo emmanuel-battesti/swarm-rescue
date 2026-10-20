@@ -5,7 +5,7 @@ import numpy as np
 
 from swarm_rescue.simulation.drone.sensor import Sensor
 from swarm_rescue.simulation.utils.utils import deg2rad, normalize_angle
-from swarm_rescue.simulation.utils.utils_noise import AutoregressiveModelNoise, GaussianNoise
+from swarm_rescue.simulation.utils.utils_noise import AutoregressiveModelNoise, GaussianNoise, RNG
 
 
 class DroneGPS(Sensor):
@@ -15,11 +15,13 @@ class DroneGPS(Sensor):
     array, with a noise that follows an autoregressive model of order 1.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, rng: RNG = None, **kwargs):
         """
         Initialize the DroneGPS sensor.
 
         Args:
+            rng (np.random.Generator): Optional generator for the sensor
+            noise. None (the default) comes from the global numpy RNG.
             **kwargs: Additional keyword arguments.
         """
         super().__init__(**kwargs)
@@ -30,18 +32,31 @@ class DroneGPS(Sensor):
         model_param = 0.98
         self.std_dev_noise = 5
         self._noise_model = AutoregressiveModelNoise(model_param=model_param,
-                                                     std_dev_noise=self.std_dev_noise)
+                                                     std_dev_noise=self.std_dev_noise,
+                                                     rng=rng)
 
         self._null_sensor = np.empty(self.shape)
         self._null_sensor[:] = np.nan
 
         self._values = self._default_value
 
+    def set_noise_rng(self, rng: RNG) -> None:
+        """
+        Set the generator the sensor noise comes from.
+
+        Called by the playground when it claims the drone: None leaves the
+        noise on the global numpy RNG.
+
+        Args:
+            rng (np.random.Generator): The generator to draw noise from.
+        """
+        self._noise_model.set_rng(rng)
+
     def _compute_raw_sensor(self) -> None:
         """
         Compute the raw GPS sensor value (position).
         """
-        self._values = np.array(self._anchor.position)
+        self._values = np.array(self.anchor.position)
 
     def set_playground_size(self, size: tuple) -> None:
         """
@@ -120,11 +135,13 @@ class DroneCompass(Sensor):
     DroneCompass sensor returns the orientation of the drone as a float.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, rng: RNG = None, **kwargs):
         """
         Initialize the DroneCompass sensor.
 
         Args:
+            rng (np.random.Generator): Optional generator for the sensor
+            noise. None (the default) comes from the global numpy RNG.
             **kwargs: Additional keyword arguments.
         """
         super().__init__(**kwargs)
@@ -134,17 +151,30 @@ class DroneCompass(Sensor):
         self.std_dev_noise_angle = deg2rad(4.0)
         self._noise_model = (
             AutoregressiveModelNoise(model_param=model_param,
-                                     std_dev_noise=self.std_dev_noise_angle))
+                                     std_dev_noise=self.std_dev_noise_angle,
+                                     rng=rng))
 
         self._null_sensor = np.nan
 
         self._values = self._default_value
 
+    def set_noise_rng(self, rng: RNG) -> None:
+        """
+        Set the generator the sensor noise comes from.
+
+        Called by the playground when it claims the drone: None leaves the
+        noise on the global numpy RNG.
+
+        Args:
+            rng (np.random.Generator): The generator to draw noise from.
+        """
+        self._noise_model.set_rng(rng)
+
     def _compute_raw_sensor(self) -> None:
         """
         Compute the raw compass sensor value (orientation).
         """
-        self._values = normalize_angle(self._anchor.angle)
+        self._values = normalize_angle(self.anchor.angle)
 
     def _apply_normalization(self) -> None:
         """
@@ -214,24 +244,29 @@ class DroneOdometer(Sensor):
         the last step in the reference frame
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, rng: RNG = None, **kwargs):
         """
         Initialize the DroneOdometer sensor.
 
         Args:
+            rng (np.random.Generator): Optional generator for the sensor
+            noise. None (the default) comes from the global numpy RNG.
             **kwargs: Additional keyword arguments.
         """
         super().__init__(**kwargs)
         self._noise = True
 
         self.std_dev_dist_travel = 0.2
-        self._noise_dist_travel_model = GaussianNoise(std_dev_noise=self.std_dev_dist_travel)
+        self._noise_dist_travel_model = GaussianNoise(std_dev_noise=self.std_dev_dist_travel,
+                                                      rng=rng)
 
         self.std_dev_alpha = deg2rad(8.0)
-        self._noise_alpha_model = GaussianNoise(std_dev_noise=self.std_dev_alpha)
+        self._noise_alpha_model = GaussianNoise(std_dev_noise=self.std_dev_alpha,
+                                                rng=rng)
 
         self.std_dev_theta = deg2rad(1.0)
-        self._noise_theta_model = GaussianNoise(std_dev_noise=self.std_dev_theta)
+        self._noise_theta_model = GaussianNoise(std_dev_noise=self.std_dev_theta,
+                                                rng=rng)
 
         self._null_sensor = np.empty(self.shape)
         self._null_sensor[:] = np.nan
@@ -241,33 +276,47 @@ class DroneOdometer(Sensor):
         self.prev_angle = None
         self.prev_position = None
 
+    def set_noise_rng(self, rng: RNG) -> None:
+        """
+        Set the generator the sensor noise comes from.
+
+        Called by the playground when it claims the drone: None leaves the
+        noise on the global numpy RNG.
+
+        Args:
+            rng (np.random.Generator): The generator to draw noise from.
+        """
+        self._noise_dist_travel_model.set_rng(rng)
+        self._noise_alpha_model.set_rng(rng)
+        self._noise_theta_model.set_rng(rng)
+
     def _compute_raw_sensor(self) -> None:
         """
         Compute the distance traveled, relative angle, and variation of orientation for the robot.
         """
         # DIST_TRAVEL
         if self.prev_position is None:
-            self.prev_position = self._anchor.position
+            self.prev_position = self.anchor.position
 
-        travel_vector = self._anchor.position - self.prev_position
+        travel_vector = self.anchor.position - self.prev_position
         dist_travel = math.sqrt(travel_vector[0] ** 2 + travel_vector[1] ** 2)
         self._values[0] = dist_travel
 
         # ALPHA
         if self.prev_angle is None:
-            self.prev_angle = self._anchor.angle
+            self.prev_angle = self.anchor.angle
 
         alpha = (math.atan2(travel_vector[1], travel_vector[0]) -
                  self.prev_angle)
         self._values[1] = normalize_angle(alpha)
 
         # THETA
-        theta = self._anchor.angle - self.prev_angle
+        theta = self.anchor.angle - self.prev_angle
         self._values[2] = normalize_angle(theta)
 
         # UPDATE
-        self.prev_position = self._anchor.position
-        self.prev_angle = self._anchor.angle
+        self.prev_position = self.anchor.position
+        self.prev_angle = self.anchor.angle
 
     def _apply_normalization(self) -> None:
         """
